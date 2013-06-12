@@ -2272,6 +2272,7 @@ namespace Mono.Debugging.Soft
 			//using private Mono.Debugging API, so our thread/backtrace calls will cache stuff that will get used later
 			var process = GetProcesses () [0];				
 			EnsureRecentThreadIsValid (process);
+			current_thread = recent_thread;
 			OnTargetEvent (new TargetEventArgs (TargetEventType.TargetStopped) {
 				Process = process,
 				Thread = GetThread (process, recent_thread),
