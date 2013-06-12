@@ -10,7 +10,7 @@
     <RootNamespace>Mono.Debugging.Soft</RootNamespace>
     <AssemblyName>Mono.Debugging.Soft</AssemblyName>
     <SignAssembly>True</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\..\..\core\Mono.Debugging\mono.debugging.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\Mono.Debugging\mono.debugging.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
