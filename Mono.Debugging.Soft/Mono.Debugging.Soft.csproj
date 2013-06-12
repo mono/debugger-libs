@@ -29,22 +29,22 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\core\Mono.Debugging\Mono.Debugging.csproj">
+    <ProjectReference Include="..\Mono.Debugging\Mono.Debugging.csproj">
       <Project>{90C99ADB-7D4B-4EB4-98C2-40BD1B14C7D2}</Project>
       <Name>Mono.Debugging</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\contrib\Mono.Debugger.Soft\Mono.Debugger.Soft.csproj">
+    <ProjectReference Include="..\Mono.Debugger.Soft\Mono.Debugger.Soft.csproj">
       <Project>{372E8E3E-29D5-4B4D-88A2-4711CD628C4E}</Project>
       <Name>Mono.Debugger.Soft</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\external\cecil\Mono.Cecil.csproj">
+    <ProjectReference Include="..\..\cecil\Mono.Cecil.csproj">
       <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\external\cecil\symbols\mdb\Mono.Cecil.Mdb.csproj">
+    <ProjectReference Include="..\..\cecil\symbols\mdb\Mono.Cecil.Mdb.csproj">
       <Project>{8559DD7F-A16F-46D0-A05A-9139FAEBA8FD}</Project>
       <Name>Mono.Cecil.Mdb</Name>
       <Private>False</Private>
