@@ -918,22 +918,15 @@ namespace Mono.Debugging.Soft
 		void InsertBreakpoint (Breakpoint bp, BreakInfo bi)
 		{
 			EventRequest request;
-
-			request = vm.CreateBreakpointRequest (bi.Location.Method, bi.Location.ILOffset);
+			
+			request = vm.SetBreakpoint (bi.Location.Method, bi.Location.ILOffset);
+			request.Enabled = bp.Enabled;
 			bi.Requests.Add (request);
+			
 			breakpoints[request] = bi;
-
+			
 			if (bi.Location.LineNumber != bp.Line || bi.Location.ColumnNumber != bp.Column)
 				bi.AdjustBreakpointLocation (bi.Location.LineNumber, bi.Location.ColumnNumber);
-
-			ThreadPool.QueueUserWorkItem (delegate {
-				try {
-					request.Enabled = bp.Enabled;
-				} catch (Exception ex) {
-					OnDebuggerOutput (true, string.Format ("Breakpoint request failed: {0}", ex.Message));
-					LoggingService.LogError ("Breakpoint request failed", ex);
-				}
-			});
 		}
 		
 		void InsertCatchpoint (Catchpoint cp, BreakInfo bi, TypeMirror excType)
