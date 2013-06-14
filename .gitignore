@@ -10,3 +10,4 @@ obj
 *.usertasks
 *.mdb
 .DS_Store
+Makefile.in
