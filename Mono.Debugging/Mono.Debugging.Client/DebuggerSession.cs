@@ -249,8 +249,14 @@ namespace Mono.Debugging.Client
 
 					if (breakpointStore != null) {
 						if (IsConnected) {
-							foreach (BreakEvent bp in breakpointStore)
-								AddBreakEvent (bp);
+							Dispatch (delegate {
+								lock (slock) {
+									if (IsConnected) {
+										foreach (BreakEvent bp in breakpointStore)
+											AddBreakEvent (bp);
+									}
+								}
+							});
 						}
 						breakpointStore.BreakEventAdded += OnBreakpointAdded;
 						breakpointStore.BreakEventRemoved += OnBreakpointRemoved;
@@ -559,7 +565,6 @@ namespace Mono.Debugging.Client
 				msg += " (" + ex.Message + ")";
 				OnDebuggerOutput (false, msg + "\n");
 				HandleException (ex);
-				return;
 			}
 		}
 
@@ -613,9 +618,16 @@ namespace Mono.Debugging.Client
 				if (adjustingBreakpoints)
 					return;
 			}
+
 			lock (slock) {
-				if (IsConnected)
-					AddBreakEvent (args.BreakEvent);
+				if (IsConnected) {
+					Dispatch (delegate {
+						lock (slock) {
+							if (IsConnected)
+								AddBreakEvent (args.BreakEvent);
+						}
+					});
+				}
 			}
 		}
 		
@@ -625,25 +637,44 @@ namespace Mono.Debugging.Client
 				if (adjustingBreakpoints)
 					return;
 			}
+
 			lock (slock) {
-				if (IsConnected)
-					RemoveBreakEvent (args.BreakEvent);
+				if (IsConnected) {
+					Dispatch (delegate {
+						lock (slock) {
+							if (IsConnected)
+								RemoveBreakEvent (args.BreakEvent);
+						}
+					});
+				}
 			}
 		}
 		
 		void OnBreakpointModified (object s, BreakEventArgs args)
 		{
 			lock (slock) {
-				if (IsConnected)
-					UpdateBreakEvent (args.BreakEvent);
+				if (IsConnected) {
+					Dispatch (delegate {
+						lock (slock) {
+							if (IsConnected)
+								UpdateBreakEvent (args.BreakEvent);
+						}
+					});
+				}
 			}
 		}
 		
 		void OnBreakpointStatusChanged (object s, BreakEventArgs args)
 		{
 			lock (slock) {
-				if (IsConnected)
-					UpdateBreakEventStatus (args.BreakEvent);
+				if (IsConnected) {
+					Dispatch (delegate {
+						lock (slock) {
+							if (IsConnected)
+								UpdateBreakEventStatus (args.BreakEvent);
+						}
+					});
+				}
 			}
 		}
 
