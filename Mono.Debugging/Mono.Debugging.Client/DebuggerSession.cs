@@ -813,19 +813,18 @@ namespace Mono.Debugging.Client
 		{
 			if (TypeResolverHandler == null)
 				return expression;
-			else {
-				string key = expression + " " + location;
-				string resolved;
-				if (!resolvedExpressionCache.TryGetValue (key, out resolved)) {
-					try {
-						resolved = OnResolveExpression (expression, location);
-					} catch (Exception ex) {
-						OnDebuggerOutput (true, "Error while resolving expression: " + ex.Message);
-					}
-					resolvedExpressionCache [key] = resolved;
+
+			string key = expression + " " + location;
+			string resolved;
+			if (!resolvedExpressionCache.TryGetValue (key, out resolved)) {
+				try {
+					resolved = OnResolveExpression (expression, location);
+				} catch (Exception ex) {
+					OnDebuggerOutput (true, "Error while resolving expression: " + ex.Message);
 				}
-				return resolved ?? expression;
+				resolvedExpressionCache [key] = resolved;
 			}
+			return resolved ?? expression;
 		}
 		
 		/// <summary>
