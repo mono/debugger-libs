@@ -760,7 +760,11 @@ namespace Mono.Debugging.Soft
 					bool resolved = false;
 
 					foreach (var location in FindFunctionLocations (fb.FunctionName, fb.ParamTypes)) {
-						string paramList = "(" + string.Join (", ", fb.ParamTypes) + ")";
+						string paramList = string.Empty;
+
+						if (fb.ParamTypes != null)
+							paramList = "(" + string.Join (", ", fb.ParamTypes) + ")";
+
 						OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint for '{0}{1}' to {2}:{3} [0x{4:x5}].\n",
 						                                        fb.FunctionName, paramList, location.SourceFile, location.LineNumber, location.ILOffset));
 
