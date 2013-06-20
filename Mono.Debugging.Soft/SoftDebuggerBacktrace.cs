@@ -179,6 +179,7 @@ namespace Mono.Debugging.Soft
 			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber);
 			var external = session.IsExternalCode (frame);
 			string addressSpace = string.Empty;
+			bool hasDebugInfo = false;
 			string language;
 
 			if (frame.Method != null) {
@@ -187,12 +188,13 @@ namespace Mono.Debugging.Soft
 				} else {
 					addressSpace = method.FullName;
 					language = "Managed";
+					hasDebugInfo = true;
 				}
 			} else {
 				language = "Native";
 			}
 
-			return new SoftDebuggerStackFrame (frame, addressSpace, location, language, external, true, hidden, typeFQN, typeFullName);
+			return new SoftDebuggerStackFrame (frame, addressSpace, location, language, external, hasDebugInfo, hidden, typeFQN, typeFullName);
 		}
 		
 		protected override EvaluationContext GetEvaluationContext (int frameIndex, EvaluationOptions options)
