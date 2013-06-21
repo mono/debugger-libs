@@ -1010,6 +1010,8 @@ namespace Mono.Debugging.Soft
 		
 		public override object GetValueType (EvaluationContext ctx, object val)
 		{
+			if (val == null)
+				return typeof (Object);
 			if (val is ArrayMirror)
 				return ((ArrayMirror)val).Type;
 			if (val is ObjectMirror)
