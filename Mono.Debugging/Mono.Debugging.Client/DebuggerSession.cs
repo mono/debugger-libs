@@ -232,9 +232,11 @@ namespace Mono.Debugging.Client
 			set {
 				lock (slock) {
 					if (breakpointStore != null) {
-						foreach (BreakEvent bp in breakpointStore) {
-							RemoveBreakEvent (bp);
-							NotifyBreakEventStatusChanged (bp);
+						lock (breakpointStore) {
+							foreach (BreakEvent bp in breakpointStore) {
+								RemoveBreakEvent (bp);
+								NotifyBreakEventStatusChanged (bp);
+							}
 						}
 						breakpointStore.BreakEventAdded -= OnBreakpointAdded;
 						breakpointStore.BreakEventRemoved -= OnBreakpointRemoved;
@@ -252,8 +254,10 @@ namespace Mono.Debugging.Client
 							Dispatch (delegate {
 								lock (slock) {
 									if (IsConnected) {
-										foreach (BreakEvent bp in breakpointStore)
-											AddBreakEvent (bp);
+										lock (breakpointStore) {
+											foreach (BreakEvent bp in breakpointStore)
+												AddBreakEvent (bp);
+										}
 									}
 								}
 							});
@@ -1090,8 +1094,10 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				if (!HasExited) {
 					IsConnected = true;
-					foreach (BreakEvent bp in breakpointStore)
-						AddBreakEvent (bp);
+					lock (breakpointStore) {
+						foreach (BreakEvent bp in breakpointStore)
+							AddBreakEvent (bp);
+					}
 				}
 			}
 		}
