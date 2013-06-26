@@ -179,9 +179,6 @@ namespace Mono.Debugging.Soft
 	{
 		public SoftDebuggerLaunchArgs (string monoRuntimePrefix, Dictionary<string,string> monoRuntimeEnvironmentVariables)
 		{
-			if (string.IsNullOrEmpty (monoRuntimePrefix))
-				throw new ArgumentException ("monoRuntimePrefix");
-			
 			this.MonoRuntimePrefix = monoRuntimePrefix;
 			this.MonoRuntimeEnvironmentVariables = monoRuntimeEnvironmentVariables;
 		}

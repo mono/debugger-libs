@@ -171,7 +171,7 @@ namespace Mono.Debugging.Soft
 		void StartLaunching (SoftDebuggerStartInfo dsi)
 		{
 			var args = (SoftDebuggerLaunchArgs) dsi.StartArgs;
-			var runtime = Path.Combine (Path.Combine (args.MonoRuntimePrefix, "bin"), "mono");
+			var runtime = string.IsNullOrEmpty (args.MonoRuntimePrefix) ? "mono" : Path.Combine (Path.Combine (args.MonoRuntimePrefix, "bin"), "mono");
 			RegisterUserAssemblies (dsi);
 			
 			var psi = new System.Diagnostics.ProcessStartInfo (runtime) {
