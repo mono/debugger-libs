@@ -704,12 +704,19 @@ namespace Mono.Debugging.Soft
 			return new Backtrace (new SoftDebuggerBacktrace (this, thread));
 		}
 
-		static string GetThreadName (ThreadMirror t)
+		string GetThreadName (ThreadMirror t)
 		{
 			string name = t.Name;
 			if (string.IsNullOrEmpty (name)) {
-				if (t.IsThreadPoolThread)
-					return "<Thread Pool>";
+				try {
+					if (t.IsThreadPoolThread)
+						return "<Thread Pool>";
+				} catch (ObjectCollectedException e) {
+					if (vm.Version.AtLeast (2, 2)) {
+						throw e;
+					}
+					return "<Thread>";
+				}
 			}
 			return name;
 		}
@@ -1307,10 +1314,13 @@ namespace Mono.Debugging.Soft
 				try {
 					vm.Resume ();
 				} catch (VMNotSuspendedException) {
-					// When attaching to a running VMs, there's no way to know whether it's suspended, so try
-					// to Resume() anyway, and ignore the exception.
-					if (es[0].EventType != EventType.VMStart)
+					var eventType = es [0].EventType;
+					var isTolerantEvent = eventType == EventType.VMStart || eventType == EventType.AssemblyLoad || eventType == EventType.TypeLoad 
+						|| eventType == EventType.ThreadStart || eventType == EventType.ThreadDeath;
+
+					if (eventType != EventType.VMStart && (vm.Version.AtLeast (2, 2) || !isTolerantEvent)) {
 						throw;
+					}
 				}
 			}
 		}
