@@ -1132,25 +1132,39 @@ namespace Mono.Debugging.Evaluation
 			return null;
 		}
 
-		public string EvaluateDisplayString (EvaluationContext ctx, object obj, string exp)
+		static bool IsQuoted (string str)
+		{
+			return str.Length >= 2 && str[0] == '"' && str[str.Length - 1] == '"';
+		}
+
+		public string EvaluateDisplayString (EvaluationContext ctx, object obj, string expr)
 		{
 			StringBuilder sb = new StringBuilder ();
-			int i = exp.IndexOf ("{");
+			int i = expr.IndexOf ('{');
 			int last = 0;
 
-			while (i != -1 && i < exp.Length) {
-				sb.Append (exp.Substring (last, i - last));
+			while (i != -1 && i < expr.Length) {
+				sb.Append (expr.Substring (last, i - last));
 				i++;
 
-				int j = exp.IndexOf ("}", i);
+				int j = expr.IndexOf ('}', i);
 				if (j == -1)
-					return exp;
+					return expr;
 
-				string mem = exp.Substring (i, j - i).Trim ();
-				if (mem.Length == 0)
-					return exp;
+				string memberExpr = expr.Substring (i, j - i).Trim ();
+				if (memberExpr.Length == 0)
+					return expr;
+
+				int comma = memberExpr.LastIndexOf (',');
+				bool noquotes = false;
+				if (comma != -1) {
+					var option = memberExpr.Substring (comma + 1).Trim ();
+					memberExpr = memberExpr.Substring (0, comma).Trim ();
+					if (option == "nq")
+						noquotes = true;
+				}
 				
-				string[] props = mem.Split (new char[] { '.' });
+				string[] props = memberExpr.Split (new char[] { '.' });
 				ValueReference member = null;
 				object val = obj;
 				
@@ -1166,17 +1180,19 @@ namespace Mono.Debugging.Evaluation
 					var str = ctx.Evaluator.TargetObjectToString (ctx, val);
 					if (str == null)
 						sb.Append ("null");
+					else if (noquotes && IsQuoted (str))
+						sb.Append (str.Substring (1, str.Length - 2));
 					else
 						sb.Append (str);
 				} else {
-					sb.Append ("{Unknown member '" + mem + "'}");
+					sb.Append ("{Unknown member '" + memberExpr + "'}");
 				}
 
 				last = j + 1;
-				i = exp.IndexOf ('{', last);
+				i = expr.IndexOf ('{', last);
 			}
 
-			sb.Append (exp.Substring (last));
+			sb.Append (expr.Substring (last));
 
 			return sb.ToString ();
 		}
