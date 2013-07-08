@@ -2058,6 +2058,9 @@ namespace Mono.Debugging.Soft
 		
 		static bool PathsAreEqual (string p1, string p2)
 		{
+			if (string.IsNullOrWhiteSpace (p1) || string.IsNullOrWhiteSpace (p2))
+				return false;
+
 			if (PathComparer.Compare (p1, p2) == 0)
 				return true;
 
