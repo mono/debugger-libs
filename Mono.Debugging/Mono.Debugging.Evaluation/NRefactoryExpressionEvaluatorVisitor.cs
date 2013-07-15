@@ -731,7 +731,7 @@ namespace Mono.Debugging.Evaluation
 					if (xtypeArgs == null) {
 						// try to infer the generic type arguments from the type of the object...
 						object xtype = vtype;
-						while (!ctx.Adapter.IsGenericType (ctx, xtype))
+						while (xtype != null && !ctx.Adapter.IsGenericType (ctx, xtype))
 							xtype = ctx.Adapter.GetBaseType (ctx, xtype);
 
 						if (xtype != null)
