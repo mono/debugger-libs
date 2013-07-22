@@ -497,7 +497,8 @@ namespace Mono.Debugging.Soft
 		
 		static bool IsGeneratedTemporaryLocal (LocalVariable local)
 		{
-			return local.Name != null && local.Name.StartsWith ("CS$", StringComparison.Ordinal);
+			// csc uses CS$ prefix for temporary variables and <>t__ prefix for async task-related state variables
+			return local.Name != null && (local.Name.StartsWith ("CS$", StringComparison.Ordinal) || local.Name.StartsWith ("<>t__", StringComparison.Ordinal));
 		}
 		
 		static string GetHoistedIteratorLocalName (FieldInfoMirror field)
@@ -508,7 +509,7 @@ namespace Mono.Debugging.Soft
 			}
 			
 			// csc, mcs locals of form <name>__0
-			if (field.Name.StartsWith ("<", StringComparison.Ordinal)) {
+			if (field.Name[0] == '<') {
 				int i = field.Name.IndexOf ('>');
 				if (i > 1) {
 					return field.Name.Substring (1, i - 1);
@@ -538,7 +539,7 @@ namespace Mono.Debugging.Soft
 					list.AddRange (GetHoistedLocalVariables (cx, new FieldValueReference (cx, field, val, type)));
 					continue;
 				}
-				if (field.Name.StartsWith ("<", StringComparison.Ordinal)) {
+				if (field.Name[0] == '<') {
 					if (isIterator) {
 						var name = GetHoistedIteratorLocalName (field);
 						if (!string.IsNullOrEmpty (name)) {
