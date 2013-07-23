@@ -623,15 +623,13 @@ namespace Mono.Debugging.Client
 					return;
 			}
 
-			lock (slock) {
-				if (IsConnected) {
-					Dispatch (delegate {
-						lock (slock) {
-							if (IsConnected)
-								AddBreakEvent (args.BreakEvent);
-						}
-					});
-				}
+			if (IsConnected) {
+				Dispatch (delegate {
+					lock (slock) {
+						if (IsConnected)
+							AddBreakEvent (args.BreakEvent);
+					}
+				});
 			}
 		}
 		
@@ -642,43 +640,37 @@ namespace Mono.Debugging.Client
 					return;
 			}
 
-			lock (slock) {
-				if (IsConnected) {
-					Dispatch (delegate {
-						lock (slock) {
-							if (IsConnected)
-								RemoveBreakEvent (args.BreakEvent);
-						}
-					});
-				}
+			if (IsConnected) {
+				Dispatch (delegate {
+					lock (slock) {
+						if (IsConnected)
+							RemoveBreakEvent (args.BreakEvent);
+					}
+				});
 			}
 		}
 		
 		void OnBreakpointModified (object s, BreakEventArgs args)
 		{
-			lock (slock) {
-				if (IsConnected) {
-					Dispatch (delegate {
-						lock (slock) {
-							if (IsConnected)
-								UpdateBreakEvent (args.BreakEvent);
-						}
-					});
-				}
+			if (IsConnected) {
+				Dispatch (delegate {
+					lock (slock) {
+						if (IsConnected)
+							UpdateBreakEvent (args.BreakEvent);
+					}
+				});
 			}
 		}
 		
 		void OnBreakpointStatusChanged (object s, BreakEventArgs args)
 		{
-			lock (slock) {
-				if (IsConnected) {
-					Dispatch (delegate {
-						lock (slock) {
-							if (IsConnected)
-								UpdateBreakEventStatus (args.BreakEvent);
-						}
-					});
-				}
+			if (IsConnected) {
+				Dispatch (delegate {
+					lock (slock) {
+						if (IsConnected)
+							UpdateBreakEventStatus (args.BreakEvent);
+					}
+				});
 			}
 		}
 
