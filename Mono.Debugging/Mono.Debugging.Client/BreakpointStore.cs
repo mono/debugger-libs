@@ -375,6 +375,12 @@ namespace Mono.Debugging.Client
 
 		public static bool FileNameEquals (string file1, string file2)
 		{
+			if (file1 == null)
+				return file2 == null;
+
+			if (file2 == null)
+				return false;
+
 			if (PathComparer.Compare (file1, file2) == 0)
 				return true;
 
