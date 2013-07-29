@@ -618,10 +618,8 @@ namespace Mono.Debugging.Client
 		
 		void OnBreakpointAdded (object s, BreakEventArgs args)
 		{
-			lock (breakpoints) {
-				if (adjustingBreakpoints)
-					return;
-			}
+			if (adjustingBreakpoints)
+				return;
 
 			if (IsConnected) {
 				Dispatch (delegate {
@@ -635,10 +633,8 @@ namespace Mono.Debugging.Client
 		
 		void OnBreakpointRemoved (object s, BreakEventArgs args)
 		{
-			lock (breakpoints) {
-				if (adjustingBreakpoints)
-					return;
-			}
+			if (adjustingBreakpoints)
+				return;
 
 			if (IsConnected) {
 				Dispatch (delegate {
