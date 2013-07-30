@@ -701,44 +701,70 @@ namespace Mono.Debugging.Evaluation
 			return null;
 		}
 
-		public virtual CompletionData GetExpressionCompletionData (EvaluationContext ctx, string exp)
+		protected virtual CompletionData GetMemberCompletionData (EvaluationContext ctx, ValueReference vr)
 		{
-			int i;
-			if (exp.Length == 0)
+			CompletionData data = new CompletionData ();
+
+			foreach (ValueReference cv in vr.GetChildReferences (ctx.Options))
+				data.Items.Add (new CompletionItem (cv.Name, cv.Flags));
+
+			data.ExpressionLength = 0;
+
+			return data;
+		}
+
+		protected static char[] CompletionPunctuation = new char[] { '(', '[', '<', ',' };
+		public virtual CompletionData GetExpressionCompletionData (EvaluationContext ctx, string expr)
+		{
+			if (string.IsNullOrEmpty (expr))
 				return null;
 
-			if (exp [exp.Length - 1] == '.') {
-				exp = exp.Substring (0, exp.Length - 1);
-				i = 0;
-				while (i < exp.Length) {
-					ValueReference vr = null;
+			if (expr[expr.Length - 1] == '.') {
+				expr = expr.Substring (0, expr.Length - 1);
+				int startIndex = 0;
+
+				while (startIndex < expr.Length) {
+					int count = expr.Length - startIndex;
+
 					try {
-						vr = ctx.Evaluator.Evaluate (ctx, exp.Substring (i), null);
-						if (vr != null) {
-							CompletionData data = new CompletionData ();
-							foreach (ValueReference cv in vr.GetChildReferences (ctx.Options))
-								data.Items.Add (new CompletionItem (cv.Name, cv.Flags));
-							data.ExpressionLength = 0;
-							return data;
-						}
+						var vr = ctx.Evaluator.Evaluate (ctx, expr.Substring (startIndex, count), null);
+						if (vr != null)
+							return GetMemberCompletionData (ctx, vr);
+
+						// FIXME: handle types and namespaces...
 					} catch (Exception ex) {
 						ctx.WriteDebuggerError (ex);
 					}
-					i++;
+
+					if (startIndex + 1 >= expr.Length)
+						break;
+
+					// find the next logical place to try and evaluate a subexpression...
+					startIndex = expr.IndexOfAny (CompletionPunctuation, startIndex + 1, count - 1);
+					if (startIndex == -1)
+						break;
+
+					startIndex++;
+					while (startIndex < expr.Length && char.IsWhiteSpace (expr[startIndex]))
+						startIndex++;
 				}
+
 				return null;
 			}
-			
-			i = exp.Length - 1;
+
 			bool lastWastLetter = false;
+			int i = expr.Length - 1;
+
 			while (i >= 0) {
-				char c = exp [i--];
+				char c = expr[i--];
 				if (!char.IsLetterOrDigit (c) && c != '_')
 					break;
+
 				lastWastLetter = !char.IsDigit (c);
 			}
+
 			if (lastWastLetter) {
-				string partialWord = exp.Substring (i+1);
+				string partialWord = expr.Substring (i+1);
 				
 				CompletionData data = new CompletionData ();
 				data.ExpressionLength = partialWord.Length;
@@ -771,6 +797,7 @@ namespace Mono.Debugging.Evaluation
 				if (data.Items.Count > 0)
 					return data;
 			}
+
 			return null;
 		}
 		

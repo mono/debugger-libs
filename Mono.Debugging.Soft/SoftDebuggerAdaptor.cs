@@ -801,6 +801,52 @@ namespace Mono.Debugging.Soft
 				type = type.BaseType;
 			}
 		}
+
+		protected override CompletionData GetMemberCompletionData (EvaluationContext ctx, ValueReference vr)
+		{
+			HashSet<string> properties = new HashSet<string> ();
+			HashSet<string> methods = new HashSet<string> ();
+			HashSet<string> fields = new HashSet<string> ();
+			CompletionData data = new CompletionData ();
+			var type = vr.Type as TypeMirror;
+
+			while (type != null) {
+				foreach (var field in type.GetFields ()) {
+					if (field.IsStatic || field.IsSpecialName || !field.IsPublic)
+						continue;
+
+					if (fields.Add (field.Name))
+						data.Items.Add (new CompletionItem (field.Name, FieldValueReference.GetFlags (field)));
+				}
+
+				foreach (var property in type.GetProperties ()) {
+					var getter = property.GetGetMethod (true);
+
+					if (getter == null || getter.IsStatic || !getter.IsPublic)
+						continue;
+
+					if (properties.Add (property.Name))
+						data.Items.Add (new CompletionItem (property.Name, PropertyValueReference.GetFlags (property, getter)));
+				}
+
+				foreach (var method in type.GetMethods ()) {
+					if (method.IsStatic || method.IsConstructor || method.IsSpecialName || !method.IsPublic)
+						continue;
+
+					if (methods.Add (method.Name))
+						data.Items.Add (new CompletionItem (method.Name, ObjectValueFlags.Method | ObjectValueFlags.Public));
+				}
+
+				if (type.BaseType == null && type.FullName != "System.Object")
+					type = ((SoftEvaluationContext) ctx).Session.GetType ("System.Object");
+				else
+					type = type.BaseType;
+			}
+
+			data.ExpressionLength = 0;
+
+			return data;
+		}
 		
 		public override void GetNamespaceContents (EvaluationContext ctx, string namspace, out string[] childNamespaces, out string[] childTypes)
 		{

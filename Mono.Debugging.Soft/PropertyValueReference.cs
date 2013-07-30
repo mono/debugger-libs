@@ -46,12 +46,19 @@ namespace Mono.Debugging.Soft
 			this.declaringType = declaringType;
 			this.indexerArgs = indexerArgs;
 			
-			flags = ObjectValueFlags.Property;
+			flags = GetFlags (property, getter);
+		}
+
+		internal static ObjectValueFlags GetFlags (PropertyInfoMirror property, MethodMirror getter)
+		{
+			var flags = ObjectValueFlags.Property;
+
 			if (property.GetSetMethod (true) == null)
 				flags |= ObjectValueFlags.ReadOnly;
-			
+
 			if (getter.IsStatic)
 				flags |= ObjectValueFlags.Global;
+
 			if (getter.IsPublic)
 				flags |= ObjectValueFlags.Public;
 			else if (getter.IsPrivate)
@@ -62,9 +69,11 @@ namespace Mono.Debugging.Soft
 				flags |= ObjectValueFlags.Internal;
 			else if (getter.IsFamilyOrAssembly)
 				flags |= ObjectValueFlags.InternalProtected;
-			
+
 			if (property.DeclaringType.IsValueType)
 				flags |= ObjectValueFlags.ReadOnly; // Setting property values on structs is not supported by sdb
+
+			return flags;
 		}
 		
 		public override ObjectValueFlags Flags {

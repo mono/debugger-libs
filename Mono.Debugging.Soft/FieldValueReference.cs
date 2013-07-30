@@ -53,10 +53,23 @@ namespace Mono.Debugging.Soft
 			this.declaringType = declaringType;
 			this.vname = vname;
 			flags = vflags;
-			if (field.IsStatic) {
-				flags |= ObjectValueFlags.Global;
+
+			if (field.IsStatic)
 				this.obj = null;
-			}
+
+			flags |= GetFlags (field);
+
+			if (obj is PrimitiveValue)
+				flags |= ObjectValueFlags.ReadOnly;
+		}
+
+		internal static ObjectValueFlags GetFlags (FieldInfoMirror field)
+		{
+			var flags = ObjectValueFlags.Field;
+
+			if (field.IsStatic)
+				flags |= ObjectValueFlags.Global;
+
 			if (field.IsPublic)
 				flags |= ObjectValueFlags.Public;
 			else if (field.IsPrivate)
@@ -67,8 +80,8 @@ namespace Mono.Debugging.Soft
 				flags |= ObjectValueFlags.Internal;
 			else if (field.IsFamilyOrAssembly)
 				flags |= ObjectValueFlags.InternalProtected;
-			if (obj is PrimitiveValue)
-				flags |= ObjectValueFlags.ReadOnly;
+
+			return flags;
 		}
 		
 		public override ObjectValueFlags Flags {
