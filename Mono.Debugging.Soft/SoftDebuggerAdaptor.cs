@@ -972,11 +972,12 @@ namespace Mono.Debugging.Soft
 		public override object GetType (EvaluationContext ctx, string name, object[] typeArgs)
 		{
 			SoftEvaluationContext cx = (SoftEvaluationContext) ctx;
+
 			int i = name.IndexOf (',');
 			if (i != -1) {
 				// Find first comma outside brackets
 				int nest = 0;
-				for (int n=0; n<name.Length; n++) {
+				for (int n = 0; n < name.Length; n++) {
 					char c = name [n];
 					if (c == '[')
 						nest++;
@@ -989,7 +990,7 @@ namespace Mono.Debugging.Soft
 				}
 			}
 			
-			if (typeArgs != null && typeArgs.Length > 0){
+			if (typeArgs != null && typeArgs.Length > 0) {
 				string args = "";
 				foreach (object t in typeArgs) {
 					if (args.Length > 0)
@@ -1012,6 +1013,7 @@ namespace Mono.Debugging.Soft
 			TypeMirror tm = cx.Session.GetType (name);
 			if (tm != null)
 				return tm;
+
 			foreach (AssemblyMirror asm in cx.Thread.Domain.GetAssemblies ()) {
 				tm = asm.GetType (name, false, false);
 				if (tm != null)
@@ -1432,7 +1434,7 @@ namespace Mono.Debugging.Soft
 				
 				// Make sure that we always pull in at least System.Object methods (this is mostly needed for cases where 'type' was an interface)
 				if (currentType.BaseType == null && currentType.FullName != "System.Object")
-					currentType = ctx.Session.GetType ("System.Object");
+					currentType = ctx.Adapter.GetType (ctx, "System.Object") as TypeMirror;
 				else
 					currentType = currentType.BaseType;
 			}
