@@ -802,6 +802,20 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
+		static bool IsIEnumerable (TypeMirror type)
+		{
+			if (!type.IsInterface)
+				return false;
+
+			if (type.Namespace == "System.Collections" && type.Name == "IEnumerable")
+				return true;
+
+			if (type.Namespace == "System.Collections.Generic" && type.Name == "IEnumerable`1")
+				return true;
+
+			return false;
+		}
+
 		protected override CompletionData GetMemberCompletionData (EvaluationContext ctx, ValueReference vr)
 		{
 			HashSet<string> properties = new HashSet<string> ();
@@ -809,8 +823,12 @@ namespace Mono.Debugging.Soft
 			HashSet<string> fields = new HashSet<string> ();
 			CompletionData data = new CompletionData ();
 			var type = vr.Type as TypeMirror;
+			bool isEnumerable = false;
 
 			while (type != null) {
+				if (!isEnumerable && IsIEnumerable (type))
+					isEnumerable = true;
+
 				foreach (var field in type.GetFields ()) {
 					if (field.IsStatic || field.IsSpecialName || !field.IsPublic)
 						continue;
@@ -838,9 +856,47 @@ namespace Mono.Debugging.Soft
 				}
 
 				if (type.BaseType == null && type.FullName != "System.Object")
-					type = ((SoftEvaluationContext) ctx).Session.GetType ("System.Object");
+					type = ctx.Adapter.GetType (ctx, "System.Object") as TypeMirror;
 				else
 					type = type.BaseType;
+			}
+
+			type = vr.Type as TypeMirror;
+			foreach (var iface in type.GetInterfaces ()) {
+				if (!isEnumerable && IsIEnumerable (iface))
+					isEnumerable = true;
+
+				foreach (var property in iface.GetProperties ()) {
+					var getter = property.GetGetMethod (true);
+
+					if (getter == null || getter.IsStatic || !getter.IsPublic)
+						continue;
+
+					if (properties.Add (property.Name))
+						data.Items.Add (new CompletionItem (property.Name, PropertyValueReference.GetFlags (property, getter)));
+				}
+
+				foreach (var method in iface.GetMethods ()) {
+					if (method.IsStatic || method.IsConstructor || method.IsSpecialName || !method.IsPublic)
+						continue;
+
+					if (methods.Add (method.Name))
+						data.Items.Add (new CompletionItem (method.Name, ObjectValueFlags.Method | ObjectValueFlags.Public));
+				}
+			}
+
+			if (isEnumerable) {
+				// Look for LINQ extension methods...
+				var linq = ctx.Adapter.GetType (ctx, "System.Linq.Enumerable") as TypeMirror;
+				if (linq != null) {
+					foreach (var method in linq.GetMethods ()) {
+						if (!method.IsStatic || method.IsConstructor || method.IsSpecialName || !method.IsPublic)
+							continue;
+
+						if (methods.Add (method.Name))
+							data.Items.Add (new CompletionItem (method.Name, ObjectValueFlags.Method | ObjectValueFlags.Public));
+					}
+				}
 			}
 
 			data.ExpressionLength = 0;
