@@ -713,40 +713,20 @@ namespace Mono.Debugging.Evaluation
 			return data;
 		}
 
-		protected static char[] CompletionPunctuation = new char[] { '(', '[', '<', ',' };
 		public virtual CompletionData GetExpressionCompletionData (EvaluationContext ctx, string expr)
 		{
 			if (string.IsNullOrEmpty (expr))
 				return null;
 
 			if (expr[expr.Length - 1] == '.') {
-				expr = expr.Substring (0, expr.Length - 1);
-				int startIndex = 0;
+				try {
+					var vr = ctx.Evaluator.Evaluate (ctx, expr.Substring (0, expr.Length - 1), null);
+					if (vr != null)
+						return GetMemberCompletionData (ctx, vr);
 
-				while (startIndex < expr.Length) {
-					int count = expr.Length - startIndex;
-
-					try {
-						var vr = ctx.Evaluator.Evaluate (ctx, expr.Substring (startIndex, count), null);
-						if (vr != null)
-							return GetMemberCompletionData (ctx, vr);
-
-						// FIXME: handle types and namespaces...
-					} catch (Exception ex) {
-						ctx.WriteDebuggerError (ex);
-					}
-
-					if (startIndex + 1 >= expr.Length)
-						break;
-
-					// find the next logical place to try and evaluate a subexpression...
-					startIndex = expr.IndexOfAny (CompletionPunctuation, startIndex + 1, count - 1);
-					if (startIndex == -1)
-						break;
-
-					startIndex++;
-					while (startIndex < expr.Length && char.IsWhiteSpace (expr[startIndex]))
-						startIndex++;
+					// FIXME: handle types and namespaces...
+				} catch (Exception ex) {
+					ctx.WriteDebuggerError (ex);
 				}
 
 				return null;
