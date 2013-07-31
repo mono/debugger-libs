@@ -865,24 +865,6 @@ namespace Mono.Debugging.Soft
 			foreach (var iface in type.GetInterfaces ()) {
 				if (!isEnumerable && IsIEnumerable (iface))
 					isEnumerable = true;
-
-				foreach (var property in iface.GetProperties ()) {
-					var getter = property.GetGetMethod (true);
-
-					if (getter == null || getter.IsStatic || !getter.IsPublic)
-						continue;
-
-					if (properties.Add (property.Name))
-						data.Items.Add (new CompletionItem (property.Name, PropertyValueReference.GetFlags (property, getter)));
-				}
-
-				foreach (var method in iface.GetMethods ()) {
-					if (method.IsStatic || method.IsConstructor || method.IsSpecialName || !method.IsPublic)
-						continue;
-
-					if (methods.Add (method.Name))
-						data.Items.Add (new CompletionItem (method.Name, ObjectValueFlags.Method | ObjectValueFlags.Public));
-				}
 			}
 
 			if (isEnumerable) {
