@@ -193,7 +193,7 @@ namespace Mono.Debugging.Soft
 			}
 
 			var sdbLog = Environment.GetEnvironmentVariable ("MONODEVELOP_SDB_LOG");
-			if (!String.IsNullOrEmpty (sdbLog)) {
+			if (!string.IsNullOrEmpty (sdbLog)) {
 				options = options ?? new LaunchOptions ();
 				options.AgentArgs = string.Format ("loglevel=1,logfile='{0}'", sdbLog);
 			}
@@ -228,8 +228,7 @@ namespace Mono.Debugging.Soft
 		}
 		
 		/// <summary>Starts the debugger listening for a connection over TCP/IP</summary>
-		protected void StartListening (SoftDebuggerStartInfo dsi,
-			out int assignedDebugPort, out int assignedConsolePort)
+		protected void StartListening (SoftDebuggerStartInfo dsi, out int assignedDebugPort, out int assignedConsolePort)
 		{
 		
 			IPEndPoint dbgEP, conEP;
@@ -1340,9 +1339,9 @@ namespace Mono.Debugging.Soft
 			string name = method.Name;
 			
 			return method.IsSpecialName &&
-				name.StartsWith ("get_", StringComparison.Ordinal) ||
-					name.StartsWith ("set_", StringComparison.Ordinal) ||
-					name.StartsWith ("op_", StringComparison.Ordinal);
+				(name.StartsWith ("get_", StringComparison.Ordinal) ||
+				 name.StartsWith ("set_", StringComparison.Ordinal) ||
+				 name.StartsWith ("op_", StringComparison.Ordinal));
 		}
 		
 		void HandleBreakEventSet (Event[] es, bool dequeuing)
@@ -1370,8 +1369,7 @@ namespace Mono.Debugging.Soft
 				exception = ev.Exception;
 				if (ev.Request != unhandledExceptionRequest || exception.Type.FullName != "System.Threading.ThreadAbortException")
 					resume = false;
-			}
-			else {
+			} else {
 				//always need to evaluate all breakpoints, some might be tracepoints or conditional bps with counters
 				foreach (Event e in es) {
 					if (e.EventType == EventType.Breakpoint) {
