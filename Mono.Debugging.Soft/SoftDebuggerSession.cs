@@ -1315,7 +1315,8 @@ namespace Mono.Debugging.Soft
 				} catch (VMNotSuspendedException) {
 					var eventType = es [0].EventType;
 					var isTolerantEvent = eventType == EventType.VMStart || eventType == EventType.AssemblyLoad || eventType == EventType.TypeLoad 
-						|| eventType == EventType.ThreadStart || eventType == EventType.ThreadDeath;
+						|| eventType == EventType.ThreadStart || eventType == EventType.ThreadDeath
+						|| eventType == EventType.AppDomainCreate || eventType == EventType.AppDomainUnload;
 
 					if (eventType != EventType.VMStart && (vm.Version.AtLeast (2, 2) || !isTolerantEvent)) {
 						throw;
