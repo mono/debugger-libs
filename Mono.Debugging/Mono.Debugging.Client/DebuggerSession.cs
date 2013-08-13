@@ -1322,7 +1322,7 @@ namespace Mono.Debugging.Client
 		protected abstract void OnStepInstruction ();
 
 		/// <summary>
-		// Called to step one instruction, but step over method calls
+		/// Called to step one instruction, but step over method calls
 		/// </summary>
 		/// <remarks>
 		/// This method can only be called when the debuggee is stopped by the debugger
