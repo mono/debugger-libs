@@ -252,12 +252,10 @@ namespace Mono.Debugging.Client
 					if (breakpointStore != null) {
 						if (IsConnected) {
 							Dispatch (delegate {
-								lock (slock) {
-									if (IsConnected) {
-										lock (breakpointStore) {
-											foreach (BreakEvent bp in breakpointStore)
-												AddBreakEvent (bp);
-										}
+								if (IsConnected) {
+									lock (breakpointStore) {
+										foreach (BreakEvent bp in breakpointStore)
+											AddBreakEvent (bp);
 									}
 								}
 							});
@@ -623,10 +621,8 @@ namespace Mono.Debugging.Client
 
 			if (IsConnected) {
 				Dispatch (delegate {
-					lock (slock) {
-						if (IsConnected)
-							AddBreakEvent (args.BreakEvent);
-					}
+					if (IsConnected)
+						AddBreakEvent (args.BreakEvent);
 				});
 			}
 		}
@@ -638,10 +634,8 @@ namespace Mono.Debugging.Client
 
 			if (IsConnected) {
 				Dispatch (delegate {
-					lock (slock) {
-						if (IsConnected)
-							RemoveBreakEvent (args.BreakEvent);
-					}
+					if (IsConnected)
+						RemoveBreakEvent (args.BreakEvent);
 				});
 			}
 		}
@@ -650,10 +644,8 @@ namespace Mono.Debugging.Client
 		{
 			if (IsConnected) {
 				Dispatch (delegate {
-					lock (slock) {
-						if (IsConnected)
-							UpdateBreakEvent (args.BreakEvent);
-					}
+					if (IsConnected)
+						UpdateBreakEvent (args.BreakEvent);
 				});
 			}
 		}
@@ -662,10 +654,8 @@ namespace Mono.Debugging.Client
 		{
 			if (IsConnected) {
 				Dispatch (delegate {
-					lock (slock) {
-						if (IsConnected)
-							UpdateBreakEventStatus (args.BreakEvent);
-					}
+					if (IsConnected)
+						UpdateBreakEventStatus (args.BreakEvent);
 				});
 			}
 		}
@@ -1235,12 +1225,14 @@ namespace Mono.Debugging.Client
 		
 		internal void AdjustBreakpointLocation (Breakpoint b, int newLine, int newColumn)
 		{
-			lock (breakpoints) {
-				try {
-					adjustingBreakpoints = true;
-					Breakpoints.AdjustBreakpointLine (b, newLine, newColumn);
-				} finally {
-					adjustingBreakpoints = false;
+			lock (slock) {
+				lock (breakpoints) {
+					try {
+						adjustingBreakpoints = true;
+						Breakpoints.AdjustBreakpointLine (b, newLine, newColumn);
+					} finally {
+						adjustingBreakpoints = false;
+					}
 				}
 			}
 		}
