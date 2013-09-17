@@ -375,10 +375,11 @@ namespace Mono.Debugging.Client
 			get {
 				if (childSelector != null)
 					return childSelector;
+
 				if ((flags & ObjectValueFlags.ArrayElement) != 0)
 					return Name;
-				else
-					return "." + Name;
+
+				return "." + Name;
 			}
 			set { childSelector = value; }
 		}
@@ -397,14 +398,13 @@ namespace Mono.Debugging.Client
 					return false;
 				if (children != null)
 					return children.Count > 0;
-				else if (source == null)
+				if (source == null)
 					return false;
-				else if (IsArray)
+				if (IsArray)
 					return arrayCount > 0;
-				else if (IsObject)
+				if (IsObject)
 					return true;
-				else
-					return false;
+				return false;
 			}
 		}
 
@@ -759,7 +759,7 @@ namespace Mono.Debugging.Client
 			}
 			if (callbacks != null) {
 				// Do the callback connection in a background thread
-				System.Threading.ThreadPool.QueueUserWorkItem (delegate {
+				ThreadPool.QueueUserWorkItem (delegate {
 					foreach (KeyValuePair<IObjectValueUpdater, List<UpdateCallback>> cbs in callbacks) {
 						cbs.Key.RegisterUpdateCallbacks (cbs.Value.ToArray ());
 					}
@@ -770,7 +770,7 @@ namespace Mono.Debugging.Client
 
 	class UpdateCallbackProxy: MarshalByRefObject, IObjectValueUpdateCallback
 	{
-		WeakReference valRef;
+		readonly WeakReference valRef;
 		
 		public void UpdateValue (ObjectValue newValue)
 		{

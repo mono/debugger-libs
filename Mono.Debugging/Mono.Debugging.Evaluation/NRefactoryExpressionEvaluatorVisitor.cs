@@ -36,11 +36,11 @@ namespace Mono.Debugging.Evaluation
 {
 	public class NRefactoryExpressionEvaluatorVisitor : IAstVisitor<ValueReference>
 	{
-		Dictionary<string,ValueReference> userVariables;
-		EvaluationOptions options;
-		EvaluationContext ctx;
-		object expectedType;
-		string expression;
+		readonly Dictionary<string,ValueReference> userVariables;
+		readonly EvaluationOptions options;
+		readonly EvaluationContext ctx;
+		readonly object expectedType;
+		readonly string expression;
 
 		public NRefactoryExpressionEvaluatorVisitor (EvaluationContext ctx, string expression, object expectedType, Dictionary<string,ValueReference> userVariables)
 		{
@@ -249,7 +249,9 @@ namespace Mono.Debugging.Evaluation
 				if (vr == null || ctx.Adapter.GetTypeName (ctx, vr.Type) != "System.Boolean")
 					throw ParseError ("Right operand of logical And must be a boolean.");
 				return vr;
-			} else if (op == BinaryOperatorType.ConditionalOr) {
+			}
+
+			if (op == BinaryOperatorType.ConditionalOr) {
 				object val = left.ObjectValue;
 				if (!(val is bool))
 					throw ParseError ("Left operand of logical Or must be a boolean.");

@@ -1233,17 +1233,13 @@ namespace Mono.Debugging.Evaluation
 					return var.CreateObjectValue (ctx.Options);
 
 				return ObjectValue.CreateUnknown (exp);
-			}
-			catch (ImplicitEvaluationDisabledException) {
+			} catch (ImplicitEvaluationDisabledException) {
 				return ObjectValue.CreateImplicitNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ObjectValueFlags.None);
-			}
-			catch (NotSupportedExpressionException ex) {
+			} catch (NotSupportedExpressionException ex) {
 				return ObjectValue.CreateNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), ex.Message, "", ObjectValueFlags.None);
-			}
-			catch (EvaluatorException ex) {
+			} catch (EvaluatorException ex) {
 				return ObjectValue.CreateError (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message, ObjectValueFlags.None);
-			}
-			catch (Exception ex) {
+			} catch (Exception ex) {
 				ctx.WriteDebuggerError (ex);
 				return ObjectValue.CreateUnknown (exp);
 			}

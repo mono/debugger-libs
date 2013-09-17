@@ -98,8 +98,8 @@ namespace Mono.Debugging.Evaluation
 			get {
 				if (objLiteral)
 					return objValue;
-				else
-					return base.ObjectValue;
+
+				return base.ObjectValue;
 			}
 		}
 
