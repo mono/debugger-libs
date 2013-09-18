@@ -2268,6 +2268,7 @@ namespace Mono.Debugging.Soft
 					foreach (var n in userAssemblyNames) {
 						if (n == name) {
 							found = true;
+							break;
 						}
 					}
 				}
