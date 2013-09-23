@@ -33,12 +33,13 @@ namespace Mono.Debugging.Evaluation
 {
 	public class LiteralValueReference: ValueReference
 	{
-		string name;
-		object value;
-		object type;
-		object objValue;
+		bool isVoidReturn;
 		bool objLiteral;
 		bool objCreated;
+		object objValue;
+		object value;
+		object type;
+		string name;
 
 		LiteralValueReference (EvaluationContext ctx): base (ctx)
 		{
@@ -77,11 +78,12 @@ namespace Mono.Debugging.Evaluation
 		public static LiteralValueReference CreateVoidReturnLiteral (EvaluationContext ctx, string name)
 		{
 			LiteralValueReference val = new LiteralValueReference (ctx);
-			val.name = name;
 			val.value = val.objValue = new EvaluationResult ("No return value.");
 			val.type = typeof (EvaluationResult);
+			val.isVoidReturn = true;
 			val.objLiteral = true;
 			val.objCreated = true;
+			val.name = name;
 			return val;
 		}
 		
@@ -166,6 +168,14 @@ namespace Mono.Debugging.Evaluation
 			}
 
 			return null;
+		}
+
+		public override ObjectValue[] GetChildren (ObjectPath path, int index, int count, EvaluationOptions options)
+		{
+			if (isVoidReturn)
+				return new ObjectValue[0];
+
+			return base.GetChildren (path, index, count, options);
 		}
 	}
 }
