@@ -132,7 +132,7 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
 		
-		public DebuggerSession ()
+		protected DebuggerSession ()
 		{
 			UseOperationThread = true;
 			frontend = new InternalDebuggerSession (this);
@@ -376,11 +376,7 @@ namespace Mono.Debugging.Client
 		/// <c>true</c> if attached to process; otherwise, <c>false</c>.
 		/// </value>
 		public bool AttachedToProcess {
-			get {
-				lock (slock) {
-					return attached; 
-				}
-			}
+			get { return attached; }
 		}
 		
 		/// <summary>
