@@ -32,9 +32,9 @@ namespace Mono.Debugging.Backend
 	public interface IRawValueArray: IDebuggerBackendObject
 	{
 		object GetValue (int[] index);
+		Array GetValues (int[] index, int count);
 		void SetValue (int[] index, object value);
 		int[] Dimensions { get; }
 		Array ToArray ();
 	}
-	
 }

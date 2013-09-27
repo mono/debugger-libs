@@ -42,7 +42,7 @@ namespace Mono.Debugging.Soft
 {
 	public class SoftDebuggerAdaptor : ObjectValueAdaptor
 	{
-		static Dictionary<Type, OpCode> convertOps = new Dictionary<Type, OpCode> ();
+		static readonly Dictionary<Type, OpCode> convertOps = new Dictionary<Type, OpCode> ();
 		delegate object TypeCastDelegate (object value);
 
 		static SoftDebuggerAdaptor ()

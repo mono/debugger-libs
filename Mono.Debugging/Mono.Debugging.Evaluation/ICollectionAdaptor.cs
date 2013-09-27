@@ -34,6 +34,7 @@ namespace Mono.Debugging.Evaluation
 	{
 		int[] GetDimensions ();
 		object GetElement (int[] indices);
+		Array GetElements (int[] indices, int count);
 		object ElementType { get; }
 		void SetElement (int[] indices, object val);
 	}

@@ -114,6 +114,33 @@ namespace Mono.Debugging.Evaluation
 		{
 			return ctx.Adapter.ToRawValue (ctx, source, targetArray.GetElement (index));
 		}
+
+		public Array GetValues (int[] index, int count)
+		{
+			var values = targetArray.GetElements (index, count);
+			var idx = new int[index.Length];
+			var array = new ArrayList ();
+
+			for (int i = 0; i < index.Length; i++)
+				idx[i] = index[i];
+
+			Type commonType = null;
+			for (int i = 0; i < count; i++) {
+				var rv = ctx.Adapter.ToRawValue (ctx, new ArrayObjectSource (targetArray, idx), values.GetValue (i));
+				if (commonType == null)
+					commonType = rv.GetType ();
+				else if (commonType != rv.GetType ())
+					commonType = typeof (void);
+				array.Add (rv);
+
+				idx[idx.Length - 1]++;
+			}
+
+			if (array.Count > 0 && commonType != typeof (void))
+				return array.ToArray (commonType);
+
+			return array.ToArray ();
+		}
 		
 		public void SetValue (int[] index, object value)
 		{
@@ -128,25 +155,29 @@ namespace Mono.Debugging.Evaluation
 		
 		public Array ToArray ()
 		{
-			ArrayList array = new ArrayList ();
 			int[] dims = targetArray.GetDimensions ();
+			var array = new ArrayList ();
+
 			if (dims.Length != 1)
 				throw new NotSupportedException ();
+
 			int[] idx = new int [1];
 			Type commonType = null;
-			for (int n=0; n<dims[0]; n++) {
+			for (int n = 0; n < dims[0]; n++) {
 				idx[0] = n;
-				object rv = ctx.Adapter.ToRawValue (ctx, new ArrayObjectSource (targetArray, idx), targetArray.GetElement (idx));
+
+				var rv = ctx.Adapter.ToRawValue (ctx, new ArrayObjectSource (targetArray, idx), targetArray.GetElement (idx));
 				if (commonType == null)
 					commonType = rv.GetType ();
 				else if (commonType != rv.GetType ())
 					commonType = typeof(void);
 				array.Add (rv);
 			}
+
 			if (array.Count > 0 && commonType != typeof(void))
 				return array.ToArray (commonType);
-			else
-				return array.ToArray ();
+
+			return array.ToArray ();
 		}
 	}
 	

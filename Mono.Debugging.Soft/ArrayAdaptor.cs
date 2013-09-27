@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Linq;
 using Mono.Debugging.Evaluation;
 using Mono.Debugger.Soft;
 
@@ -53,7 +54,13 @@ namespace Mono.Debugging.Soft
 		public object GetElement (int[] indices)
 		{
 			int i = GetIndex (indices);
-			return array.GetValues (i, 1) [0];
+			return array.GetValues (i, 1)[0];
+		}
+
+		public Array GetElements (int[] indices, int count)
+		{
+			int i = GetIndex (indices);
+			return array.GetValues (i, count).ToArray ();
 		}
 		
 		public void SetElement (int[] indices, object val)
