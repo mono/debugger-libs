@@ -1712,7 +1712,7 @@ namespace Mono.Debugging.Soft
 				exception = ex;
 			} catch (Exception ex) {
 				ctx.Session.StackVersion++;
-				LoggingService.LogError ("Error in soft debugger method call thread on " + GetInfo (), ex);
+				DebuggerLoggingService.LogError ("Error in soft debugger method call thread on " + GetInfo (), ex);
 				exception = ex;
 			}
 		}
@@ -1721,7 +1721,7 @@ namespace Mono.Debugging.Soft
 		{
 			if (handle is IInvokeAsyncResult) {
 				var info = GetInfo ();
-				LoggingService.LogMessage ("Aborting invocation of " + info);
+				DebuggerLoggingService.LogMessage ("Aborting invocation of " + info);
 				((IInvokeAsyncResult) handle).Abort ();
 				// Don't wait for the abort to finish. The engine will do it.
 			} else {
@@ -1759,7 +1759,7 @@ namespace Mono.Debugging.Soft
 				}
 				exception = ex;
 			} catch (Exception ex) {
-				LoggingService.LogError ("Error in soft debugger method call thread on " + GetInfo (), ex);
+				DebuggerLoggingService.LogError ("Error in soft debugger method call thread on " + GetInfo (), ex);
 				exception = ex;
 			} finally {
 				ctx.Session.StackVersion++;
@@ -1780,7 +1780,7 @@ namespace Mono.Debugging.Soft
 				                      function == null? "[null]" : function.FullName,
 				                      type == null? "[null]" : type.FullName);
 			} catch (Exception ex) {
-				LoggingService.LogError ("Error getting info for SDB MethodCall", ex);
+				DebuggerLoggingService.LogError ("Error getting info for SDB MethodCall", ex);
 				return "";
 			}
 		}

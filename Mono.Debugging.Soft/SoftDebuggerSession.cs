@@ -333,7 +333,7 @@ namespace Mono.Debugging.Soft
 				return;
 			
 			if (!HandleException (new ConnectionException (ex))) {
-				LoggingService.LogAndShowException ("Unhandled error launching soft debugger", ex);
+				DebuggerLoggingService.LogAndShowException ("Unhandled error launching soft debugger", ex);
 			}
 			
 			// The session is dead
@@ -565,7 +565,7 @@ namespace Mono.Debugging.Soft
 							vm.Exit (0);
 						} catch (VMDisconnectedException) {
 						} catch (Exception ex) {
-							LoggingService.LogError ("Error exiting SDB VM:", ex);
+							DebuggerLoggingService.LogError ("Error exiting SDB VM:", ex);
 						}
 					});
 				}
@@ -610,10 +610,10 @@ namespace Mono.Debugging.Soft
 					// The VM was already disconnected, ignore.
 				} catch (SocketException se) {
 					// This will often happen during normal operation
-					LoggingService.LogError ("Error closing debugger session", se);
+					DebuggerLoggingService.LogError ("Error closing debugger session", se);
 				} catch (IOException ex) {
 					// This will often happen during normal operation
-					LoggingService.LogError ("Error closing debugger session", ex);
+					DebuggerLoggingService.LogError ("Error closing debugger session", ex);
 				}
 			}
 			QueueEnsureExited ();
@@ -642,7 +642,7 @@ namespace Mono.Debugging.Soft
 						t.Dispose ();
 						EnsureExited ();
 					} catch (Exception ex) {
-						LoggingService.LogError ("Failed to force-terminate process", ex);
+						DebuggerLoggingService.LogError ("Failed to force-terminate process", ex);
 					}
 					try {
 						if (vm != null) {
@@ -650,7 +650,7 @@ namespace Mono.Debugging.Soft
 							vm.ForceDisconnect ();
 						}
 					} catch (Exception ex) {
-						LoggingService.LogError ("Failed to force-close debugger connection", ex);
+						DebuggerLoggingService.LogError ("Failed to force-close debugger connection", ex);
 					}
 				};
 				t.Enabled = true;
@@ -664,7 +664,7 @@ namespace Mono.Debugging.Soft
 				if (vm != null && vm.TargetProcess != null && !vm.TargetProcess.HasExited)
 					vm.TargetProcess.Kill ();
 			} catch (Exception ex) {
-				LoggingService.LogError ("Error force-terminating soft debugger process", ex);
+				DebuggerLoggingService.LogError ("Error force-terminating soft debugger process", ex);
 			}
 		}
 
@@ -684,7 +684,7 @@ namespace Mono.Debugging.Soft
 					} catch (Exception ex) {
 						if (!loggedSymlinkedRuntimesBug) {
 							loggedSymlinkedRuntimesBug = true;
-							LoggingService.LogError ("Error getting debugger process info. Known Mono bug with symlinked runtimes.", ex);
+							DebuggerLoggingService.LogError ("Error getting debugger process info. Known Mono bug with symlinked runtimes.", ex);
 						}
 						procs = new ProcessInfo[] { new ProcessInfo (0, "mono") };
 					}
@@ -1216,10 +1216,10 @@ namespace Mono.Debugging.Soft
 					}
 
 					OnDebuggerOutput (true, string.Format ("Step request failed: {0}.", reason));
-					LoggingService.LogError ("Step request failed", ex);
+					DebuggerLoggingService.LogError ("Step request failed", ex);
 				} catch (Exception ex) {
 					OnDebuggerOutput (true, string.Format ("Step request failed: {0}", ex.Message));
-					LoggingService.LogError ("Step request failed", ex);
+					DebuggerLoggingService.LogError ("Step request failed", ex);
 				}
 			});
 		}
@@ -1548,7 +1548,7 @@ namespace Mono.Debugging.Soft
 						/* This can happen since we manually add entries to 'types' */
 						/*
 						if (typeName != "System.Exception" && typeName != "<Module>")
-							LoggingService.LogError ("Type '" + typeName + "' loaded more than once", null);
+							DebuggerLoggingService.LogError ("Type '" + typeName + "' loaded more than once", null);
 						*/
 					} else {
 						ResolveBreakpoints (t);
@@ -1581,7 +1581,7 @@ namespace Mono.Debugging.Soft
 					break;
 				}
 				default:
-					LoggingService.LogMessage ("Unknown debugger event type {0}", e.GetType ());
+					DebuggerLoggingService.LogMessage ("Unknown debugger event type {0}", e.GetType ());
 					break;
 				}
 			}

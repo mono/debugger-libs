@@ -1,5 +1,5 @@
 // 
-// LoggingService.cs
+// DebuggerLoggingService.cs
 //  
 // Author:
 //       Michael Hutchinson <mhutchinson@novell.com>
@@ -25,18 +25,18 @@
 // THE SOFTWARE.
 using System;
 
-namespace Mono.Debugging.Soft
+namespace Mono.Debugging.Client
 {
 	/// <summary>
 	/// This is a simple abstraction so that MD can plug in its own logging service to handle the Mono.Debugging.Soft
 	/// error logging, without Mono.Debugging.Soft depending on MonoDevelop.Core.
 	/// In the absence of a custom logger, it writes to Console.
 	/// </summary>
-	public static class LoggingService
+	public static class DebuggerLoggingService
 	{
 		public static ICustomLogger CustomLogger { get; set; }
 		
-		internal static void LogError (string message, Exception ex)
+		public static void LogError (string message, Exception ex)
 		{
 			if (CustomLogger != null)
 				CustomLogger.LogError (message, ex);
@@ -44,7 +44,7 @@ namespace Mono.Debugging.Soft
 				Console.WriteLine (message + (ex != null? System.Environment.NewLine + ex.ToString () : string.Empty));
 		}
 
-		internal static void LogMessage (string messageFormat, params object[] args)
+		public static void LogMessage (string messageFormat, params object[] args)
 		{
 			if (CustomLogger != null)
 				CustomLogger.LogMessage (messageFormat, args);
@@ -53,7 +53,7 @@ namespace Mono.Debugging.Soft
 		}
 
 		//this is meant to show a GUI if possible
-		internal static void LogAndShowException (string message, Exception ex)
+		public static void LogAndShowException (string message, Exception ex)
 		{
 			if (CustomLogger != null)
 				CustomLogger.LogAndShowException (message, ex);

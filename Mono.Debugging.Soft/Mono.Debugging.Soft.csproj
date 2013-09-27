@@ -65,7 +65,6 @@
     <Compile Include="SoftDebuggerAdaptor.cs" />
     <Compile Include="SoftDebuggerBacktrace.cs" />
     <Compile Include="SoftDebuggerStartInfo.cs" />
-    <Compile Include="LoggingService.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="StringAdaptor.cs" />
   </ItemGroup>
