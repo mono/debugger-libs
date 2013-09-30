@@ -352,8 +352,8 @@ namespace Mono.Debugging.Soft
 			SoftEvaluationContext cx = (SoftEvaluationContext) ctx;
 			if (value is string)
 				return cx.Thread.Domain.CreateString ((string)value);
-			else
-				return cx.Session.VirtualMachine.CreateValue (value);
+
+			return cx.Session.VirtualMachine.CreateValue (value);
 		}
 
 		public override object GetBaseValue (EvaluationContext ctx, object val)

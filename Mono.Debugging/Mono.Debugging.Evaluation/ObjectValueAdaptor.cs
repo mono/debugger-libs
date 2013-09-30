@@ -39,39 +39,39 @@ namespace Mono.Debugging.Evaluation
 {
 	public abstract class ObjectValueAdaptor: IDisposable
 	{
-		Dictionary<string, TypeDisplayData> typeDisplayData = new Dictionary<string, TypeDisplayData> ();
+		readonly Dictionary<string, TypeDisplayData> typeDisplayData = new Dictionary<string, TypeDisplayData> ();
 
 		// Time to wait while evaluating before switching to async mode
 		public int DefaultEvaluationWaitTime { get; set; }
 		
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
-		
-		AsyncEvaluationTracker asyncEvaluationTracker = new AsyncEvaluationTracker ();
-		AsyncOperationManager asyncOperationManager = new AsyncOperationManager ();
-		static Dictionary<string, string> netToCSharpTypes = new Dictionary<string, string> ();
+
+		static readonly Dictionary<string, string> CSharpTypeNames = new Dictionary<string, string> ();
+		readonly AsyncEvaluationTracker asyncEvaluationTracker = new AsyncEvaluationTracker ();
+		readonly AsyncOperationManager asyncOperationManager = new AsyncOperationManager ();
 
 		static ObjectValueAdaptor ()
 		{
-			netToCSharpTypes["System.Void"]    = "void";
-			netToCSharpTypes["System.Object"]  = "object";
-			netToCSharpTypes["System.Boolean"] = "bool";
-			netToCSharpTypes["System.Byte"]    = "byte";
-			netToCSharpTypes["System.SByte"]   = "sbyte";
-			netToCSharpTypes["System.Char"]    = "char";
-			netToCSharpTypes["System.Enum"]    = "enum";
-			netToCSharpTypes["System.Int16"]   = "short";
-			netToCSharpTypes["System.Int32"]   = "int";
-			netToCSharpTypes["System.Int64"]   = "long";
-			netToCSharpTypes["System.UInt16"]  = "ushort";
-			netToCSharpTypes["System.UInt32"]  = "uint";
-			netToCSharpTypes["System.UInt64"]  = "ulong";
-			netToCSharpTypes["System.Single"]  = "float";
-			netToCSharpTypes["System.Double"]  = "double";
-			netToCSharpTypes["System.Decimal"] = "decimal";
-			netToCSharpTypes["System.String"]  = "string";
+			CSharpTypeNames["System.Void"]    = "void";
+			CSharpTypeNames["System.Object"]  = "object";
+			CSharpTypeNames["System.Boolean"] = "bool";
+			CSharpTypeNames["System.Byte"]    = "byte";
+			CSharpTypeNames["System.SByte"]   = "sbyte";
+			CSharpTypeNames["System.Char"]    = "char";
+			CSharpTypeNames["System.Enum"]    = "enum";
+			CSharpTypeNames["System.Int16"]   = "short";
+			CSharpTypeNames["System.Int32"]   = "int";
+			CSharpTypeNames["System.Int64"]   = "long";
+			CSharpTypeNames["System.UInt16"]  = "ushort";
+			CSharpTypeNames["System.UInt32"]  = "uint";
+			CSharpTypeNames["System.UInt64"]  = "ulong";
+			CSharpTypeNames["System.Single"]  = "float";
+			CSharpTypeNames["System.Double"]  = "double";
+			CSharpTypeNames["System.Decimal"] = "decimal";
+			CSharpTypeNames["System.String"]  = "string";
 		}
 		
-		public ObjectValueAdaptor ()
+		protected ObjectValueAdaptor ()
 		{
 			DefaultEvaluationWaitTime = 100;
 			
@@ -254,7 +254,7 @@ namespace Mono.Debugging.Evaluation
 				name = typeName;
 			}
 
-			if (netToCSharpTypes.TryGetValue (name, out csharp))
+			if (CSharpTypeNames.TryGetValue (name, out csharp))
 				return csharp + ptr;
 
 			return typeName;
