@@ -1105,6 +1105,9 @@ namespace Mono.Debugging.Evaluation
 			try {
 				object val = CreateValue (ctx, ttype, obj);
 				return val ?? obj;
+			} catch (EvaluatorException) {
+				// probably couldn't find the .ctor for the proxy type because the linker stripped it out
+				return obj;
 			} catch (Exception ex) {
 				ctx.WriteDebuggerError (ex);
 				return obj;
