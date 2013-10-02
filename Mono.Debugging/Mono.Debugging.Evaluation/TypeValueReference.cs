@@ -37,12 +37,11 @@ namespace Mono.Debugging.Evaluation
 {
 	public class TypeValueReference: ValueReference
 	{
-		object type;
-		string name;
-		string fullName;
+		readonly string fullName;
+		readonly string name;
+		readonly object type;
 
-		public TypeValueReference (EvaluationContext ctx, object type)
-			: base (ctx)
+		public TypeValueReference (EvaluationContext ctx, object type) : base (ctx)
 		{
 			this.type = type;
 			fullName = ctx.Adapter.GetDisplayTypeName (ctx, type);
@@ -51,18 +50,23 @@ namespace Mono.Debugging.Evaluation
 		
 		internal static string GetTypeName (string tname)
 		{
-			tname = tname.Replace ('+','.');
+			tname = tname.Replace ('+', '.');
+
 			int sep1 = tname.IndexOf ('<');
 			int sep2 = tname.IndexOf ('[');
+
 			if (sep2 != -1 && (sep2 < sep1 || sep1 == -1))
 				sep1 = sep2;
+
 			if (sep1 == -1)
 				sep1 = tname.Length - 1;
+
 			int i = tname.LastIndexOf ('.', sep1);
+
 			if (i != -1)
 				return tname.Substring (i + 1);
-			else
-				return tname;
+
+			return tname;
 		}
 		
 		public override object Value {
@@ -74,7 +78,6 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		
 		public override object Type {
 			get {
 				return type;
@@ -87,7 +90,6 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		
 		public override string Name {
 			get {
 				return name;

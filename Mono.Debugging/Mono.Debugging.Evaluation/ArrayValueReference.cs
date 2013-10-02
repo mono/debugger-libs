@@ -33,11 +33,10 @@ namespace Mono.Debugging.Evaluation
 {
 	public class ArrayValueReference: ValueReference
 	{
-		int[] indices;
-		ICollectionAdaptor adaptor;
+		readonly ICollectionAdaptor adaptor;
+		readonly int[] indices;
 
-		public ArrayValueReference (EvaluationContext ctx, object arr, int[] indices)
-			: base (ctx)
+		public ArrayValueReference (EvaluationContext ctx, object arr, int[] indices) : base (ctx)
 		{
 			this.indices = indices;
 			adaptor = ctx.Adapter.CreateArrayAdaptor (ctx, arr);

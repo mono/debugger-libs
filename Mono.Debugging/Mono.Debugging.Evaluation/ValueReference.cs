@@ -35,10 +35,10 @@ namespace Mono.Debugging.Evaluation
 {
 	public abstract class ValueReference: RemoteFrameObject, IObjectValueSource, IObjectSource
 	{
+		readonly EvaluationOptions originalOptions;
 		EvaluationContext ctx;
-		EvaluationOptions originalOptions;
 
-		public ValueReference (EvaluationContext ctx)
+		protected ValueReference (EvaluationContext ctx)
 		{
 			this.ctx = ctx;
 			originalOptions = ctx.Options;
@@ -49,10 +49,11 @@ namespace Mono.Debugging.Evaluation
 				object ob = Value;
 				if (ctx.Adapter.IsNull (Context, ob))
 					return null;
-				else if (ctx.Adapter.IsPrimitive (Context, ob))
+
+				if (ctx.Adapter.IsPrimitive (Context, ob))
 					return ctx.Adapter.TargetObjectToObject (ctx, ob);
-				else
-					return ob;
+
+				return ob;
 			}
 		}
 		
@@ -66,8 +67,7 @@ namespace Mono.Debugging.Evaluation
 			get { return null; }
 		}
 
-		public EvaluationContext Context
-		{
+		public EvaluationContext Context {
 			get {
 				return ctx;
 			}
@@ -91,8 +91,9 @@ namespace Mono.Debugging.Evaluation
 				return ctx.Adapter.CreateObjectValueAsync (Name, Flags, delegate {
 					return CreateObjectValue (options);
 				});
-			} else
-				return CreateObjectValue (options);
+			}
+
+			return CreateObjectValue (options);
 		}
 		
 		public ObjectValue CreateObjectValue (EvaluationOptions options)
@@ -235,8 +236,8 @@ namespace Mono.Debugging.Evaluation
 			ValueReference val = GetChild (vpath[0], options);
 			if (val != null)
 				return val.GetChild (vpath.GetSubpath (1), options);
-			else
-				return null;
+
+			return null;
 		}
 
 		public virtual ValueReference GetChild (string name, EvaluationOptions options)

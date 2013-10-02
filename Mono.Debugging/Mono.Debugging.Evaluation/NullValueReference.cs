@@ -32,12 +32,11 @@ namespace Mono.Debugging.Evaluation
 {
 	public class NullValueReference: ValueReference
 	{
-		object type;
+		readonly object type;
 		object obj;
 		bool valueCreated;
 
-		public NullValueReference (EvaluationContext ctx, object type)
-			: base (ctx)
+		public NullValueReference (EvaluationContext ctx, object type) : base (ctx)
 		{
 			this.type = type;
 		}

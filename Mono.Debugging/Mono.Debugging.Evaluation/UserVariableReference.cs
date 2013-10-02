@@ -31,7 +31,7 @@ namespace Mono.Debugging.Evaluation
 {
 	public class UserVariableReference: ValueReference
 	{
-		string name;
+		readonly string name;
 		object currentValue;
 		
 		public UserVariableReference (EvaluationContext ctx, string name): base (ctx)

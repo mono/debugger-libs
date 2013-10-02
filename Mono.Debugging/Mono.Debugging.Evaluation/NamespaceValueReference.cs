@@ -26,20 +26,18 @@
 //
 
 using System;
-using System.Reflection;
-using System.Collections;
 using System.Collections.Generic;
+
 using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Evaluation
 {
 	public class NamespaceValueReference: ValueReference
 	{
-		string name;
-		string namspace;
+		readonly string namspace;
+		readonly string name;
 
-		public NamespaceValueReference (EvaluationContext ctx, string name)
-			: base (ctx)
+		public NamespaceValueReference (EvaluationContext ctx, string name) : base (ctx)
 		{
 			this.namspace = name;
 			int i = namspace.LastIndexOf ('.');
