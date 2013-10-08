@@ -1184,7 +1184,7 @@ namespace Mono.Debugging.Soft
 			return t != null && t.IsValueType;
 		}
 
-		public override bool IsClass (object type)
+		public override bool IsClass (EvaluationContext ctx, object type)
 		{
 			TypeMirror t = type as TypeMirror;
 			return t != null && (t.IsClass || t.IsValueType) && !t.IsPrimitive;
