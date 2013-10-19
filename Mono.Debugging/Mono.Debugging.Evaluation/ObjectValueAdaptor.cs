@@ -277,7 +277,7 @@ namespace Mono.Debugging.Evaluation
 		public abstract bool IsArray (EvaluationContext ctx, object val);
 		public abstract bool IsEnum (EvaluationContext ctx, object val);
 		public abstract bool IsValueType (object type);
-		public abstract bool IsClass (object type);
+		public abstract bool IsClass (EvaluationContext ctx, object type);
 		public abstract object TryCast (EvaluationContext ctx, object val, object type);
 
 		public abstract object GetValueType (EvaluationContext ctx, object val);
@@ -338,7 +338,7 @@ namespace Mono.Debugging.Evaluation
 
 		public virtual bool IsClassInstance (EvaluationContext ctx, object val)
 		{
-			return IsClass (GetValueType (ctx, val));
+			return IsClass (ctx, GetValueType (ctx, val));
 		}
 		
 		public virtual bool IsExternalType (EvaluationContext ctx, object type)
@@ -1116,7 +1116,7 @@ namespace Mono.Debugging.Evaluation
 
 		public TypeDisplayData GetTypeDisplayData (EvaluationContext ctx, object type)
 		{
-			if (!IsClass (type))
+			if (!IsClass (ctx, type))
 				return TypeDisplayData.Default;
 
 			TypeDisplayData td;
