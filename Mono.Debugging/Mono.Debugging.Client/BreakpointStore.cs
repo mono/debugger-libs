@@ -200,7 +200,12 @@ namespace Mono.Debugging.Client
 
 			return Add (filename, line, column);
 		}
-		
+
+		public ReadOnlyCollection<BreakEvent> GetBreakevents ()
+		{
+			return breakpoints.AsReadOnly ();
+		}
+
 		public ReadOnlyCollection<Breakpoint> GetBreakpoints ()
 		{
 			List<Breakpoint> list = new List<Breakpoint> ();
