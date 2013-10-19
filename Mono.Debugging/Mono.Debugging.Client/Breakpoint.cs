@@ -227,9 +227,10 @@ namespace Mono.Debugging.Client
 	[Flags]
 	public enum HitAction
 	{
-		Break,
-		PrintExpression,
-		CustomAction
+		None = 0x0,
+		Break = 0x1,
+		PrintExpression = 0x2,
+		CustomAction = 0x4
 	}
 	
 	public delegate bool BreakEventHitHandler (string actionId, BreakEvent be);

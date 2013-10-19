@@ -1733,19 +1733,18 @@ namespace Mono.Debugging.Soft
 						return true;
 				}
 			}
-			switch (bp.HitAction) {
-				case HitAction.CustomAction:
-					// If custom action returns true, execution must continue
-					return binfo.RunCustomBreakpointAction (bp.CustomActionId);
-				case HitAction.PrintExpression: {
-					string exp = EvaluateTrace (thread, bp.TraceExpression);
-					binfo.UpdateLastTraceValue (exp);
-					return true;
-				}
-				case HitAction.Break:
-					return false;
+			if ((bp.HitAction & HitAction.CustomAction) != HitAction.None) {
+				// If custom action returns true, execution must continue
+				return binfo.RunCustomBreakpointAction (bp.CustomActionId);
 			}
-			return false;
+
+			if ((bp.HitAction & HitAction.PrintExpression) != HitAction.None) {
+				string exp = EvaluateTrace (thread, bp.TraceExpression);
+				binfo.UpdateLastTraceValue (exp);
+			}
+
+			// Continue execution if we don't have break action.
+			return (bp.HitAction & HitAction.Break) == HitAction.None;
 		}
 		
 		string EvaluateTrace (ThreadMirror thread, string exp)

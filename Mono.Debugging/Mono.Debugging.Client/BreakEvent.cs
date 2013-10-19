@@ -78,7 +78,7 @@ namespace Mono.Debugging.Client
 			XmlElement elem = doc.CreateElement (GetType().Name);
 			if (!enabled)
 				elem.SetAttribute ("enabled", "false");
-			if (hitAction != HitAction.Break)
+			if ((hitAction & HitAction.Break) == HitAction.None)
 				elem.SetAttribute ("hitAction", hitAction.ToString ());
 			if (!string.IsNullOrEmpty (customActionId))
 				elem.SetAttribute ("customActionId", customActionId);
