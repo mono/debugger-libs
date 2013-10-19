@@ -224,6 +224,7 @@ namespace Mono.Debugging.Client
 		MultipleOf
 	}
 
+	[Flags]
 	public enum HitAction
 	{
 		Break,
