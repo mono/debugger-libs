@@ -1068,9 +1068,11 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				if (!HasExited) {
 					IsConnected = true;
-					lock (breakpointStore) {
-						foreach (BreakEvent bp in breakpointStore)
-							AddBreakEvent (bp);
+					if (breakpointStore != null) {
+						lock (breakpointStore) {
+							foreach (BreakEvent bp in breakpointStore)
+								AddBreakEvent (bp);
+						}
 					}
 				}
 			}
