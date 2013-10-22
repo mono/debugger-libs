@@ -28,16 +28,16 @@
 
 
 using System;
-using System.Collections.Generic;
-using Mono.Debugging.Backend;
-using System.Diagnostics;
 using System.Threading;
+using System.Collections.Generic;
+
+using Mono.Debugging.Backend;
 
 namespace Mono.Debugging.Client
 {
 	public delegate void TargetEventHandler (object sender, TargetEventArgs args);
-	public delegate void ProcessEventHandler(int process_id);
-	public delegate void ThreadEventHandler(int thread_id);
+	public delegate void ProcessEventHandler (int processId);
+	public delegate void ThreadEventHandler (int threadId);
 	public delegate bool ExceptionHandler (Exception ex);
 	public delegate string TypeResolverHandler (string identifier, SourceLocation location);
 	public delegate void BreakpointTraceHandler (BreakEvent be, string trace);
@@ -46,24 +46,23 @@ namespace Mono.Debugging.Client
 	
 	public abstract class DebuggerSession: IDisposable
 	{
-		InternalDebuggerSession frontend;
-		Dictionary<BreakEvent,BreakEventInfo> breakpoints = new Dictionary<BreakEvent,BreakEventInfo> ();
+		readonly Dictionary<BreakEvent, BreakEventInfo> breakpoints = new Dictionary<BreakEvent, BreakEventInfo> ();
+		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
+		BreakEventHitHandler customBreakpointHitHandler;
+		readonly InternalDebuggerSession frontend;
+		readonly object slock = new object ();
+		readonly object olock = new object ();
+		ExceptionHandler exceptionHandler;
 		BreakpointStore breakpointStore;
 		OutputWriterDelegate outputWriter;
 		OutputWriterDelegate logWriter;
+		DebuggerSessionOptions options;
+		ProcessInfo[] currentProcesses;
+		ThreadInfo activeThread;
+		bool ownedBreakpointStore;
+		bool adjustingBreakpoints;
 		bool disposed;
 		bool attached;
-		bool ownedBreakpointStore;
-		object slock = new object ();
-		object olock = new object ();
-		ThreadInfo activeThread;
-		BreakEventHitHandler customBreakpointHitHandler;
-		ExceptionHandler exceptionHandler;
-		DebuggerSessionOptions options;
-		Dictionary<string,string> resolvedExpressionCache = new Dictionary<string, string> ();
-		bool adjustingBreakpoints;
-		
-		ProcessInfo[] currentProcesses;
 
 		/// <summary>
 		/// Reports a debugger event
@@ -870,8 +869,8 @@ namespace Mono.Debugging.Client
 		{
 		}
 		
-		Mono.Debugging.Evaluation.ExpressionEvaluator defaultResolver = new Mono.Debugging.Evaluation.NRefactoryExpressionEvaluator ();
-		Dictionary <string, IExpressionEvaluator> evaluators = new Dictionary <string, IExpressionEvaluator> ();
+		readonly Mono.Debugging.Evaluation.ExpressionEvaluator defaultResolver = new Mono.Debugging.Evaluation.NRefactoryExpressionEvaluator ();
+		readonly Dictionary <string, IExpressionEvaluator> evaluators = new Dictionary <string, IExpressionEvaluator> ();
 
 		internal IExpressionEvaluator FindExpressionEvaluator (StackFrame frame)
 		{
@@ -1117,11 +1116,19 @@ namespace Mono.Debugging.Client
 		{
 			lock (breakpoints) {
 				// Make a copy of the breakpoints table since it can be modified while iterating
-				Dictionary<BreakEvent, BreakEventInfo> breakpointsCopy = new Dictionary<BreakEvent, BreakEventInfo> (breakpoints);
+				var breakpointsCopy = new Dictionary<BreakEvent, BreakEventInfo> (breakpoints);
+
 				foreach (KeyValuePair<BreakEvent, BreakEventInfo> bps in breakpointsCopy) {
 					Breakpoint bp = bps.Key as Breakpoint;
 					if (bp != null && bps.Value.Status == BreakEventStatus.NotBound) {
-						if (string.Compare (System.IO.Path.GetFullPath (bp.FileName), fullFilePath, System.IO.Path.DirectorySeparatorChar == '\\') == 0)
+						StringComparer comparer;
+
+						if (System.IO.Path.DirectorySeparatorChar == '\\')
+							comparer = StringComparer.InvariantCultureIgnoreCase;
+						else
+							comparer = StringComparer.InvariantCulture;
+
+						if (comparer.Compare (System.IO.Path.GetFullPath (bp.FileName), fullFilePath) == 0)
 							RetryEventBind (bps.Value);
 					}
 				}
@@ -1165,17 +1172,20 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		internal protected void UnbindSourceFileBreakpoints (string fullFilePath)
 		{
-			List<BreakEventInfo> toUpdate = new List<BreakEventInfo> ();
+			var toUpdate = new List<BreakEventInfo> ();
+
 			lock (breakpoints) {
 				// Make a copy of the breakpoints table since it can be modified while iterating
-				Dictionary<BreakEvent, BreakEventInfo> breakpointsCopy = new Dictionary<BreakEvent, BreakEventInfo> (breakpoints);
+				var breakpointsCopy = new Dictionary<BreakEvent, BreakEventInfo> (breakpoints);
+
 				foreach (KeyValuePair<BreakEvent, BreakEventInfo> bps in breakpointsCopy) {
-					Breakpoint bp = bps.Key as Breakpoint;
+					var bp = bps.Key as Breakpoint;
 					if (bp != null && bps.Value.Status == BreakEventStatus.Bound) {
 						if (System.IO.Path.GetFullPath (bp.FileName) == fullFilePath)
 							toUpdate.Add (bps.Value);
 					}
 				}
+
 				foreach (BreakEventInfo be in toUpdate) {
 					breakpoints.Remove (be.BreakEvent);
 					NotifyBreakEventStatusChanged (be.BreakEvent);
@@ -1193,7 +1203,7 @@ namespace Mono.Debugging.Client
 		
 		string GetBreakEventErrorMessage (BreakEvent be)
 		{
-			Breakpoint bp = be as Breakpoint;
+			var bp = be as Breakpoint;
 			if (bp != null)
 				return string.Format ("Could not insert breakpoint at '{0}:{1}'", bp.FileName, bp.Line);
 			Catchpoint cp = (Catchpoint) be;
@@ -1476,7 +1486,7 @@ namespace Mono.Debugging.Client
 	
 	class InternalDebuggerSession: IDebuggerSessionFrontend
 	{
-		DebuggerSession session;
+		readonly DebuggerSession session;
 		
 		public InternalDebuggerSession (DebuggerSession session)
 		{
