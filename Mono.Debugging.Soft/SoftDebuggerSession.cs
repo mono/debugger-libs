@@ -712,7 +712,7 @@ namespace Mono.Debugging.Soft
 						return "<Thread Pool>";
 				} catch (ObjectCollectedException e) {
 					if (vm.Version.AtLeast (2, 2)) {
-						throw e;
+						throw;
 					}
 					return "<Thread>";
 				}
