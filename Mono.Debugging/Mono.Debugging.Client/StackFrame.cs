@@ -88,9 +88,9 @@ namespace Mono.Debugging.Client
 			set { sourceBacktrace = value; }
 		}
 
-		internal int Index {
+		public int Index {
 			get { return index; }
-			set { index = value; }
+			internal set { index = value; }
 		}
 
 		public string Language {
