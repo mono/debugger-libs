@@ -819,9 +819,6 @@ namespace Mono.Debugging.Client
 		
 		public virtual string ResolveExpression (string expression, SourceLocation location)
 		{
-			if (TypeResolverHandler == null)
-				return expression;
-
 			string key = expression + " " + location;
 			string resolved;
 			if (!resolvedExpressionCache.TryGetValue (key, out resolved)) {
