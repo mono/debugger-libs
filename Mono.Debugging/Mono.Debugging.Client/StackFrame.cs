@@ -293,8 +293,8 @@ namespace Mono.Debugging.Client
 	[Serializable]
 	public struct ValidationResult
 	{
-		bool isValid;
-		string message;
+		readonly string message;
+		readonly bool isValid;
 		
 		public ValidationResult (bool isValid, string message)
 		{

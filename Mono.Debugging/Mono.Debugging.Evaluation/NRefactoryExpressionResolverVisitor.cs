@@ -37,10 +37,10 @@ namespace Mono.Debugging.Evaluation
 	// we wouldn't need to do this resolve step.
 	public class NRefactoryExpressionResolverVisitor : DepthFirstAstVisitor
 	{
-		List<Replacement> replacements = new List<Replacement> ();
-		SourceLocation location;
-		DebuggerSession session;
-		string expression;
+		readonly List<Replacement> replacements = new List<Replacement> ();
+		readonly SourceLocation location;
+		readonly DebuggerSession session;
+		readonly string expression;
 
 		class Replacement
 		{
@@ -61,7 +61,7 @@ namespace Mono.Debugging.Evaluation
 			if (replacements.Count == 0)
 				return expression;
 
-			replacements.Sort (delegate (Replacement r1, Replacement r2) { return r1.Offset.CompareTo (r2.Offset); });
+			replacements.Sort ((Replacement r1, Replacement r2) => r1.Offset.CompareTo (r2.Offset));
 			StringBuilder sb = new StringBuilder ();
 			int i = 0;
 

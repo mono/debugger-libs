@@ -37,7 +37,7 @@ namespace Mono.Debugging.Evaluation
 {
 	public class NRefactoryExpressionEvaluator : ExpressionEvaluator
 	{
-		Dictionary<string,ValueReference> userVariables = new Dictionary<string, ValueReference> ();
+		readonly Dictionary<string, ValueReference> userVariables = new Dictionary<string, ValueReference> ();
 
 		public override ValueReference Evaluate (EvaluationContext ctx, string expression, object expectedType)
 		{
