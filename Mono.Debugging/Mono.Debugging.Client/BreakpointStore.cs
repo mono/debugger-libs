@@ -107,10 +107,10 @@ namespace Mono.Debugging.Client
 				throw new ArgumentNullException ("filename");
 
 			if (line < 1)
-				throw ArgumentOutOfRangeException ("line");
+				throw new ArgumentOutOfRangeException ("line");
 
 			if (column < 1)
-				throw ArgumentOutOfRangeException ("column");
+				throw new ArgumentOutOfRangeException ("column");
 
 			if (IsReadOnly)
 				return null;
@@ -216,10 +216,10 @@ namespace Mono.Debugging.Client
 				throw new ArgumentNullException ("filename");
 
 			if (line < 1)
-				throw ArgumentOutOfRangeException ("line");
+				throw new ArgumentOutOfRangeException ("line");
 
 			if (column < 1)
-				throw ArgumentOutOfRangeException ("column");
+				throw new ArgumentOutOfRangeException ("column");
 
 			if (IsReadOnly)
 				return null;
