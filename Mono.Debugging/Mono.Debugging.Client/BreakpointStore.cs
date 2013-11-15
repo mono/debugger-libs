@@ -73,7 +73,7 @@ namespace Mono.Debugging.Client
 			return false;
 		}
 
-		List<BreakEvent> breakpoints = new List<BreakEvent> ();
+		readonly List<BreakEvent> breakpoints = new List<BreakEvent> ();
 		
 		public int Count {
 			get {
@@ -103,6 +103,15 @@ namespace Mono.Debugging.Client
 		
 		public Breakpoint Add (string filename, int line, int column, bool activate)
 		{
+			if (filename == null)
+				throw new ArgumentNullException ("filename");
+
+			if (line < 1)
+				throw ArgumentOutOfRangeException ("line");
+
+			if (column < 1)
+				throw ArgumentOutOfRangeException ("column");
+
 			if (IsReadOnly)
 				return null;
 
@@ -119,6 +128,9 @@ namespace Mono.Debugging.Client
 		
 		public bool Add (BreakEvent bp)
 		{
+			if (bp == null)
+				throw new ArgumentNullException ("bp");
+
 			if (IsReadOnly)
 				return false;
 
@@ -131,6 +143,9 @@ namespace Mono.Debugging.Client
 		
 		public Catchpoint AddCatchpoint (string exceptionName)
 		{
+			if (exceptionName == null)
+				throw new ArgumentNullException ("exceptionName");
+
 			if (IsReadOnly)
 				return null;
 
@@ -142,6 +157,9 @@ namespace Mono.Debugging.Client
 		
 		public bool Remove (string filename, int line, int column)
 		{
+			if (filename == null)
+				throw new ArgumentNullException ("filename");
+
 			if (IsReadOnly)
 				return false;
 
@@ -162,6 +180,9 @@ namespace Mono.Debugging.Client
 		
 		public bool RemoveCatchpoint (string exceptionName)
 		{
+			if (exceptionName == null)
+				throw new ArgumentNullException ("exceptionName");
+
 			if (IsReadOnly)
 				return false;
 
@@ -178,6 +199,9 @@ namespace Mono.Debugging.Client
 		
 		public bool Remove (BreakEvent bp)
 		{
+			if (bp == null)
+				throw new ArgumentNullException ("bp");
+
 			if (!IsReadOnly && breakpoints.Remove (bp)) {
 				OnBreakEventRemoved (bp);
 				return true;
@@ -188,6 +212,15 @@ namespace Mono.Debugging.Client
 		
 		public Breakpoint Toggle (string filename, int line, int column)
 		{
+			if (filename == null)
+				throw new ArgumentNullException ("filename");
+
+			if (line < 1)
+				throw ArgumentOutOfRangeException ("line");
+
+			if (column < 1)
+				throw ArgumentOutOfRangeException ("column");
+
 			if (IsReadOnly)
 				return null;
 			
@@ -228,7 +261,10 @@ namespace Mono.Debugging.Client
 		
 		public ReadOnlyCollection<Breakpoint> GetBreakpointsAtFile (string filename)
 		{
-			List<Breakpoint> list = new List<Breakpoint> ();
+			if (filename == null)
+				throw new ArgumentNullException ("filename");
+
+			var list = new List<Breakpoint> ();
 			
 			try {
 				filename = Path.GetFullPath (filename);
@@ -247,7 +283,10 @@ namespace Mono.Debugging.Client
 		
 		public ReadOnlyCollection<Breakpoint> GetBreakpointsAtFileLine (string filename, int line)
 		{
-			List<Breakpoint> list = new List<Breakpoint> ();
+			if (filename == null)
+				throw new ArgumentNullException ("filename");
+
+			var list = new List<Breakpoint> ();
 			
 			try {
 				filename = Path.GetFullPath (filename);

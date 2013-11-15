@@ -48,11 +48,9 @@ namespace Mono.Debugging.Client
 	{
 		readonly Dictionary<BreakEvent, BreakEventInfo> breakpoints = new Dictionary<BreakEvent, BreakEventInfo> ();
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
-		BreakEventHitHandler customBreakpointHitHandler;
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
 		readonly object olock = new object ();
-		ExceptionHandler exceptionHandler;
 		BreakpointStore breakpointStore;
 		OutputWriterDelegate outputWriter;
 		OutputWriterDelegate logWriter;
@@ -166,8 +164,7 @@ namespace Mono.Debugging.Client
 		/// in the debugged process.
 		/// </remarks>
 		public ExceptionHandler ExceptionHandler {
-			get { return exceptionHandler; }
-			set { exceptionHandler = value; }
+			get; set;
 		}
 		
 		/// <summary>
@@ -207,12 +204,7 @@ namespace Mono.Debugging.Client
 		/// continue or stop.
 		/// </remarks>
 		public BreakEventHitHandler CustomBreakEventHitHandler {
-			get {
-				return customBreakpointHitHandler;
-			}
-			set {
-				customBreakpointHitHandler = value;
-			}
+			get; set;
 		}
 		
 		/// <summary>
@@ -1198,7 +1190,7 @@ namespace Mono.Debugging.Client
 			Breakpoints.NotifyStatusChanged (be);
 		}
 		
-		string GetBreakEventErrorMessage (BreakEvent be)
+		static string GetBreakEventErrorMessage (BreakEvent be)
 		{
 			var bp = be as Breakpoint;
 			if (bp != null)
@@ -1222,8 +1214,8 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		protected virtual bool HandleException (Exception ex)
 		{
-			if (exceptionHandler != null)
-				return exceptionHandler (ex);
+			if (ExceptionHandler != null)
+				return ExceptionHandler (ex);
 
 			return false;
 		}
