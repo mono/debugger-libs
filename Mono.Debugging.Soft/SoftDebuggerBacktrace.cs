@@ -51,10 +51,10 @@ namespace Mono.Debugging.Soft
 	
 	public class SoftDebuggerBacktrace: BaseBacktrace
 	{
+		readonly SoftDebuggerSession session;
+		readonly MDB.ThreadMirror thread;
+		readonly int stackVersion;
 		MDB.StackFrame[] frames;
-		SoftDebuggerSession session;
-		MDB.ThreadMirror thread;
-		int stackVersion;
 		
 		public SoftDebuggerBacktrace (SoftDebuggerSession session, MDB.ThreadMirror thread): base (session.Adaptor)
 		{

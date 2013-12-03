@@ -51,7 +51,7 @@ namespace Mono.Debugging.Client
 		///     Value of the object: display text of the frame
 		///     File: name of the file
 		///     Line: line
-		///     Col: column
+		///     Column: column
 		/// InnerException: inner exception, following the same format described above.
 		/// </summary>
 		public ExceptionInfo (ObjectValue exception)
@@ -120,8 +120,8 @@ namespace Mono.Debugging.Client
 				ObjectValue stackTrace = exception.GetChild ("StackTrace");
 				if (stackTrace != null)
 					return stackTrace.IsEvaluating;
-				else
-					return false;
+
+				return false;
 			}
 		}
 
@@ -130,7 +130,7 @@ namespace Mono.Debugging.Client
 				if (frames != null)
 					return frames;
 				
-				ObjectValue stackTrace = exception.GetChild ("StackTrace");
+				var stackTrace = exception.GetChild ("StackTrace");
 				if (stackTrace == null)
 					return frames = new ExceptionStackFrame [0];
 				
@@ -139,10 +139,13 @@ namespace Mono.Debugging.Client
 					stackTrace.ValueChanged += HandleExceptionValueChanged;
 					return frames;
 				}
-				List<ExceptionStackFrame> list = new List<ExceptionStackFrame> ();
-				foreach (ObjectValue val in stackTrace.GetAllChildren ())
+
+				var list = new List<ExceptionStackFrame> ();
+				foreach (var val in stackTrace.GetAllChildren ())
 					list.Add (new ExceptionStackFrame (val));
+
 				frames = list.ToArray ();
+
 				return frames;
 			}
 		}
@@ -178,6 +181,7 @@ namespace Mono.Debugging.Client
 			StringBuilder sb = new StringBuilder ();
 			var chain = new List<ExceptionInfo> ();
 			ExceptionInfo e = this;
+
 			while (e != null) {
 				chain.Insert (0, e);
 				if (sb.Length > 0)
@@ -185,10 +189,13 @@ namespace Mono.Debugging.Client
 				sb.Append (e.Type).Append (": ").Append (e.Message);
 				e = e.InnerException;
 			}
+
 			sb.AppendLine ();
+
 			foreach (var ex in chain) {
 				if (ex != chain[0])
 					sb.AppendLine ("  --- End of inner exception stack trace ---");
+
 				foreach (var f in ex.StackTrace) {
 					sb.Append ("  at ").Append (f.DisplayText);
 					if (!string.IsNullOrEmpty (f.File))
@@ -196,20 +203,21 @@ namespace Mono.Debugging.Client
 					sb.AppendLine ();
 				}
 			}
+
 			return sb.ToString ();
 		}
 	}
 	
 	public class ExceptionStackFrame
 	{
-		ObjectValue frame;
+		readonly ObjectValue frame;
 		
 		/// <summary>
 		/// The provided value must have a specific structure.
 		/// The Value property is the display text.
 		/// A child "File" member must be the name of the file.
 		/// A child "Line" member must be the line.
-		/// A child "Col" member must be the column.
+		/// A child "Column" member must be the column.
 		/// </summary>
 		public ExceptionStackFrame (ObjectValue value)
 		{

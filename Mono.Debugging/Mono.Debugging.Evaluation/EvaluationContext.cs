@@ -33,14 +33,11 @@ namespace Mono.Debugging.Evaluation
 {
 	public class EvaluationContext
 	{
-		EvaluationOptions options;
-
 		public ExpressionEvaluator Evaluator { get; set; }
 		public ObjectValueAdaptor Adapter { get; set; }
 		
 		public EvaluationOptions Options {
-			get { return options; }
-			set { options = value; }
+			get; set;
 		}
 		
 		public bool CaseSensitive {
@@ -67,7 +64,7 @@ namespace Mono.Debugging.Evaluation
 		
 		public EvaluationContext (EvaluationOptions options)
 		{
-			this.options = options;
+			Options = options;
 		}
 
 		public EvaluationContext Clone ()
@@ -79,18 +76,17 @@ namespace Mono.Debugging.Evaluation
 
 		public EvaluationContext WithOptions (EvaluationOptions options)
 		{
-			if (options == null || this.options == options)
+			if (options == null || Options == options)
 				return this;
-			else {
-				EvaluationContext clone = Clone ();
-				clone.options = options;
-				return clone;
-			}
+
+			EvaluationContext clone = Clone ();
+			clone.Options = options;
+			return clone;
 		}
 
 		public virtual void CopyFrom (EvaluationContext ctx)
 		{
-			options = ctx.options.Clone ();
+			Options = ctx.Options.Clone ();
 			Evaluator = ctx.Evaluator;
 			Adapter = ctx.Adapter;
 		}
@@ -107,7 +103,7 @@ namespace Mono.Debugging.Evaluation
 	
 	class ExpressionValueSource: RemoteFrameObject, IObjectValueSource
 	{
-		EvaluationContext ctx;
+		readonly EvaluationContext ctx;
 		
 		public ExpressionValueSource (EvaluationContext ctx)
 		{
@@ -117,29 +113,29 @@ namespace Mono.Debugging.Evaluation
 		
 		public ObjectValue[] GetChildren (ObjectPath path, int index, int count, EvaluationOptions options)
 		{
-			throw new System.NotImplementedException();
+			throw new NotImplementedException ();
 		}
 		
 		public EvaluationResult SetValue (ObjectPath path, string value, EvaluationOptions options)
 		{
-			throw new System.NotImplementedException();
+			throw new NotImplementedException ();
 		}
 		
 		public ObjectValue GetValue (ObjectPath path, EvaluationOptions options)
 		{
 			EvaluationContext c = ctx.WithOptions (options);
-			ObjectValue[] vals = c.Adapter.GetExpressionValuesAsync (c, new string[] { path.LastName });
+			var vals = c.Adapter.GetExpressionValuesAsync (c, new string[] { path.LastName });
 			return vals[0];
 		}
 		
 		public object GetRawValue (ObjectPath path, EvaluationOptions options)
 		{
-			throw new System.NotImplementedException ();
+			throw new NotImplementedException ();
 		}
 		
 		public void SetRawValue (ObjectPath path, object value, EvaluationOptions options)
 		{
-			throw new System.NotImplementedException ();
+			throw new NotImplementedException ();
 		}
 	}
 }
