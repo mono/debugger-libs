@@ -195,7 +195,7 @@ namespace Mono.Debugging.Soft
 			var sdbLog = Environment.GetEnvironmentVariable ("MONODEVELOP_SDB_LOG");
 			if (!string.IsNullOrEmpty (sdbLog)) {
 				options = options ?? new LaunchOptions ();
-				options.AgentArgs = string.Format ("loglevel=1,logfile='{0}'", sdbLog);
+				options.AgentArgs = string.Format ("loglevel=1,logfile='{0}',setpgid=y", sdbLog);
 			}
 			
 			foreach (var env in args.MonoRuntimeEnvironmentVariables)
