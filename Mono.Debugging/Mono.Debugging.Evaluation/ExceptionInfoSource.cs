@@ -25,56 +25,57 @@
 // THE SOFTWARE.
 
 using System;
-using Mono.Debugging.Client;
-using Mono.Debugging.Backend;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+
+using Mono.Debugging.Client;
+using Mono.Debugging.Backend;
 
 namespace Mono.Debugging.Evaluation
 {
 	public class ExceptionInfoSource
 	{
-		ValueReference exception;
-		EvaluationContext ctx;
+		readonly EvaluationContext ctx;
 		
 		public ExceptionInfoSource (EvaluationContext ctx, ValueReference exception)
 		{
-			this.exception = exception;
+			Exception = exception;
 			this.ctx = ctx;
 		}
 		
 		public ValueReference Exception {
-			get { return this.exception; }
+			get; private set;
 		}
 		
 		public ObjectValue CreateObjectValue (bool withTimeout, EvaluationOptions options)
 		{
-			string type = ctx.Adapter.GetTypeName (ctx, exception.Type);
-			
-			ObjectValue excInstance = exception.CreateObjectValue (withTimeout, options);
+			string type = ctx.Adapter.GetTypeName (ctx, Exception.Type);
+
+			var excInstance = Exception.CreateObjectValue (withTimeout, options);
 			excInstance.Name = "Instance";
 			
 			ObjectValue messageValue = null;
-			
+
 			// Get the message
 			
 			if (withTimeout) {
 				messageValue = ctx.Adapter.CreateObjectValueAsync ("Message", ObjectValueFlags.None, delegate {
-					ValueReference mref = exception.GetChild ("Message", options);
+					var mref = Exception.GetChild ("Message", options);
 					if (mref != null) {
 						string val = (string) mref.ObjectValue;
 						return ObjectValue.CreatePrimitive (null, new ObjectPath ("Message"), "System.String", new EvaluationResult (val), ObjectValueFlags.Literal);
 					}
-					else
-						return ObjectValue.CreateUnknown ("Message");
+
+					return ObjectValue.CreateUnknown ("Message");
 				});
 			} else {
-				ValueReference mref = exception.GetChild ("Message", options);
+				var mref = Exception.GetChild ("Message", options);
 				if (mref != null) {
 					string val = (string) mref.ObjectValue;
 					messageValue = ObjectValue.CreatePrimitive (null, new ObjectPath ("Message"), "System.String", new EvaluationResult (val), ObjectValueFlags.Literal);
 				}
 			}
+
 			if (messageValue == null)
 				messageValue = ObjectValue.CreateUnknown ("Message");
 			
@@ -86,25 +87,26 @@ namespace Mono.Debugging.Evaluation
 			
 			if (withTimeout) {
 				childExceptionValue = ctx.Adapter.CreateObjectValueAsync ("InnerException", ObjectValueFlags.None, delegate {
-					ValueReference inner = exception.GetChild ("InnerException", options);
+					var inner = Exception.GetChild ("InnerException", options);
 					if (inner != null && !ctx.Adapter.IsNull (ctx, inner.Value)) {
 						//Console.WriteLine ("pp got child:" + type);
-						ExceptionInfoSource innerSource = new ExceptionInfoSource (ctx, inner);
-						ObjectValue res = innerSource.CreateObjectValue (false, options);
+						var innerSource = new ExceptionInfoSource (ctx, inner);
+						var res = innerSource.CreateObjectValue (false, options);
 						return res;
 					}
-					else
-						return ObjectValue.CreateUnknown ("InnerException");
+
+					return ObjectValue.CreateUnknown ("InnerException");
 				});
 			} else {
-				ValueReference inner = exception.GetChild ("InnerException", options);
+				var inner = Exception.GetChild ("InnerException", options);
 				if (inner != null && !ctx.Adapter.IsNull (ctx, inner.Value)) {
 					//Console.WriteLine ("pp got child:" + type);
-					ExceptionInfoSource innerSource = new ExceptionInfoSource (ctx, inner);
+					var innerSource = new ExceptionInfoSource (ctx, inner);
 					childExceptionValue = innerSource.CreateObjectValue (false, options);
 					childExceptionValue.Name = "InnerException";
 				}
 			}
+
 			if (childExceptionValue == null)
 				childExceptionValue = ObjectValue.CreateUnknown ("InnerException");
 			
@@ -115,45 +117,52 @@ namespace Mono.Debugging.Evaluation
 				stackTraceValue = ctx.Adapter.CreateObjectValueAsync ("StackTrace", ObjectValueFlags.None, delegate {
 					return GetStackTrace (options);
 				});
-			} else
+			} else {
 				stackTraceValue = GetStackTrace (options);
-			
-			ObjectValue[] children = new ObjectValue [] { excInstance, messageValue, stackTraceValue, childExceptionValue };
+			}
+
+			var children = new ObjectValue [] { excInstance, messageValue, stackTraceValue, childExceptionValue };
+
 			return ObjectValue.CreateObject (null, new ObjectPath ("InnerException"), type, "", ObjectValueFlags.None, children);
 		}
 		
 		ObjectValue GetStackTrace (EvaluationOptions options)
 		{
-			ValueReference st = exception.GetChild ("StackTrace", options);
-			if (st == null)
+			var stackTrace = Exception.GetChild ("StackTrace", options);
+			if (stackTrace == null)
 				return ObjectValue.CreateUnknown ("StackTrace");
-			string trace = st.ObjectValue as string;
+
+			string trace = stackTrace.ObjectValue as string;
 			if (trace == null)
 				return ObjectValue.CreateUnknown ("StackTrace");
-			
-			List<ObjectValue> frames = new List<ObjectValue> ();
 
-			var regex = new Regex ("at (.*) in (.*):(.*)");
+			var regex = new Regex ("at (?<MethodName>.*) in (?<FileName>.*):(?<LineNumber>\\d+)(,(?<Column>\\d+))?");
+			var frames = new List<ObjectValue> ();
 			
-			foreach (string sframe in trace.Split ('\n')) {
-				string txt = sframe.Trim (' ', '\r','\n');
+			foreach (var sframe in trace.Split ('\n')) {
+				string text = sframe.Trim (' ', '\r', '\t');
 				string file = "";
+				int column = 0;
 				int line = 0;
-				int col = 0;
-				var match = regex.Match (sframe);
+
+				var match = regex.Match (text);
 				if (match.Success) {
-					txt = match.Groups [1].ToString ();
-					file = match.Groups [2].ToString ();
-					int.TryParse (match.Groups [3].ToString (), out line);
+					text = match.Groups["MethodName"].ToString ();
+					file = match.Groups["FileName"].ToString ();
+					int.TryParse (match.Groups["LineNumber"].ToString (), out line);
+					int.TryParse (match.Groups["Column"].ToString (), out column);
 				}
-				ObjectValue fileVal = ObjectValue.CreatePrimitive (null, new ObjectPath("File"), "", new EvaluationResult (file), ObjectValueFlags.None);
-				ObjectValue lineVal = ObjectValue.CreatePrimitive (null, new ObjectPath("Line"), "", new EvaluationResult (line.ToString ()), ObjectValueFlags.None);
-				ObjectValue colVal = ObjectValue.CreatePrimitive (null, new ObjectPath("Column"), "", new EvaluationResult (col.ToString ()), ObjectValueFlags.None);
-				ObjectValue[] children = new ObjectValue[] { fileVal, lineVal, colVal };
-				ObjectValue frame = ObjectValue.CreateObject (null, new ObjectPath (), "", new EvaluationResult (txt), ObjectValueFlags.None, children);
+
+				var fileVal = ObjectValue.CreatePrimitive (null, new ObjectPath ("File"), "", new EvaluationResult (file), ObjectValueFlags.None);
+				var lineVal = ObjectValue.CreatePrimitive (null, new ObjectPath ("Line"), "", new EvaluationResult (line.ToString ()), ObjectValueFlags.None);
+				var colVal = ObjectValue.CreatePrimitive (null, new ObjectPath ("Column"), "", new EvaluationResult (column.ToString ()), ObjectValueFlags.None);
+				var children = new ObjectValue[] { fileVal, lineVal, colVal };
+
+				var frame = ObjectValue.CreateObject (null, new ObjectPath (), "", new EvaluationResult (text), ObjectValueFlags.None, children);
 				frames.Add (frame);
 			}
-			return ObjectValue.CreateArray (null, new ObjectPath ("StackTrace"), "", frames.Count,ObjectValueFlags.None, frames.ToArray ());
+
+			return ObjectValue.CreateArray (null, new ObjectPath ("StackTrace"), "", frames.Count, ObjectValueFlags.None, frames.ToArray ());
 		}
 	}
 }
