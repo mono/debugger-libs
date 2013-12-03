@@ -294,12 +294,15 @@ namespace Mono.Debugging.Client
 		{
 			string loc;
 
-			if (location.Line != -1 && !string.IsNullOrEmpty (location.FileName))
+			if (location.Line != -1 && !string.IsNullOrEmpty (location.FileName)) {
 				loc = " at " + location.FileName + ":" + location.Line;
-			else if (!string.IsNullOrEmpty (location.FileName))
+				if (location.Column != 0)
+					loc += "," + location.Column;
+			} else if (!string.IsNullOrEmpty (location.FileName)) {
 				loc = " at " + location.FileName;
-			else
-				loc = "";
+			} else {
+				loc = string.Empty;
+			}
 
 			return string.Format ("0x{0:X} in {1}{2}", address, location.MethodName, loc);
 		}

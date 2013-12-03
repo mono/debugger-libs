@@ -196,10 +196,15 @@ namespace Mono.Debugging.Client
 				if (ex != chain[0])
 					sb.AppendLine ("  --- End of inner exception stack trace ---");
 
-				foreach (var f in ex.StackTrace) {
-					sb.Append ("  at ").Append (f.DisplayText);
-					if (!string.IsNullOrEmpty (f.File))
-						sb.Append (" in ").Append (f.File).Append (":").Append (f.Line);
+				foreach (var frame in ex.StackTrace) {
+					sb.Append ("  at ").Append (frame.DisplayText);
+
+					if (!string.IsNullOrEmpty (frame.File)) {
+						sb.Append (" in ").Append (frame.File).Append (':').Append (frame.Line);
+						if (frame.Column != 0)
+							sb.Append (',').Append (frame.Column);
+					}
+
 					sb.AppendLine ();
 				}
 			}
