@@ -49,7 +49,12 @@ namespace Mono.Debugging.Client
 		internal Catchpoint (XmlElement elem): base (elem)
 		{
 			exceptionName = elem.GetAttribute ("exceptionName");
-			includeSubclasses = Boolean.Parse (elem.GetAttribute ("includeSubclasses"));
+
+			var str = elem.GetAttribute ("includeSubclasses");
+			if (string.IsNullOrEmpty (str) || !bool.TryParse (str, out includeSubclasses)) {
+				// fall back to the old default behavior
+				includeSubclasses = true;
+			}
 		}
 
 		internal override XmlElement ToXml (XmlDocument doc)
