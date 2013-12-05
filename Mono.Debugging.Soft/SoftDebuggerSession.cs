@@ -85,11 +85,10 @@ namespace Mono.Debugging.Soft
 
 		internal int StackVersion;
 
+		readonly SoftDebuggerAdaptor adaptor;
 		public SoftDebuggerAdaptor Adaptor {
 			get { return adaptor; }
 		}
-		
-		readonly SoftDebuggerAdaptor adaptor;
 
 		public SoftDebuggerSession ()
 		{
