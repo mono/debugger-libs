@@ -95,16 +95,23 @@ namespace Mono.Debugging.Soft
 			get { return adaptor; }
 		}
 		
-		readonly SoftDebuggerAdaptor adaptor = new SoftDebuggerAdaptor ();
-		
+		readonly SoftDebuggerAdaptor adaptor;
+
 		public SoftDebuggerSession ()
 		{
+			adaptor = CreateSoftDebuggerAdaptor ();
+
 			Adaptor.BusyStateChanged += delegate(object sender, BusyStateEventArgs e) {
 				SetBusyState (e);
 			};
 			overloadResolveCache = new Dictionary<Tuple<TypeMirror,string>, MethodMirror[]> ();
 		}
-		
+
+		protected virtual SoftDebuggerAdaptor CreateSoftDebuggerAdaptor()
+		{
+			return new SoftDebuggerAdaptor();
+		}
+
 		protected override void OnRun (DebuggerStartInfo startInfo)
 		{
 			if (HasExited)
