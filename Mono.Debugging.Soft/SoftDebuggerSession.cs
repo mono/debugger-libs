@@ -50,47 +50,41 @@ namespace Mono.Debugging.Soft
 {
 	public class SoftDebuggerSession : DebuggerSession
 	{
-		VirtualMachine vm;
-		Thread eventHandler;
-		Dictionary<string, List<TypeMirror>> source_to_type = new Dictionary<string, List<TypeMirror>> (PathComparer);
-		Dictionary<TypeMirror, string[]> type_to_source = new Dictionary<TypeMirror, string[]> ();
-		bool useFullPaths = true;
-		Dictionary<string,TypeMirror> types = new Dictionary<string, TypeMirror> ();
-		Dictionary<string, MonoSymbolFile> symbolFiles = new Dictionary<string, MonoSymbolFile> ();
-		Dictionary<EventRequest,BreakInfo> breakpoints = new Dictionary<EventRequest,BreakInfo> ();
-		List<BreakInfo> pending_bes = new List<BreakInfo> ();
-		ThreadMirror current_thread, recent_thread;
-		ProcessInfo[] procs;
-		ThreadInfo[] current_threads;
-		bool started;
-		bool autoStepInto;
-		internal int StackVersion;
-		StepEventRequest currentStepRequest;
-		long currentAddress = -1;
-		ExceptionEventRequest unhandledExceptionRequest;
-		string remoteProcessName;
-		Dictionary<long,long> localThreadIds = new Dictionary<long, long> ();
-		IConnectionDialog connectionDialog;
+		readonly Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> overloadResolveCache = new Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> ();
+		readonly Dictionary<string, List<TypeMirror>> source_to_type = new Dictionary<string, List<TypeMirror>> (PathComparer);
+		readonly Dictionary<long,ObjectMirror> activeExceptionsByThread = new Dictionary<long, ObjectMirror> ();
+		readonly Dictionary<EventRequest, BreakInfo> breakpoints = new Dictionary<EventRequest, BreakInfo> ();
+		readonly Dictionary<string, MonoSymbolFile> symbolFiles = new Dictionary<string, MonoSymbolFile> ();
+		readonly Dictionary<TypeMirror, string[]> type_to_source = new Dictionary<TypeMirror, string[]> ();
+		readonly Dictionary<string, TypeMirror> types = new Dictionary<string, TypeMirror> ();
+		readonly LinkedList<List<Event>> queuedEventSets = new LinkedList<List<Event>> ();
+		readonly Dictionary<long,long> localThreadIds = new Dictionary<long, long> ();
+		readonly List<BreakInfo> pending_bes = new List<BreakInfo> ();
 		TypeLoadEventRequest typeLoadReq, typeLoadTypeNameReq;
-		
-		Dictionary<long,ObjectMirror> activeExceptionsByThread = new Dictionary<long, ObjectMirror> ();
-		
-		Thread outputReader;
-		Thread errorReader;
-		
-		IAsyncResult connectionHandle;
-		SoftDebuggerStartArgs startArgs;
-		
-		LinkedList<List<Event>> queuedEventSets = new LinkedList<List<Event>> ();
-		
-		List<string> userAssemblyNames;
-		List<AssemblyMirror> assemblyFilters;
+		ExceptionEventRequest unhandledExceptionRequest;
 		Dictionary<string, string> assemblyPathMap;
-		
-		bool loggedSymlinkedRuntimesBug = false;
+		ThreadMirror current_thread, recent_thread;
+		List<AssemblyMirror> assemblyFilters;
+		StepEventRequest currentStepRequest;
+		IConnectionDialog connectionDialog;
+		Thread outputReader, errorReader;
+		bool loggedSymlinkedRuntimesBug;
+		SoftDebuggerStartArgs startArgs;
+		List<string> userAssemblyNames;
+		IAsyncResult connectionHandle;
+		ThreadInfo[] current_threads;
+		string remoteProcessName;
+		bool useFullPaths = true;
+		long currentAddress = -1;
+		ProcessInfo[] procs;
+		Thread eventHandler;
+		VirtualMachine vm;
+		bool autoStepInto;
+		bool disposed;
+		bool started;
 
-		Dictionary<Tuple<TypeMirror,string>, MethodMirror[]> overloadResolveCache;
-		
+		internal int StackVersion;
+
 		public SoftDebuggerAdaptor Adaptor {
 			get { return adaptor; }
 		}
@@ -101,13 +95,10 @@ namespace Mono.Debugging.Soft
 		{
 			adaptor = CreateSoftDebuggerAdaptor ();
 
-			Adaptor.BusyStateChanged += delegate(object sender, BusyStateEventArgs e) {
-				SetBusyState (e);
-			};
-			overloadResolveCache = new Dictionary<Tuple<TypeMirror,string>, MethodMirror[]> ();
+			Adaptor.BusyStateChanged += (sender, e) => SetBusyState (e);
 		}
 
-		protected virtual SoftDebuggerAdaptor CreateSoftDebuggerAdaptor()
+		protected virtual SoftDebuggerAdaptor CreateSoftDebuggerAdaptor ()
 		{
 			return new SoftDebuggerAdaptor();
 		}
@@ -287,7 +278,7 @@ namespace Mono.Debugging.Soft
 				}
 				try {
 					if (timeBetweenAttempts > 0)
-						System.Threading.Thread.Sleep (timeBetweenAttempts);
+						Thread.Sleep (timeBetweenAttempts);
 					
 					ConnectionStarting (VirtualMachineManager.BeginConnect (dbgEP, conEP, callback), dsi, false, attemptNumber);
 					
@@ -553,8 +544,10 @@ namespace Mono.Debugging.Soft
 		{
 			base.Dispose ();
 
-			if (symbolFiles == null)
+			if (disposed)
 				return;
+
+			disposed = true;
 
 			if (!HasExited)
 				EndLaunch ();
@@ -563,7 +556,6 @@ namespace Mono.Debugging.Soft
 				symfile.Value.Dispose ();
 
 			symbolFiles.Clear ();
-			symbolFiles = null;
 
 			if (!HasExited) {
 				if (vm != null) {
