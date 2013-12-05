@@ -63,7 +63,8 @@ namespace Mono.Debugging.Soft
 
 		public override object Value {
 			get {
-				SoftEvaluationContext ctx = (SoftEvaluationContext) Context;
+				var ctx = (SoftEvaluationContext) Context;
+
 				try {
 					var value = ctx.Frame.GetValue (variable);
 
@@ -71,6 +72,9 @@ namespace Mono.Debugging.Soft
 						long addr = (long) ((PrimitiveValue) value).Value;
 						value = new PointerValue (value.VirtualMachine, variable.Type, addr);
 					}
+
+					if (ctx.Adapter.IsNull (ctx, value))
+						return null;
 
 					return value;
 				} catch (AbsentInformationException) {

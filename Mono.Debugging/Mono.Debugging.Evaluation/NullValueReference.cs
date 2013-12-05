@@ -50,7 +50,7 @@ namespace Mono.Debugging.Evaluation
 				return obj;
 			}
 			set {
-				throw new NotSupportedException();
+				throw new NotSupportedException ();
 			}
 		}
 		

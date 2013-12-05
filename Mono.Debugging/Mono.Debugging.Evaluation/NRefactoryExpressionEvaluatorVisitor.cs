@@ -36,7 +36,7 @@ namespace Mono.Debugging.Evaluation
 {
 	public class NRefactoryExpressionEvaluatorVisitor : IAstVisitor<ValueReference>
 	{
-		readonly Dictionary<string,ValueReference> userVariables;
+		readonly Dictionary<string, ValueReference> userVariables;
 		readonly EvaluationOptions options;
 		readonly EvaluationContext ctx;
 		readonly object expectedType;
@@ -240,34 +240,40 @@ namespace Mono.Debugging.Evaluation
 		ValueReference EvaluateBinaryOperatorExpression (BinaryOperatorType op, ValueReference left, Expression rightExp)
 		{
 			if (op == BinaryOperatorType.ConditionalAnd) {
-				object val = left.ObjectValue;
+				var val = left.ObjectValue;
 				if (!(val is bool))
 					throw ParseError ("Left operand of logical And must be a boolean.");
-				if (!(bool)val)
+
+				if (!(bool) val)
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
-				ValueReference vr = rightExp.AcceptVisitor<ValueReference> (this);
+
+				var vr = rightExp.AcceptVisitor<ValueReference> (this);
 				if (vr == null || ctx.Adapter.GetTypeName (ctx, vr.Type) != "System.Boolean")
 					throw ParseError ("Right operand of logical And must be a boolean.");
+
 				return vr;
 			}
 
 			if (op == BinaryOperatorType.ConditionalOr) {
-				object val = left.ObjectValue;
+				var val = left.ObjectValue;
 				if (!(val is bool))
 					throw ParseError ("Left operand of logical Or must be a boolean.");
-				if ((bool)val)
+
+				if ((bool) val)
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, true);
-				ValueReference vr = rightExp.AcceptVisitor<ValueReference> (this);
+
+				var vr = rightExp.AcceptVisitor<ValueReference> (this);
 				if (vr == null || ctx.Adapter.GetTypeName (ctx, vr.Type) != "System.Boolean")
 					throw ParseError ("Right operand of logical Or must be a boolean.");
+
 				return vr;
 			}
 
-			ValueReference right = rightExp.AcceptVisitor<ValueReference> (this);
-			object targetVal1 = left.Value;
-			object targetVal2 = right.Value;
-			object val1 = left.ObjectValue;
-			object val2 = right.ObjectValue;
+			var right = rightExp.AcceptVisitor<ValueReference> (this);
+			var targetVal1 = left.Value;
+			var targetVal2 = right.Value;
+			var val1 = left.ObjectValue;
+			var val2 = right.ObjectValue;
 
 			if (op == BinaryOperatorType.Add) {
 				if (val1 is string || val2 is string) {
@@ -811,7 +817,7 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitNullReferenceExpression (NullReferenceExpression nullReferenceExpression)
 		{
-			throw NotSupported ();
+			return new NullValueReference (ctx, ctx.Adapter.GetType (ctx, "System.Object"));
 		}
 
 		public ValueReference VisitObjectCreateExpression (ObjectCreateExpression objectCreateExpression)
