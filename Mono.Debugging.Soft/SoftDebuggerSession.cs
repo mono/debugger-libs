@@ -36,6 +36,7 @@ using System.Threading;
 using System.Reflection;
 using System.Net.Sockets;
 using System.Globalization;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -480,10 +481,9 @@ namespace Mono.Debugging.Soft
 			Thread t = (error ? errorReader : outputReader);
 			if (t != null || reader == null)
 				return;
-			t = new Thread (delegate () {
-				ReadOutput (reader, error);
-			});
-			t.Name = error? "SDB error reader" : "SDB output reader";
+
+			t = new Thread (() => ReadOutput (reader, error));
+			t.Name = error ? "SDB error reader" : "SDB output reader";
 			t.IsBackground = true;
 			t.Start ();
 
@@ -506,7 +506,7 @@ namespace Mono.Debugging.Soft
 						Thread.Sleep (250);
 					}
 				}
-			} catch {
+			} catch (IOException) {
 				// Ignore
 			}
 		}
@@ -621,17 +621,14 @@ namespace Mono.Debugging.Soft
 		{
 			if (vm != null) {
 				//FIXME: this might never get reached if the IDE is Exited first
-				try {
-					if (vm.Process != null) {
-						ThreadPool.QueueUserWorkItem (delegate {
-							// This is a workaround for a mono bug
-							// Without this call, the process may become zombie in mono < 2.10.2
-							vm.Process.WaitForExit ();
-						});
-					}
-				} catch {
-					// Ignore
+				if (vm.Process != null) {
+					ThreadPool.QueueUserWorkItem (delegate {
+						// This is a workaround for a mono bug
+						// Without this call, the process may become zombie in mono < 2.10.2
+						vm.Process.WaitForExit ();
+					});
 				}
+
 				var t = new System.Timers.Timer ();
 				t.Interval = 3000;
 				t.Elapsed += delegate {
@@ -642,6 +639,7 @@ namespace Mono.Debugging.Soft
 					} catch (Exception ex) {
 						DebuggerLoggingService.LogError ("Failed to force-terminate process", ex);
 					}
+
 					try {
 						if (vm != null) {
 							//this is a no-op if it already closed
@@ -651,6 +649,7 @@ namespace Mono.Debugging.Soft
 						DebuggerLoggingService.LogError ("Failed to force-close debugger connection", ex);
 					}
 				};
+
 				t.Enabled = true;
 			}	
 		}
@@ -693,7 +692,7 @@ namespace Mono.Debugging.Soft
 
 		protected override Backtrace OnGetThreadBacktrace (long processId, long threadId)
 		{
-			return GetThreadBacktrace (GetThread (processId, threadId));
+			return GetThreadBacktrace (GetThread (threadId));
 		}
 		
 		Backtrace GetThreadBacktrace (ThreadMirror thread)
@@ -732,11 +731,13 @@ namespace Mono.Debugging.Soft
 			return current_threads;
 		}
 		
-		ThreadMirror GetThread (long processId, long threadId)
+		ThreadMirror GetThread (long threadId)
 		{
-			foreach (ThreadMirror t in vm.GetThreads ())
-				if (GetId (t) == threadId)
-					return t;
+			foreach (var thread in vm.GetThreads ()) {
+				if (GetId (thread) == threadId)
+					return thread;
+			}
+
 			return null;
 		}
 		
@@ -749,7 +750,7 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 		
-		protected override BreakEventInfo OnInsertBreakEvent (BreakEvent ev)
+		protected override BreakEventInfo OnInsertBreakEvent (BreakEvent breakEvent)
 		{
 			lock (pending_bes) {
 				var bi = new BreakInfo ();
@@ -759,8 +760,8 @@ namespace Mono.Debugging.Soft
 					return bi;
 				}
 
-				if (ev is FunctionBreakpoint) {
-					var fb = (FunctionBreakpoint) ev;
+				if (breakEvent is FunctionBreakpoint) {
+					var fb = (FunctionBreakpoint) breakEvent;
 					bool resolved = false;
 
 					foreach (var location in FindFunctionLocations (fb.FunctionName, fb.ParamTypes)) {
@@ -789,8 +790,8 @@ namespace Mono.Debugging.Soft
 						bi.SetStatus (BreakEventStatus.NotBound, null);
 						pending_bes.Add (bi);
 					}
-				} else if (ev is Breakpoint) {
-					var bp = (Breakpoint) ev;
+				} else if (breakEvent is Breakpoint) {
+					var bp = (Breakpoint) breakEvent;
 					bool insideLoadedRange;
 					bool resolved = false;
 					bool generic;
@@ -818,8 +819,8 @@ namespace Mono.Debugging.Soft
 						else
 							bi.SetStatus (BreakEventStatus.NotBound, null);
 					}
-				} else if (ev is Catchpoint) {
-					var cp = (Catchpoint) ev;
+				} else if (breakEvent is Catchpoint) {
+					var cp = (Catchpoint) breakEvent;
 					TypeMirror type;
 
 					if (!types.TryGetValue (cp.ExceptionName, out type)) {
@@ -884,13 +885,13 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-		protected override void OnRemoveBreakEvent (BreakEventInfo binfo)
+		protected override void OnRemoveBreakEvent (BreakEventInfo eventInfo)
 		{
 			if (HasExited)
 				return;
 
 			lock (pending_bes) {
-				var bi = (BreakInfo) binfo;
+				var bi = (BreakInfo) eventInfo;
 				if (bi.Requests.Count != 0) {
 					foreach (var request in bi.Requests)
 						request.Enabled = false;
@@ -902,13 +903,13 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-		protected override void OnEnableBreakEvent (BreakEventInfo binfo, bool enable)
+		protected override void OnEnableBreakEvent (BreakEventInfo eventInfo, bool enable)
 		{
 			if (HasExited)
 				return;
 
 			lock (pending_bes) {
-				var bi = (BreakInfo) binfo;
+				var bi = (BreakInfo) eventInfo;
 				if (bi.Requests.Count != 0) {
 					foreach (var request in bi.Requests)
 						request.Enabled = enable;
@@ -919,7 +920,7 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-		protected override void OnUpdateBreakEvent (BreakEventInfo binfo)
+		protected override void OnUpdateBreakEvent (BreakEventInfo eventInfo)
 		{
 		}
 
@@ -1251,8 +1252,7 @@ namespace Mono.Debugging.Soft
 				// Without this call, the process may become zombie in mono < 2.10.2
 				if (vm.Process != null)
 					vm.Process.WaitForExit (1);
-			} catch {
-				// Ignore
+			} catch (SystemException) {
 			}
 
 			OnTargetEvent (new TargetEventArgs (TargetEventType.TargetExited));
@@ -2130,30 +2130,31 @@ namespace Mono.Debugging.Soft
 					mdb = MonoSymbolFile.ReadSymbolFile (mdbFileName);
 					symbolFiles.Add (mdbFileName, mdb);
 				}
-				
-				foreach (var src in mdb.Sources) {
-					if (src.FileName == file) {
-						fileId = src.Index;
-						break;
-					}
-				}
-				
-				if (fileId == -1)
-					return false;
-				
-				foreach (var method in mdb.Methods) {
-					var table = method.GetLineNumberTable ();
-					foreach (var entry in table.LineNumbers) {
-						if (entry.File != fileId)
-							continue;
-						
-						if (entry.Row >= line && (entry.Row - line) < foundDelta)
-							return true;
-					}
-				}
 			} catch {
+				return false;
 			}
-			
+
+			foreach (var src in mdb.Sources) {
+				if (src.FileName == file) {
+					fileId = src.Index;
+					break;
+				}
+			}
+
+			if (fileId == -1)
+				return false;
+
+			foreach (var method in mdb.Methods) {
+				var table = method.GetLineNumberTable ();
+				foreach (var entry in table.LineNumbers) {
+					if (entry.File != fileId)
+						continue;
+
+					if (entry.Row >= line && (entry.Row - line) < foundDelta)
+						return true;
+				}
+			}
+
 			return false;
 		}
 		
@@ -2572,6 +2573,7 @@ namespace Mono.Debugging.Soft
 						return true;
 				}
 			} catch {
+				return false;
 			} finally {
 				if (buf != IntPtr.Zero)
 					Marshal.FreeHGlobal (buf);
