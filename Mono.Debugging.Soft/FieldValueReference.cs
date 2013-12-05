@@ -166,5 +166,18 @@ namespace Mono.Debugging.Soft
 					throw new NotSupportedException ();
 			}
 		}
+
+		protected override void SetRawValue (ObjectPath path, object value, EvaluationOptions options)
+		{
+			if (value is RawValue || value is RawValueArray || value is Array) {
+				base.SetRawValue (path, value, options);
+				return;
+			}
+
+			AppDomainMirror domain = null;
+			if (obj is ObjectMirror)
+				domain = ((ObjectMirror) obj).Domain;
+			Value = Context.Adapter.CreateValue (Context, value, domain);
+		}
 	}
 }

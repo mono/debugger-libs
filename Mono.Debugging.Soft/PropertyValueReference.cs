@@ -119,7 +119,20 @@ namespace Mono.Debugging.Soft
 				ctx.RuntimeInvoke (setter, obj ?? declaringType, args);
 			}
 		}
-		
+
+		protected override void SetRawValue (ObjectPath path, object value, EvaluationOptions options)
+		{
+			if (value is RawValue || value is RawValueArray || value is Array) {
+				base.SetRawValue (path, value, options);
+				return;
+			}
+
+			AppDomainMirror domain = null;
+			if (obj is ObjectMirror)
+				domain = ((ObjectMirror) obj).Domain;
+			Value = Context.Adapter.CreateValue (Context, value, domain);
+		}
+
 		protected override bool CanEvaluate (EvaluationOptions options)
 		{
 			return options.AllowTargetInvoke;
