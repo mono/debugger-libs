@@ -31,7 +31,7 @@ using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Soft
 {
-	public class PropertyValueReference: ValueReference
+	public class PropertyValueReference: SoftValueReference
 	{
 		PropertyInfoMirror property;
 		object obj;
@@ -45,7 +45,11 @@ namespace Mono.Debugging.Soft
 			this.obj = obj;
 			this.declaringType = declaringType;
 			this.indexerArgs = indexerArgs;
-			
+
+			var objectMirror = obj as ObjectMirror;
+			if (objectMirror != null)
+				EnsureContextHasDomain (objectMirror.Domain);
+
 			flags = GetFlags (property, getter);
 		}
 
@@ -118,19 +122,6 @@ namespace Mono.Debugging.Soft
 					throw new EvaluatorException ("Property is read-only");
 				ctx.RuntimeInvoke (setter, obj ?? declaringType, args);
 			}
-		}
-
-		protected override void SetRawValue (ObjectPath path, object value, EvaluationOptions options)
-		{
-			if (value is RawValue || value is RawValueArray || value is Array) {
-				base.SetRawValue (path, value, options);
-				return;
-			}
-
-			AppDomainMirror domain = null;
-			if (obj is ObjectMirror)
-				domain = ((ObjectMirror) obj).Domain;
-			Value = Context.Adapter.CreateValue (Context, value, domain);
 		}
 
 		protected override bool CanEvaluate (EvaluationOptions options)

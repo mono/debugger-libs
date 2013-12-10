@@ -33,7 +33,7 @@ using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Soft
 {
-	public class FieldValueReference: ValueReference
+	public class FieldValueReference: SoftValueReference
 	{
 		FieldInfoMirror field;
 		object obj;
@@ -56,6 +56,10 @@ namespace Mono.Debugging.Soft
 
 			if (field.IsStatic)
 				this.obj = null;
+
+			var objectMirror = obj as ObjectMirror;
+			if (objectMirror != null)
+				EnsureContextHasDomain (objectMirror.Domain);
 
 			flags |= GetFlags (field);
 
@@ -165,19 +169,6 @@ namespace Mono.Debugging.Soft
 				else
 					throw new NotSupportedException ();
 			}
-		}
-
-		protected override void SetRawValue (ObjectPath path, object value, EvaluationOptions options)
-		{
-			if (value is RawValue || value is RawValueArray || value is Array) {
-				base.SetRawValue (path, value, options);
-				return;
-			}
-
-			AppDomainMirror domain = null;
-			if (obj is ObjectMirror)
-				domain = ((ObjectMirror) obj).Domain;
-			Value = Context.Adapter.CreateValue (Context, value, domain);
 		}
 	}
 }
