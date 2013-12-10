@@ -67,6 +67,7 @@
     <Compile Include="SoftDebuggerStartInfo.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="StringAdaptor.cs" />
+    <Compile Include="SoftValueReference.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

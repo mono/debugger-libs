@@ -71,6 +71,9 @@ namespace Mono.Debugging.Evaluation
 			get {
 				return ctx;
 			}
+			set {
+				ctx = value;
+			}
 		}
 		
 		public EvaluationContext GetContext (EvaluationOptions options)

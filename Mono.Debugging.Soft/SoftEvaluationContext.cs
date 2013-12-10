@@ -37,13 +37,15 @@ namespace Mono.Debugging.Soft
 		int stackVersion;
 		StackFrame frame;
 		bool sourceAvailable;
-		
+
 		public ThreadMirror Thread { get; set; }
+		public AppDomainMirror Domain { get; set; }
 		
 		public SoftEvaluationContext (SoftDebuggerSession session, StackFrame frame, DC.EvaluationOptions options): base (options)
 		{
 			Frame = frame;
 			Thread = frame.Thread;
+			Domain = Thread.Domain;
 
 			string method = frame.Method.Name;
 			if (frame.Method.DeclaringType != null)
@@ -109,6 +111,7 @@ namespace Mono.Debugging.Soft
 			stackVersion = other.stackVersion;
 			Thread = other.Thread;
 			session = other.session;
+			Domain = other.Domain;
 		}
 
 		static bool IsValueTypeOrPrimitive (TypeMirror type)

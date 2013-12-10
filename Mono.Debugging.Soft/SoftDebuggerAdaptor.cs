@@ -351,15 +351,9 @@ namespace Mono.Debugging.Soft
 
 		public override object CreateValue (EvaluationContext ctx, object value)
 		{
-			return CreateValue (ctx, value, null);
-		}
-
-		public static object CreateValue (EvaluationContext ctx, object value, AppDomainMirror domain)
-		{
 			SoftEvaluationContext cx = (SoftEvaluationContext) ctx;
 			if (value is string) {
-				var appDomainMirror = domain ?? cx.Thread.Domain;
-				return appDomainMirror.CreateString ((string) value);
+				return cx.Domain.CreateString ((string) value);
 			}
 
 			return cx.Session.VirtualMachine.CreateValue (value);
@@ -1065,7 +1059,7 @@ namespace Mono.Debugging.Soft
 			if (tm != null)
 				return tm;
 
-			foreach (AssemblyMirror asm in cx.Thread.Domain.GetAssemblies ()) {
+			foreach (AssemblyMirror asm in cx.Domain.GetAssemblies ()) {
 				tm = asm.GetType (name, false, false);
 				if (tm != null)
 					return tm;
