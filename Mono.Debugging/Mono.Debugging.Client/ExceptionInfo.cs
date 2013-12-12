@@ -41,6 +41,9 @@ namespace Mono.Debugging.Client
 		
 		[NonSerialized]
 		ExceptionInfo innerException;
+
+		[NonSerialized]
+		ObjectValue instance;
 		
 		/// <summary>
 		/// The provided value can have the following members:
@@ -107,7 +110,10 @@ namespace Mono.Debugging.Client
 
 		public ObjectValue Instance {
 			get {
-				return exception.GetChild ("Instance");
+				if (instance == null)
+					instance = exception.GetChild ("Instance");
+
+				return instance;
 			}
 		}
 		
