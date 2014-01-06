@@ -145,6 +145,9 @@ namespace Mono.Debugging.Evaluation
 				int column = 0;
 				int line = 0;
 
+				if (text.Length == 0)
+					continue;
+
 				var match = regex.Match (text);
 				if (match.Success) {
 					text = match.Groups["MethodName"].ToString ();
