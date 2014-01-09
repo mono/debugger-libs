@@ -50,10 +50,7 @@ namespace Mono.Debugging.Client
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
-		readonly object olock = new object ();
 		BreakpointStore breakpointStore;
-		OutputWriterDelegate outputWriter;
-		OutputWriterDelegate logWriter;
 		DebuggerSessionOptions options;
 		ProcessInfo[] currentProcesses;
 		ThreadInfo activeThread;
@@ -762,12 +759,7 @@ namespace Mono.Debugging.Client
 		/// This callback is invoked to print debuggee output
 		/// </remarks>
 		public OutputWriterDelegate OutputWriter {
-			get { return outputWriter; }
-			set {
-				lock (olock) {
-					outputWriter = value;
-				}
-			}
+			get; set;
 		}
 		
 		/// <summary>
@@ -777,12 +769,7 @@ namespace Mono.Debugging.Client
 		/// This callback is invoked to print debugger log messages
 		/// </remarks>
 		public OutputWriterDelegate LogWriter {
-			get { return logWriter; }
-			set {
-				lock (olock) {
-					logWriter = value;
-				}
-			}
+			get; set;
 		}
 		
 		/// <summary>
@@ -1068,18 +1055,18 @@ namespace Mono.Debugging.Client
 		
 		internal protected void OnTargetOutput (bool isStderr, string text)
 		{
-			lock (olock) {
-				if (outputWriter != null)
-					outputWriter (isStderr, text);
-			}
+			var writer = OutputWriter;
+
+			if (writer != null)
+				writer (isStderr, text);
 		}
 		
 		internal protected void OnDebuggerOutput (bool isStderr, string text)
 		{
-			lock (olock) {
-				if (logWriter != null)
-					logWriter (isStderr, text);
-			}
+			var writer = LogWriter;
+
+			if (writer != null)
+				writer (isStderr, text);
 		}
 		
 		internal protected void SetBusyState (BusyStateEventArgs args)
