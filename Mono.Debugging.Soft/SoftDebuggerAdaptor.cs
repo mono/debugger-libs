@@ -286,7 +286,38 @@ namespace Mono.Debugging.Soft
 							object res;
 
 							try {
-								res = System.Convert.ChangeType (obj, tt);
+								if (tt == typeof (bool))
+									res = (bool) obj;
+								else if (tt == typeof (byte))
+									res = (byte) obj;
+								else if (tt == typeof (sbyte))
+									res = (sbyte) obj;
+								else if (tt == typeof (char))
+									res = (char) obj;
+								else if (tt == typeof (short))
+									res = (short) obj;
+								else if (tt == typeof (ushort))
+									res = (ushort) obj;
+								else if (tt == typeof (int))
+									res = (int) obj;
+								else if (tt == typeof (uint))
+									res = (uint) obj;
+								else if (tt == typeof (long))
+									res = (long) obj;
+								else if (tt == typeof (ulong))
+									res = (ulong) obj;
+								else if (tt == typeof (float))
+									res = (float) obj;
+								else if (tt == typeof (double))
+									res = (double) obj;
+								else if (tt == typeof (decimal))
+									res = (decimal) obj;
+								else if (tt == typeof (string))
+									res = (string) obj;
+								else if (tt == typeof (DateTime))
+									res = (DateTime) obj;
+								else
+									res = obj;
 							} catch {
 								res = DynamicCast (obj, tt);
 							}
