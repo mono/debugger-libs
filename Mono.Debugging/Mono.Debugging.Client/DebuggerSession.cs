@@ -128,7 +128,7 @@ namespace Mono.Debugging.Client
 		
 		protected DebuggerSession ()
 		{
-			//UseOperationThread = true;
+			UseOperationThread = true;
 			frontend = new InternalDebuggerSession (this);
 		}
 		
