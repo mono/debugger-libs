@@ -629,6 +629,8 @@ namespace Mono.Debugging.Soft
 							vm.Process.WaitForExit ();
 						});
 					}
+				} catch (InvalidOperationException) {
+					// ignore - this is thrown by the vm.Process getter when the process has already exited
 				} catch (Exception ex) {
 					DebuggerLoggingService.LogError ("Failed to launch a thread to wait for the process to exit", ex);
 				}
