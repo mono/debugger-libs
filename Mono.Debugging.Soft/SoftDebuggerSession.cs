@@ -621,12 +621,16 @@ namespace Mono.Debugging.Soft
 		{
 			if (vm != null) {
 				//FIXME: this might never get reached if the IDE is Exited first
-				if (vm.Process != null) {
-					ThreadPool.QueueUserWorkItem (delegate {
-						// This is a workaround for a mono bug
-						// Without this call, the process may become zombie in mono < 2.10.2
-						vm.Process.WaitForExit ();
-					});
+				try {
+					if (vm.Process != null) {
+						ThreadPool.QueueUserWorkItem (delegate {
+							// This is a workaround for a mono bug
+							// Without this call, the process may become zombie in mono < 2.10.2
+							vm.Process.WaitForExit ();
+						});
+					}
+				} catch (Exception ex) {
+					DebuggerLoggingService.LogError ("Failed to launch a thread to wait for the process to exit", ex);
 				}
 
 				var t = new System.Timers.Timer ();
