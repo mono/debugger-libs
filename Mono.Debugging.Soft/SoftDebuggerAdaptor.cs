@@ -350,7 +350,9 @@ namespace Mono.Debugging.Soft
 
 		public override object CreateNullValue (EvaluationContext ctx, object type)
 		{
-			return null;
+			var cx = (SoftEvaluationContext) ctx;
+
+			return new PrimitiveValue (cx.Session.VirtualMachine, null);
 		}
 
 		public override object CreateTypeObject (EvaluationContext ctx, object type)
@@ -382,10 +384,11 @@ namespace Mono.Debugging.Soft
 
 		public override object CreateValue (EvaluationContext ctx, object value)
 		{
-			SoftEvaluationContext cx = (SoftEvaluationContext) ctx;
-			if (value is string) {
-				return cx.Domain.CreateString ((string) value);
-			}
+			var cx = (SoftEvaluationContext) ctx;
+			var str = value as string;
+
+			if (str != null)
+				return cx.Domain.CreateString (str);
 
 			return cx.Session.VirtualMachine.CreateValue (value);
 		}

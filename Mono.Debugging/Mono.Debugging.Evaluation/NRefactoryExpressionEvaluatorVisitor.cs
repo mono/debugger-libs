@@ -202,31 +202,31 @@ namespace Mono.Debugging.Evaluation
 			return (bool) literal.ObjectValue;
 		}
 
-		static bool CheckEquality (EvaluationContext ctx, bool negate, object v1, object v2)
+		static bool CheckEquality (EvaluationContext ctx, bool negate, object targetVal1, object targetVal2, object val1, object val2)
 		{
-			if (v1 == null && v2 == null)
-				return true;
+			if (val1 == null && val2 == null)
+				return !negate;
 
-			if (v1 == null || v2 == null)
-				return false;
+			if (val1 == null || val2 == null)
+				return negate;
 
 			string method = negate ? "op_Inequality" : "op_Equality";
-			object v1type = ctx.Adapter.GetValueType (ctx, v1);
-			object v2type = ctx.Adapter.GetValueType (ctx, v2);
+			object v1type = ctx.Adapter.GetValueType (ctx, targetVal1);
+			object v2type = ctx.Adapter.GetValueType (ctx, targetVal2);
 			object[] argTypes = new object[] { v2type };
 			object target, targetType;
 			object[] args;
 
 			if (ctx.Adapter.HasMethod (ctx, v1type, method, argTypes, BindingFlags.Instance | BindingFlags.Public)) {
-				args = new object[] { v2 };
+				args = new object[] { targetVal2 };
 				targetType = v1type;
+				target = targetVal1;
 				negate = false;
-				target = v1;
 			} else {
 				method = ctx.Adapter.IsValueType (v1type) ? "Equals" : "ReferenceEquals";
 				targetType = ctx.Adapter.GetType (ctx, "System.Object");
 				argTypes = new object[] { targetType, targetType };
-				args = new object[] { v1, v2 };
+				args = new object[] { targetVal1, targetVal2 };
 				target = null;
 			}
 
@@ -291,9 +291,9 @@ namespace Mono.Debugging.Evaluation
 			if ((val1 == null || !ctx.Adapter.IsPrimitive (ctx, targetVal1)) && (val2 == null || !ctx.Adapter.IsPrimitive (ctx, targetVal2))) {
 				switch (op) {
 				case BinaryOperatorType.Equality:
-					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, false, targetVal1, targetVal2));
+					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, false, targetVal1, targetVal2, val1, val2));
 				case BinaryOperatorType.InEquality:
-					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, true, targetVal1, targetVal2));
+					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, true, targetVal1, targetVal2, val1, val2));
 				}
 			}
 
