@@ -493,11 +493,7 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public BreakEventStatus GetBreakEventStatus (BreakEvent be)
 		{
-			// Prevents an ArgumentNullException with the breakpoints dictionary
-			if (be == null)
-				return BreakEventStatus.NotBound;
-			
-			if (IsConnected) {
+			if (be != null && IsConnected) {
 				BreakEventInfo binfo;
 				lock (breakpoints) {
 					if (breakpoints.TryGetValue (be, out binfo))
@@ -513,11 +509,7 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public string GetBreakEventStatusMessage (BreakEvent be)
 		{
-			string messageNotHit = "The breakpoint will not currently be hit";
-			if (be == null)
-				return messageNotHit;
-			
-			if (IsConnected) {
+			if (be != null && IsConnected) {
 				BreakEventInfo binfo;
 				lock (breakpoints) {
 					if (breakpoints.TryGetValue (be, out binfo)) {
@@ -535,7 +527,7 @@ namespace Mono.Debugging.Client
 				}
 			}
 
-			return messageNotHit;
+			return "The breakpoint will not currently be hit";
 		}
 		
 		void AddBreakEvent (BreakEvent be)
