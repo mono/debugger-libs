@@ -493,6 +493,10 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public BreakEventStatus GetBreakEventStatus (BreakEvent be)
 		{
+			// Prevents an ArgumentNullException with the breakpoints dictionary
+			if (be == null)
+				goto nobound;
+			
 			if (IsConnected) {
 				BreakEventInfo binfo;
 				lock (breakpoints) {
@@ -500,6 +504,8 @@ namespace Mono.Debugging.Client
 						return binfo.Status;
 				}
 			}
+
+			nobound:
 			return BreakEventStatus.NotBound;
 		}
 
@@ -508,6 +514,9 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public string GetBreakEventStatusMessage (BreakEvent be)
 		{
+			if (be == null)
+				goto nohit;
+			
 			if (IsConnected) {
 				BreakEventInfo binfo;
 				lock (breakpoints) {
@@ -525,11 +534,17 @@ namespace Mono.Debugging.Client
 					}
 				}
 			}
+
+			nohit:
 			return "The breakpoint will not currently be hit";
 		}
 		
 		void AddBreakEvent (BreakEvent be)
 		{
+			// Prevents an unnecessary exception when using a null key with the breakpoints dictionary
+			if (be == null)
+				return;
+			
 			try {
 				var eventInfo = OnInsertBreakEvent (be);
 				if (eventInfo == null)
@@ -556,6 +571,11 @@ namespace Mono.Debugging.Client
 
 		bool RemoveBreakEvent (BreakEvent be)
 		{
+			// Prevents an ArgumentNullException thrown by the dictionary
+			// Returns true since, technically, there's no error
+			if (be == null)
+				return true;
+			
 			lock (breakpoints) {
 				BreakEventInfo binfo;
 				if (breakpoints.TryGetValue (be, out binfo)) {
@@ -575,6 +595,10 @@ namespace Mono.Debugging.Client
 		
 		void UpdateBreakEventStatus (BreakEvent be)
 		{
+			// Prevents an ArgumentNullException with the breakpoints dictionary
+			if (be == null)
+				return;
+			
 			lock (breakpoints) {
 				BreakEventInfo binfo;
 				if (breakpoints.TryGetValue (be, out binfo)) {
@@ -591,6 +615,10 @@ namespace Mono.Debugging.Client
 		
 		void UpdateBreakEvent (BreakEvent be)
 		{
+			// Prevents an ArgumentNullException with the breakpoints dictionary
+			if (be == null)
+				return;
+			
 			lock (breakpoints) {
 				BreakEventInfo binfo;
 				if (breakpoints.TryGetValue (be, out binfo))
