@@ -493,13 +493,14 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public BreakEventStatus GetBreakEventStatus (BreakEvent be)
 		{
-			if (IsConnected) {
+			if (be != null && IsConnected) {
 				BreakEventInfo binfo;
 				lock (breakpoints) {
 					if (breakpoints.TryGetValue (be, out binfo))
 						return binfo.Status;
 				}
 			}
+
 			return BreakEventStatus.NotBound;
 		}
 
@@ -508,7 +509,7 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public string GetBreakEventStatusMessage (BreakEvent be)
 		{
-			if (IsConnected) {
+			if (be != null && IsConnected) {
 				BreakEventInfo binfo;
 				lock (breakpoints) {
 					if (breakpoints.TryGetValue (be, out binfo)) {
@@ -525,11 +526,16 @@ namespace Mono.Debugging.Client
 					}
 				}
 			}
+
 			return "The breakpoint will not currently be hit";
 		}
 		
 		void AddBreakEvent (BreakEvent be)
 		{
+			// Prevents an unnecessary exception when using a null key with the breakpoints dictionary
+			if (be == null)
+				return;
+			
 			try {
 				var eventInfo = OnInsertBreakEvent (be);
 				if (eventInfo == null)
@@ -556,6 +562,11 @@ namespace Mono.Debugging.Client
 
 		bool RemoveBreakEvent (BreakEvent be)
 		{
+			// Prevents an ArgumentNullException thrown by the dictionary
+			// Returns true since, technically, there's no error
+			if (be == null)
+				return true;
+			
 			lock (breakpoints) {
 				BreakEventInfo binfo;
 				if (breakpoints.TryGetValue (be, out binfo)) {
@@ -575,6 +586,10 @@ namespace Mono.Debugging.Client
 		
 		void UpdateBreakEventStatus (BreakEvent be)
 		{
+			// Prevents an ArgumentNullException with the breakpoints dictionary
+			if (be == null)
+				return;
+			
 			lock (breakpoints) {
 				BreakEventInfo binfo;
 				if (breakpoints.TryGetValue (be, out binfo)) {
@@ -591,6 +606,10 @@ namespace Mono.Debugging.Client
 		
 		void UpdateBreakEvent (BreakEvent be)
 		{
+			// Prevents an ArgumentNullException with the breakpoints dictionary
+			if (be == null)
+				return;
+			
 			lock (breakpoints) {
 				BreakEventInfo binfo;
 				if (breakpoints.TryGetValue (be, out binfo))
