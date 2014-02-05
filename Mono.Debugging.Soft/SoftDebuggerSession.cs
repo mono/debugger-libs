@@ -972,7 +972,7 @@ namespace Mono.Debugging.Soft
 			} else {
 				// be a little more flexible with what we match... i.e. "Console" should match "System.Console"
 				if (typeName.Length > name.Length) {
-					if (!typeName.EndsWith (name, StringComparison.InvariantCulture))
+					if (!typeName.EndsWith (name, StringComparison.Ordinal))
 						return false;
 
 					char delim = typeName[typeName.Length - name.Length];
