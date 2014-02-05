@@ -36,11 +36,9 @@ using System.Threading;
 using System.Reflection;
 using System.Net.Sockets;
 using System.Globalization;
-using System.ComponentModel;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-using Mono.Cecil.Mdb;
 using Mono.CompilerServices.SymbolWriter;
 using Mono.Debugging.Client;
 using Mono.Debugger.Soft;
@@ -680,20 +678,20 @@ namespace Mono.Debugging.Soft
 		{
 			if (procs == null) {
 				if (remoteProcessName != null || vm.TargetProcess == null) {
-					procs = new ProcessInfo[] { new ProcessInfo (0, remoteProcessName ?? "mono") };
+					procs = new [] { new ProcessInfo (0, remoteProcessName ?? "mono") };
 				} else {
 					try {
-						procs = new ProcessInfo[] { new ProcessInfo (vm.TargetProcess.Id, vm.TargetProcess.ProcessName) };
+						procs = new [] { new ProcessInfo (vm.TargetProcess.Id, vm.TargetProcess.ProcessName) };
 					} catch (Exception ex) {
 						if (!loggedSymlinkedRuntimesBug) {
 							loggedSymlinkedRuntimesBug = true;
 							DebuggerLoggingService.LogError ("Error getting debugger process info. Known Mono bug with symlinked runtimes.", ex);
 						}
-						procs = new ProcessInfo[] { new ProcessInfo (0, "mono") };
+						procs = new [] { new ProcessInfo (0, "mono") };
 					}
 				}
 			}
-			return new ProcessInfo[] { new ProcessInfo (procs[0].Id, procs[0].Name) };
+			return new [] { new ProcessInfo (procs[0].Id, procs[0].Name) };
 		}
 
 		protected override Backtrace OnGetThreadBacktrace (long processId, long threadId)
@@ -1007,7 +1005,7 @@ namespace Mono.Debugging.Soft
 					return false;
 				}
 
-				var rank = name.Substring (startIndex + 1, endIndex - (startIndex + 1)).Split (new char[] { ',' });
+				var rank = name.Substring (startIndex + 1, endIndex - (startIndex + 1)).Split (new [] { ',' });
 				if (rank.Length != type.GetArrayRank ())
 					return false;
 
@@ -1587,7 +1585,7 @@ namespace Mono.Debugging.Soft
 		void HandleTypeLoadEvents (TypeLoadEvent[] events)
 		{
 			var type = events [0].Type;
-			if (events.Length > 1 && !events.All (a => a.Type == type))
+			if (events.Length > 1 && events.Any (a => a.Type != type))
 				throw new InvalidOperationException ("Simultaneous TypeLoadEvents for multiple types");
 
 			lock (pending_bes) {
@@ -1599,7 +1597,7 @@ namespace Mono.Debugging.Soft
 		void HandleThreadStartEvents (ThreadStartEvent[] events)
 		{
 			var thread = events [0].Thread;
-			if (events.Length > 1 && !events.All (a => a.Thread == thread))
+			if (events.Length > 1 && events.Any (a => a.Thread != thread))
 				throw new InvalidOperationException ("Simultaneous ThreadStartEvents for multiple threads");
 
 			var name = GetThreadName (thread);
@@ -1613,7 +1611,7 @@ namespace Mono.Debugging.Soft
 		void HandleThreadDeathEvents (ThreadDeathEvent[] events)
 		{
 			var thread = events [0].Thread;
-			if (events.Length > 1 && !events.All (a => a.Thread == thread))
+			if (events.Length > 1 && events.Any (a => a.Thread != thread))
 				throw new InvalidOperationException ("Simultaneous ThreadDeathEvents for multiple threads");
 
 			var name = GetThreadName (thread);
