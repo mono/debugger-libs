@@ -1285,53 +1285,62 @@ namespace Mono.Debugging.Soft
 			
 			return base.HandleException (ex);
 		}
-		
-		// This method dispatches an event set.
-		//
-		// Based on the subset of events for which we register, and the contract for EventSet contents (equivalent to 
-		// Java - http://download.oracle.com/javase/1.5.0/docs/guide/jpda/jdi/com/sun/jdi/event/EventSet.html)
-		// we know that event sets we receive are either:
-		// 1) Set of step and break events for a location in a single thread.
-		// 2) Set of catchpoints for a single exception.
-		// 3) A single event of any other kind.
-		// We verify these assumptions where possible, because things will break in horrible ways if they are wrong.
-		//
-		// If we are currently stopped on a thread, and the break events are on a different thread, we must queue
-		// that event set and dequeue it next time we resume. This eliminates race conditions when multiple threads
-		// hit breakpoints or catchpoints simultaneously.
-		//
+
 		void HandleEventSet (EventSet es)
 		{
+			var type = es[0].EventType;
+
 #if DEBUG_EVENT_QUEUEING
-			if (!(es[0] is TypeLoadEvent))
+			if (type != TypeLoadEvent)
 				Console.WriteLine ("pp eventset({0}): {1}", es.Events.Length, es[0]);
 #endif
-			var type = es[0].EventType;
+
+			// If we are currently stopped on a thread, and the break events are on a different thread, we must queue
+			// that event set and dequeue it next time we resume. This eliminates race conditions when multiple threads
+			// hit breakpoints or catchpoints simultaneously.
+			//
 			bool isBreakEvent = type == EventType.Step || type == EventType.Breakpoint || type == EventType.Exception || type == EventType.UserBreak;
-			
 			if (isBreakEvent) {
 				if (current_thread != null && es[0].Thread.Id != current_thread.Id) {
 					QueueBreakEventSet (es.Events);
 				} else {
 					HandleBreakEventSet (es.Events, false);
 				}
-			} else {
-				if (es.Events.Length != 1)
-					throw new InvalidOperationException ("EventSet has unexpected combination of events");
-				HandleEvent (es[0]);
+				return;
+			}
 
-				try {
-					vm.Resume ();
-				} catch (VMNotSuspendedException) {
-					var eventType = es [0].EventType;
-					var isTolerantEvent = eventType == EventType.VMStart || eventType == EventType.AssemblyLoad || eventType == EventType.TypeLoad 
-						|| eventType == EventType.ThreadStart || eventType == EventType.ThreadDeath
-						|| eventType == EventType.AppDomainCreate || eventType == EventType.AppDomainUnload;
+			switch (type) {
+			case EventType.AssemblyLoad:
+				HandleAssemblyLoadEvents (Array.ConvertAll (es.Events, item => (AssemblyLoadEvent)item));
+				break;
+			case EventType.AssemblyUnload:
+				HandleAssemblyUnloadEvents (Array.ConvertAll (es.Events, item => (AssemblyUnloadEvent)item));
+				break;
+			case EventType.VMStart:
+				HandleVMStartEvents (Array.ConvertAll (es.Events, item => (VMStartEvent)item));
+				break;
+			case EventType.TypeLoad:
+				HandleTypeLoadEvents (Array.ConvertAll (es.Events, item => (TypeLoadEvent)item));
+				break;
+			case EventType.ThreadStart:
+				HandleThreadStartEvents (Array.ConvertAll (es.Events, item => (ThreadStartEvent)item));
+				break;
+			case EventType.ThreadDeath:
+				HandleThreadDeathEvents (Array.ConvertAll (es.Events, item => (ThreadDeathEvent)item));
+				break;
+			case EventType.UserLog:
+				HandleUserLogEvents (Array.ConvertAll (es.Events, item => (UserLogEvent)item));
+				break;
+			default:
+				DebuggerLoggingService.LogMessage ("Ignoring unknown debugger event type {0}", type);
+				break;
+			}
 
-					if (eventType != EventType.VMStart && (vm.Version.AtLeast (2, 2) || !isTolerantEvent)) {
-						throw;
-					}
-				}
+			try {
+				vm.Resume ();
+			} catch (VMNotSuspendedException) {
+				if (type != EventType.VMStart && vm.Version.AtLeast (2, 2))
+					throw;
 			}
 		}
 		
@@ -1399,7 +1408,7 @@ namespace Mono.Debugging.Soft
 			TargetEventType etype = TargetEventType.TargetStopped;
 			BreakEvent breakEvent = null;
 			
-			if (es[0] is ExceptionEvent) {
+			if (es[0].EventType == EventType.Exception) {
 				var bad = es.FirstOrDefault (ee => ee.EventType != EventType.Exception);
 				if (bad != null)
 					throw new Exception ("Catchpoint eventset had unexpected event type " + bad.GetType ());
@@ -1509,108 +1518,116 @@ namespace Mono.Debugging.Soft
 				}
 			}
 		}
-		
-		void HandleEvent (Event e)
+
+		void HandleAssemblyLoadEvents (AssemblyLoadEvent[] events)
 		{
+			var asm = events [0].Assembly;
+			if (events.Length > 1 && !events.All (a => a.Assembly == asm))
+				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
+
+			bool isExternal;
 			lock (pending_bes) {
-				switch (e.EventType) {
-				case EventType.AssemblyLoad: {
-					var ae = (AssemblyLoadEvent) e;
-					bool isExternal = !UpdateAssemblyFilters (ae.Assembly) && userAssemblyNames != null;
-					string flagExt = isExternal? " [External]" : "";
-					OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", ae.Assembly.Location, flagExt));
-					break;
-				}
-				case EventType.AssemblyUnload: {
-					var aue = (AssemblyUnloadEvent) e;
+				isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
+			}
+			string flagExt = isExternal ? " [External]" : "";
+			OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
+		}
 
-					if (assemblyFilters != null) {
-						int index = assemblyFilters.IndexOf (aue.Assembly);
-						if (index != -1)
-							assemblyFilters.RemoveAt (index);
-					}
+		void HandleAssemblyUnloadEvents (AssemblyUnloadEvent[] events)
+		{
+			var asm = events [0].Assembly;
+			if (events.Length > 1 && !events.All (a => a.Assembly == asm))
+				throw new InvalidOperationException ("Simultaneous AssemblyUnloadEvents for multiple assemblies");
 
-					// Mark affected breakpoints as pending again
-					var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (
-						breakpoints.Where (x => PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, aue.Assembly.Location))
-					);
-					foreach (KeyValuePair<EventRequest,BreakInfo> breakpoint in affectedBreakpoints) {
-						string file = PathToFileName (breakpoint.Value.Location.SourceFile);
-						int line = breakpoint.Value.Location.LineNumber;
-						OnDebuggerOutput (false, string.Format ("Re-pending breakpoint at {0}:{1}\n", file, line));
-						breakpoints.Remove (breakpoint.Key);
-						pending_bes.Add (breakpoint.Value);
-					}
-
-					// Remove affected types from the loaded types list
-					var affectedTypes = new List<string> (
-						from pair in types
-						where PathComparer.Equals (pair.Value.Assembly.Location, aue.Assembly.Location)
-						select pair.Key
-					);
-					foreach (string typename in affectedTypes) {
-						types.Remove (typename);
-					}
-
-					foreach (var pair in source_to_type) {
-						pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, aue.Assembly.Location));
-					}
-					OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", aue.Assembly.Location));
-					break;
+			lock (pending_bes) {
+				if (assemblyFilters != null) {
+					int index = assemblyFilters.IndexOf (asm);
+					if (index != -1)
+						assemblyFilters.RemoveAt (index);
 				}
-				case EventType.VMStart: {
-					OnStarted (new ThreadInfo (0, GetId (e.Thread), GetThreadName (e.Thread), null));
-					//HACK: 2.6.1 VM doesn't emit type load event, so work around it
-					var t = vm.RootDomain.Corlib.GetType ("System.Exception", false, false);
-					if (t != null)
-						ResolveBreakpoints (t);
-					break;
+				// Mark affected breakpoints as pending again
+				var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asm.Location)));
+				foreach (KeyValuePair<EventRequest, BreakInfo> breakpoint in affectedBreakpoints) {
+					string file = PathToFileName (breakpoint.Value.Location.SourceFile);
+					int line = breakpoint.Value.Location.LineNumber;
+					OnDebuggerOutput (false, string.Format ("Re-pending breakpoint at {0}:{1}\n", file, line));
+					breakpoints.Remove (breakpoint.Key);
+					pending_bes.Add (breakpoint.Value);
 				}
-				case EventType.TypeLoad: {
-					var t = ((TypeLoadEvent)e).Type;
-					string typeName = t.FullName;
-
-					if (types.ContainsKey (typeName)) {
-						/* This can happen since we manually add entries to 'types' */
-						/*
-						if (typeName != "System.Exception" && typeName != "<Module>")
-							DebuggerLoggingService.LogError ("Type '" + typeName + "' loaded more than once", null);
-						*/
-					} else {
-						ResolveBreakpoints (t);
-					}
-					break;
+				// Remove affected types from the loaded types list
+				var affectedTypes = new List<string> (from pair in types
+					 where PathComparer.Equals (pair.Value.Assembly.Location, asm.Location)
+					 select pair.Key);
+				foreach (string typename in affectedTypes) {
+					types.Remove (typename);
 				}
-				case EventType.ThreadStart: {
-					var ts = (ThreadStartEvent) e;
-					var name = GetThreadName (ts.Thread);
-					var id = GetId (ts.Thread);
-					OnDebuggerOutput (false, string.Format ("Thread started: {0} #{1}\n", name, id));
-					OnTargetEvent (new TargetEventArgs (TargetEventType.ThreadStarted) {
-						Thread = new ThreadInfo (0, id, name, null),
-					});
-					break;
-				}
-				case EventType.ThreadDeath: {
-					var ts = (ThreadDeathEvent) e;
-					var name = GetThreadName (ts.Thread);
-					var id = GetId (ts.Thread);
-					OnDebuggerOutput (false, string.Format ("Thread finished: {0} #{1}\n", name, id));
-					OnTargetEvent (new TargetEventArgs (TargetEventType.ThreadStopped) {
-						Thread = new ThreadInfo (0, id, ts.Thread.Name, null),
-					});
-					break;
-				}
-				case EventType.UserLog: {
-					var ul = (UserLogEvent) e;
-					OnDebuggerOutput (false, string.Format ("[{0}:{1}] {2}\n", ul.Level, ul.Category, ul.Message));
-					break;
-				}
-				default:
-					DebuggerLoggingService.LogMessage ("Unknown debugger event type {0}", e.GetType ());
-					break;
+				foreach (var pair in source_to_type) {
+					pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, asm.Location));
 				}
 			}
+			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", asm.Location));
+		}
+
+		void HandleVMStartEvents (VMStartEvent[] events)
+		{
+			var thread = events [0].Thread;
+			if (events.Length > 1)
+				throw new InvalidOperationException ("Simultaneous VMStartEvents");
+
+			OnStarted (new ThreadInfo (0, GetId (thread), GetThreadName (thread), null));
+			//HACK: 2.6.1 VM doesn't emit type load event, so work around it
+			var t = vm.RootDomain.Corlib.GetType ("System.Exception", false, false);
+			if (t != null) {
+				lock (pending_bes) {
+					ResolveBreakpoints (t);
+				}
+			}
+		}
+
+		void HandleTypeLoadEvents (TypeLoadEvent[] events)
+		{
+			var type = events [0].Type;
+			if (events.Length > 1 && !events.All (a => a.Type == type))
+				throw new InvalidOperationException ("Simultaneous TypeLoadEvents for multiple types");
+
+			lock (pending_bes) {
+				if (!types.ContainsKey (type.FullName))
+					ResolveBreakpoints (type);
+			}
+		}
+
+		void HandleThreadStartEvents (ThreadStartEvent[] events)
+		{
+			var thread = events [0].Thread;
+			if (events.Length > 1 && !events.All (a => a.Thread == thread))
+				throw new InvalidOperationException ("Simultaneous ThreadStartEvents for multiple threads");
+
+			var name = GetThreadName (thread);
+			var id = GetId (thread);
+			OnDebuggerOutput (false, string.Format ("Thread started: {0} #{1}\n", name, id));
+			OnTargetEvent (new TargetEventArgs (TargetEventType.ThreadStarted) {
+				Thread = new ThreadInfo (0, id, name, null),
+			});
+		}
+
+		void HandleThreadDeathEvents (ThreadDeathEvent[] events)
+		{
+			var thread = events [0].Thread;
+			if (events.Length > 1 && !events.All (a => a.Thread == thread))
+				throw new InvalidOperationException ("Simultaneous ThreadDeathEvents for multiple threads");
+
+			var name = GetThreadName (thread);
+			var id = GetId (thread);
+			OnDebuggerOutput (false, string.Format ("Thread finished: {0} #{1}\n", name, id));
+			OnTargetEvent (new TargetEventArgs (TargetEventType.ThreadStopped) {
+				Thread = new ThreadInfo (0, id, name, null),
+			});
+		}
+
+		void HandleUserLogEvents (UserLogEvent[] events)
+		{
+			foreach (var ul in events)
+				OnDebuggerOutput (false, string.Format ("[{0}:{1}] {2}", ul.Level, ul.Category, ul.Message));
 		}
 
 		public ObjectMirror GetExceptionObject (ThreadMirror thread)
