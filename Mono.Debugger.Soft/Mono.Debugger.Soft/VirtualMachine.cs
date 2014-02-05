@@ -254,6 +254,7 @@ namespace Mono.Debugger.Soft
 		// Return a list of TypeMirror objects for all loaded types which reference the
 		// source file FNAME. Might return false positives.
 		// Since protocol version 2.7.
+		// ignoreCase=true supported since protocol version 2.12.
 		//
 		public IList<TypeMirror> GetTypesForSourceFile (string fname, bool ignoreCase) {
 			long[] ids = conn.VM_GetTypesForSourceFile (fname, ignoreCase);

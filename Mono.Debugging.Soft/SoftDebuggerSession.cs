@@ -855,10 +855,10 @@ namespace Mono.Debugging.Soft
 				if (vm.Version.AtLeast (2, 9)) {
 					var sourceFileList = pending_bes.Where (b => b.FileName != null).Select (b => b.FileName).ToArray ();
 					if (sourceFileList.Length > 0) {
-						//HACK: explicitly try lowercased drivename on windows, since csc (when not hosted in VS) lowercases
+						//HACK: with older versions of sdb that don't support case-insenitive compares,
+						//explicitly try lowercased drivename on windows, since csc (when not hosted in VS) lowercases
 						//the drivename in the pdb files that get converted to mdbs as-is
-						//FIXME: we should really do a case-insensitive request on Win/Mac, when sdb supports that
-						if (IsWindows) {
+						if (IsWindows && !vm.Version.AtLeast (2, 12)) {
 							int originalCount = sourceFileList.Length;
 							Array.Resize (ref sourceFileList, originalCount * 2);
 							for (int i = 0; i < originalCount; i++) {
@@ -1136,14 +1136,18 @@ namespace Mono.Debugging.Soft
 			// just the ones which match a source file with an existing breakpoint.
 			//
 			if (vm.Version.AtLeast (2, 9)) {
-				//FIXME: do a case insensitive request on Win/Mac when sdb supports it (currently asserts NOTIMPLEMENTED)
-				var typesInFile = vm.GetTypesForSourceFile (filename, false);
-				
-				//HACK: explicitly try lowercased drivename on windows, since csc (when not hosted in VS) lowercases
-				//the drivename in the pdb files that get converted to mdbs as-is
-				if (typesInFile.Count == 0 && IsWindows) {
-					string alternateCaseFilename = char.ToLower (filename[0]) + filename.Substring (1);
-					typesInFile = vm.GetTypesForSourceFile (alternateCaseFilename, false);
+				IList<TypeMirror> typesInFile;
+				if (vm.Version.AtLeast (2, 12)) {
+					typesInFile = vm.GetTypesForSourceFile (filename, IgnoreFilenameCase);
+				} else {
+					typesInFile = vm.GetTypesForSourceFile (filename, false);
+					//HACK: with older versions of sdb that don't support case-insenitive compares,
+					//explicitly try lowercased drivename on windows, since csc (when not hosted in VS) lowercases
+					//the drivename in the pdb files that get converted to mdbs as-is
+					if (typesInFile.Count == 0 && IsWindows) {
+						string alternateCaseFilename = char.ToLower (filename [0]) + filename.Substring (1);
+						typesInFile = vm.GetTypesForSourceFile (alternateCaseFilename, false);
+					}
 				}
 				
 				foreach (TypeMirror t in typesInFile)
