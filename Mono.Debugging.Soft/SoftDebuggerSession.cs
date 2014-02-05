@@ -1532,7 +1532,7 @@ namespace Mono.Debugging.Soft
 
 					// Mark affected breakpoints as pending again
 					var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (
-						breakpoints.Where (x=> (x.Value.Location.Method.DeclaringType.Assembly.Location.Equals (aue.Assembly.Location, StringComparison.OrdinalIgnoreCase)))
+						breakpoints.Where (x => PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, aue.Assembly.Location))
 					);
 					foreach (KeyValuePair<EventRequest,BreakInfo> breakpoint in affectedBreakpoints) {
 						string file = PathToFileName (breakpoint.Value.Location.SourceFile);
@@ -1545,7 +1545,7 @@ namespace Mono.Debugging.Soft
 					// Remove affected types from the loaded types list
 					var affectedTypes = new List<string> (
 						from pair in types
-						where pair.Value.Assembly.Location.Equals (aue.Assembly.Location, StringComparison.OrdinalIgnoreCase)
+						where PathComparer.Equals (pair.Value.Assembly.Location, aue.Assembly.Location)
 						select pair.Key
 					);
 					foreach (string typename in affectedTypes) {
@@ -1553,9 +1553,7 @@ namespace Mono.Debugging.Soft
 					}
 
 					foreach (var pair in source_to_type) {
-						pair.Value.RemoveAll (delegate (TypeMirror mirror){
-							return mirror.Assembly.Location.Equals (aue.Assembly.Location, StringComparison.OrdinalIgnoreCase);
-						});
+						pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, aue.Assembly.Location));
 					}
 					OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", aue.Assembly.Location));
 					break;
