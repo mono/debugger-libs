@@ -42,6 +42,9 @@ namespace Mono.Debugging.Evaluation
 			//if (name.StartsWith ("global::", StringComparison.Ordinal))
 			//	name = name.Substring ("global::".Length);
 
+			if (string.IsNullOrEmpty (name))
+				return null;
+
 			if (args.Count > 0)
 				return ctx.Adapter.GetType (ctx, name, args.ToArray ());
 
