@@ -421,7 +421,7 @@ namespace Mono.Debugging.Soft
 			
 			HideConnectionDialog ();
 			
-			vm.EnableEvents (EventType.AssemblyLoad, EventType.ThreadStart, EventType.ThreadDeath,
+			EnableEvents (EventType.AssemblyLoad, EventType.ThreadStart, EventType.ThreadDeath,
 				EventType.AssemblyUnload, EventType.UserBreak, EventType.UserLog);
 			try {
 				unhandledExceptionRequest = vm.CreateExceptionRequest (null, false, true);
@@ -433,7 +433,7 @@ namespace Mono.Debugging.Soft
 			if (vm.Version.AtLeast (2, 9)) {
 				/* Created later */
 			} else {
-				vm.EnableEvents (EventType.TypeLoad);
+				EnableEvents (EventType.TypeLoad);
 			}
 			
 			started = true;
@@ -446,7 +446,18 @@ namespace Mono.Debugging.Soft
 			eventHandler.IsBackground = true;
 			eventHandler.Start ();
 		}
-		
+
+		void EnableEvents(params EventType[] eventTypes)
+		{
+			foreach(var eventType in eventTypes)
+				vm.EnableEvents(new[] {eventType}, SuspendPolicyFor(eventType));
+		}
+
+		protected virtual SuspendPolicy SuspendPolicyFor(EventType eventType)
+		{
+			return SuspendPolicy.All;
+		}
+
 		void RegisterUserAssemblies (SoftDebuggerStartInfo dsi)
 		{
 			if (Options.ProjectAssembliesOnly && dsi.UserAssemblyNames != null) {
