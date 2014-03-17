@@ -23,7 +23,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System;
 using Mono.Debugging.Evaluation;
 using Mono.Debugger.Soft;
 
@@ -31,8 +30,8 @@ namespace Mono.Debugging.Soft
 {
 	public class StringAdaptor: IStringAdaptor
 	{
-		bool atleast_2_10;
-		StringMirror str;
+		readonly bool atleast_2_10;
+		readonly StringMirror str;
 		string val;
 		
 		public StringAdaptor (StringMirror str)

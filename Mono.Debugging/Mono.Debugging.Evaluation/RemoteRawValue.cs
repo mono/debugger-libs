@@ -31,12 +31,12 @@ using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Evaluation
 {
-	internal class RemoteRawValue: RemoteFrameObject, IRawValue
+	class RemoteRawValue: RemoteFrameObject, IRawValue
 	{
-		object targetObject;
-		EvaluationContext ctx;
-		IObjectSource source;
-		
+		readonly EvaluationContext ctx;
+		readonly IObjectSource source;
+		readonly object targetObject;
+
 		public RemoteRawValue (EvaluationContext gctx, IObjectSource source, object targetObject)
 		{
 			this.ctx = gctx.Clone ();
@@ -48,55 +48,62 @@ namespace Mono.Debugging.Evaluation
 		}
 		
 		public object TargetObject {
-			get { return this.targetObject; }
+			get { return targetObject; }
 		}
 		
 		#region IRawValue implementation
 		public object CallMethod (string name, object[] parameters, EvaluationOptions options)
 		{
-			EvaluationContext localContext = ctx.WithOptions (options);
+			var localContext = ctx.WithOptions (options);
 			
-			object[] argValues = new object [parameters.Length];
-			object[] argTypes = new object [parameters.Length];
-			for (int n=0; n<argValues.Length; n++) {
+			var argValues = new object [parameters.Length];
+			var argTypes = new object [parameters.Length];
+
+			for (int n = 0; n < argValues.Length; n++) {
 				argValues[n] = localContext.Adapter.FromRawValue (localContext, parameters[n]);
 				argTypes[n] = localContext.Adapter.GetValueType (localContext, argValues[n]);
 			}
-			object type = localContext.Adapter.GetValueType (localContext, targetObject);
-			object res = localContext.Adapter.RuntimeInvoke (localContext, type, targetObject, name, argTypes, argValues);
+
+			var type = localContext.Adapter.GetValueType (localContext, targetObject);
+			var res = localContext.Adapter.RuntimeInvoke (localContext, type, targetObject, name, argTypes, argValues);
+
 			return localContext.Adapter.ToRawValue (localContext, null, res);
 		}
 		
 		public object GetMemberValue (string name, EvaluationOptions options)
 		{
-			EvaluationContext localContext = ctx.WithOptions (options);
-			object type = localContext.Adapter.GetValueType (localContext, targetObject);
-			ValueReference val = localContext.Adapter.GetMember (localContext, source, type, targetObject, name);
+			var localContext = ctx.WithOptions (options);
+			var type = localContext.Adapter.GetValueType (localContext, targetObject);
+			var val = localContext.Adapter.GetMember (localContext, source, type, targetObject, name);
+
 			if (val == null)
 				throw new EvaluatorException ("Member '{0}' not found", name);
+
 			return localContext.Adapter.ToRawValue (localContext, val, val.Value);
 		}
 		
 		public void SetMemberValue (string name, object value, EvaluationOptions options)
 		{
-			EvaluationContext localContext = ctx.WithOptions (options);
-			object type = localContext.Adapter.GetValueType (localContext, targetObject);
-			ValueReference val = localContext.Adapter.GetMember (localContext, source, type, targetObject, name);
+			var localContext = ctx.WithOptions (options);
+			var type = localContext.Adapter.GetValueType (localContext, targetObject);
+			var val = localContext.Adapter.GetMember (localContext, source, type, targetObject, name);
+
 			if (val == null)
 				throw new EvaluatorException ("Member '{0}' not found", name);
+
 			val.Value = localContext.Adapter.FromRawValue (localContext, value);
 		}
 		
 		#endregion
 	}
 	
-	internal class RemoteRawValueArray: RemoteFrameObject, IRawValueArray
+	class RemoteRawValueArray: RemoteFrameObject, IRawValueArray
 	{
-		object targetObject;
-		EvaluationContext ctx;
-		IObjectSource source;
-		ICollectionAdaptor targetArray;
-		
+		readonly ICollectionAdaptor targetArray;
+		readonly EvaluationContext ctx;
+		readonly IObjectSource source;
+		readonly object targetObject;
+
 		public RemoteRawValueArray (EvaluationContext ctx, IObjectSource source, ICollectionAdaptor targetArray, object targetObject)
 		{
 			this.ctx = ctx;
@@ -107,7 +114,7 @@ namespace Mono.Debugging.Evaluation
 		}
 		
 		public object TargetObject {
-			get { return this.targetObject; }
+			get { return targetObject; }
 		}
 		
 		public object GetValue (int[] index)
@@ -161,7 +168,7 @@ namespace Mono.Debugging.Evaluation
 			if (dims.Length != 1)
 				throw new NotSupportedException ();
 
-			int[] idx = new int [1];
+			var idx = new int [1];
 			Type commonType = null;
 			for (int n = 0; n < dims[0]; n++) {
 				idx[0] = n;
@@ -181,11 +188,11 @@ namespace Mono.Debugging.Evaluation
 		}
 	}
 	
-	internal class RemoteRawValueString: RemoteFrameObject, IRawValueString
+	class RemoteRawValueString: RemoteFrameObject, IRawValueString
 	{
-		object targetObject;
-		IStringAdaptor targetString;
-		
+		readonly IStringAdaptor targetString;
+		readonly object targetObject;
+
 		public RemoteRawValueString (IStringAdaptor targetString, object targetObject)
 		{
 			this.targetString = targetString;
@@ -194,7 +201,7 @@ namespace Mono.Debugging.Evaluation
 		}
 		
 		public object TargetObject {
-			get { return this.targetObject; }
+			get { return targetObject; }
 		}
 		
 		public int Length {
@@ -211,4 +218,3 @@ namespace Mono.Debugging.Evaluation
 		}
 	}
 }
-
