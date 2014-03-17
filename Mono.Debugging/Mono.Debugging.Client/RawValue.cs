@@ -237,7 +237,7 @@ namespace Mono.Debugging.Client
 		}
 
 		internal IRawValueString Source {
-			get { return this.source; }
+			get { return source; }
 		}
 
 		/// <summary>
@@ -272,7 +272,7 @@ namespace Mono.Debugging.Client
 		}
 	}
 
-	internal interface IRawObject
+	interface IRawObject
 	{
 		void Connect (DebuggerSession session, EvaluationOptions options);
 	}

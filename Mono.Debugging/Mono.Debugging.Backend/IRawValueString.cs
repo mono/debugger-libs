@@ -24,9 +24,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System;
-using Mono.Debugging.Client;
-
 namespace Mono.Debugging.Backend
 {
 	public interface IRawValueString: IDebuggerBackendObject
@@ -35,5 +32,4 @@ namespace Mono.Debugging.Backend
 		string Value { get; }
 		int Length { get; }
 	}
-	
 }
