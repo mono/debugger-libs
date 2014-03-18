@@ -106,8 +106,7 @@ namespace Mono.Debugging.Soft
 		public override object Value {
 			get {
 				Context.AssertTargetInvokeAllowed ();
-				var ctx = (SoftEvaluationContext) Context;
-				return ctx.RuntimeInvoke (property.GetGetMethod (true), obj ?? declaringType, indexerArgs);
+				return GetValueExplicitly ();
 			}
 			set {
 				Context.AssertTargetInvokeAllowed ();
@@ -121,6 +120,13 @@ namespace Mono.Debugging.Soft
 					throw new EvaluatorException ("Property is read-only");
 				ctx.RuntimeInvoke (setter, obj ?? declaringType, args);
 			}
+		}
+
+		protected override object GetValueExplicitly ()
+		{
+			var ctx = (SoftEvaluationContext) Context;
+
+			return ctx.RuntimeInvoke (property.GetGetMethod (true), obj ?? declaringType, indexerArgs);
 		}
 
 		protected override bool CanEvaluate (EvaluationOptions options)

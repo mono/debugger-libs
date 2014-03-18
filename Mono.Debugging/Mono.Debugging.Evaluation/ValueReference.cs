@@ -86,6 +86,7 @@ namespace Mono.Debugging.Evaluation
 		{
 			if (!CanEvaluate (options))
 				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), ctx.Adapter.GetTypeName (GetContext (options), Type), Flags);
+
 			if (withTimeout) {
 				return ctx.Adapter.CreateObjectValueAsync (Name, Flags, delegate {
 					return CreateObjectValue (options);
@@ -200,10 +201,15 @@ namespace Mono.Debugging.Evaluation
 			return ctx.Adapter.CallToString (ctx, Value);
 		}
 
+		protected virtual object GetValueExplicitly ()
+		{
+			return Value;
+		}
+
 		public virtual ObjectValue[] GetChildren (ObjectPath path, int index, int count, EvaluationOptions options)
 		{
 			try {
-				return ctx.Adapter.GetObjectValueChildren (GetChildrenContext (options), this, Value, index, count);
+				return ctx.Adapter.GetObjectValueChildren (GetChildrenContext (options), this, GetValueExplicitly (), index, count);
 			} catch (Exception ex) {
 				return new [] { Mono.Debugging.Client.ObjectValue.CreateFatalError ("", ex.Message, ObjectValueFlags.ReadOnly) };
 			}
