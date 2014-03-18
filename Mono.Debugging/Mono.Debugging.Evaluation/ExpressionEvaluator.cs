@@ -224,7 +224,7 @@ namespace Mono.Debugging.Evaluation
 		{
 		}
 		
-		public ImplicitEvaluationDisabledException ( )
+		public ImplicitEvaluationDisabledException ()
 			: base ("Implicit property and method evaluation is disabled.")
 		{
 		}

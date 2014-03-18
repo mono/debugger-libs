@@ -77,11 +77,12 @@ namespace Mono.Debugging.Evaluation
 					OnEvaluationDone (id, val);
 			});
 			
-			if (done)
+			if (done) {
+				// 'val' may be null if the timed evaluator is disposed while evaluating
 				return val ?? ObjectValue.CreateUnknown (name);
-			    // 'val' may be null if the timed evaluator is disposed while evaluating
-			else
-				return ObjectValue.CreateEvaluating (this, new ObjectPath (id, name), flags);
+			}
+
+			return ObjectValue.CreateEvaluating (this, new ObjectPath (id, name), flags);
 		}
 		
 		public void Dispose ()

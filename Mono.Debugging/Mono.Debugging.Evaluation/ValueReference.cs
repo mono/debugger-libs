@@ -68,12 +68,8 @@ namespace Mono.Debugging.Evaluation
 		}
 
 		public EvaluationContext Context {
-			get {
-				return ctx;
-			}
-			set {
-				ctx = value;
-			}
+			get { return ctx; }
+			set { ctx = value; }
 		}
 		
 		public EvaluationContext GetContext (EvaluationOptions options)
@@ -209,7 +205,7 @@ namespace Mono.Debugging.Evaluation
 			try {
 				return ctx.Adapter.GetObjectValueChildren (GetChildrenContext (options), this, Value, index, count);
 			} catch (Exception ex) {
-				return new ObjectValue [] { Mono.Debugging.Client.ObjectValue.CreateFatalError ("", ex.Message, ObjectValueFlags.ReadOnly) };
+				return new [] { Mono.Debugging.Client.ObjectValue.CreateFatalError ("", ex.Message, ObjectValueFlags.ReadOnly) };
 			}
 		}
 
@@ -241,11 +237,9 @@ namespace Mono.Debugging.Evaluation
 			if (vpath.Length == 0)
 				return this;
 
-			ValueReference val = GetChild (vpath[0], options);
-			if (val != null)
-				return val.GetChild (vpath.GetSubpath (1), options);
+			var val = GetChild (vpath[0], options);
 
-			return null;
+			return val != null ? val.GetChild (vpath.GetSubpath (1), options) : null;
 		}
 
 		public virtual ValueReference GetChild (string name, EvaluationOptions options)
@@ -257,10 +251,11 @@ namespace Mono.Debugging.Evaluation
 
 			if (name[0] == '[' && ctx.Adapter.IsArray (Context, obj)) {
 				// Parse the array indices
-				string[] sinds = name.Substring (1, name.Length - 2).Split (',');
-				int[] indices = new int [sinds.Length];
-				for (int n=0; n<sinds.Length; n++)
-					indices [n] = int.Parse (sinds [n]);
+				var tokens = name.Substring (1, name.Length - 2).Split (',');
+				var indices = new int [tokens.Length];
+
+				for (int n = 0; n < tokens.Length; n++)
+					indices[n] = int.Parse (tokens[n]);
 
 				return new ArrayValueReference (ctx, obj, indices);
 			}

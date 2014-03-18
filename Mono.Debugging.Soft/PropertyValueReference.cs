@@ -24,7 +24,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System;
 using Mono.Debugging.Evaluation;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Client;
@@ -107,17 +106,17 @@ namespace Mono.Debugging.Soft
 		public override object Value {
 			get {
 				Context.AssertTargetInvokeAllowed ();
-				SoftEvaluationContext ctx = (SoftEvaluationContext) Context;
+				var ctx = (SoftEvaluationContext) Context;
 				return ctx.RuntimeInvoke (property.GetGetMethod (true), obj ?? declaringType, indexerArgs);
 			}
 			set {
 				Context.AssertTargetInvokeAllowed ();
-				SoftEvaluationContext ctx = (SoftEvaluationContext) Context;
-				Value[] args = new Value [indexerArgs != null ? indexerArgs.Length + 1 : 1];
+				var ctx = (SoftEvaluationContext) Context;
+				var args = new Value [indexerArgs != null ? indexerArgs.Length + 1 : 1];
 				if (indexerArgs != null)
 					indexerArgs.CopyTo (args, 0);
 				args [args.Length - 1] = (Value) value;
-				MethodMirror setter = property.GetSetMethod (true);
+				var setter = property.GetSetMethod (true);
 				if (setter == null)
 					throw new EvaluatorException ("Property is read-only");
 				ctx.RuntimeInvoke (setter, obj ?? declaringType, args);
