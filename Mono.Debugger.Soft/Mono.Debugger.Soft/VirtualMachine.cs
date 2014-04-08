@@ -77,23 +77,6 @@ namespace Mono.Debugger.Soft
 		EventSet current_es;
 		int current_es_index;
 
-		/*
-		 * It is impossible to determine when to resume when using this method, since
-		 * the debuggee is suspended only once per event-set, not event.
-		 */
-		[Obsolete ("Use GetNextEventSet () instead")]
-		public Event GetNextEvent () {
-			lock (queue_monitor) {
-				if (current_es == null || current_es_index == current_es.Events.Length) {
-					if (queue.Count == 0)
-						Monitor.Wait (queue_monitor);
-					current_es = (EventSet)queue.Dequeue ();
-					current_es_index = 0;
-				}
-				return current_es.Events [current_es_index ++];
-			}
-		}
-
 		public Event GetNextEvent (int timeout) {
 			throw new NotImplementedException ();
 		}
@@ -108,11 +91,6 @@ namespace Mono.Debugger.Soft
 
 				return (EventSet)queue.Dequeue ();
 			}
-		}
-
-		[Obsolete ("Use GetNextEventSet () instead")]
-		public T GetNextEvent<T> () where T : Event {
-			return GetNextEvent () as T;
 		}
 
 		public void Suspend () {
@@ -138,12 +116,6 @@ namespace Mono.Debugger.Soft
 			conn.VM_Dispose ();
 			conn.Close ();
 			notify_vm_event (EventType.VMDisconnect, SuspendPolicy.None, 0, 0, null, 0);
-		}
-
-		[Obsolete ("This method was poorly named; use the Detach() method instead")]
-		public void Dispose ()
-		{
-			Detach ();
 		}
 
 		public void ForceDisconnect ()

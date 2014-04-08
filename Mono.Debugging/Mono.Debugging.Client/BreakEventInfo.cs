@@ -125,13 +125,6 @@ namespace Mono.Debugging.Client
 				BreakEvent.NotifyUpdate ();
 			}
 		}
-
-		[Obsolete ("Use IncrementHitCount() instead")]
-		public void UpdateHitCount (int count)
-		{
-			BreakEvent.CurrentHitCount = count;
-			BreakEvent.NotifyUpdate ();
-		}
 		
 		public void SetStatus (BreakEventStatus s, string statusMessage)
 		{
