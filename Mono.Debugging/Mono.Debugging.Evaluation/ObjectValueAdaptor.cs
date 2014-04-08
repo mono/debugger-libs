@@ -592,14 +592,17 @@ namespace Mono.Debugging.Evaluation
 
 		public ObjectValue[] GetExpressionValuesAsync (EvaluationContext ctx, string[] expressions)
 		{
-			ObjectValue[] values = new ObjectValue[expressions.Length];
+			var values = new ObjectValue[expressions.Length];
+
 			for (int n = 0; n < values.Length; n++) {
 				string exp = expressions[n];
+
 				// This is a workaround to a bug in mono 2.0. That mono version fails to compile
 				// an anonymous method here
-				ExpData edata = new ExpData (ctx, exp, this);
+				var edata = new ExpData (ctx, exp, this);
 				values[n] = asyncEvaluationTracker.Run (exp, ObjectValueFlags.Literal, edata.Run);
 			}
+
 			return values;
 		}
 		
