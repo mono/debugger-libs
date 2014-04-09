@@ -655,12 +655,12 @@ namespace Mono.Debugging.Evaluation
 			return indexer;
 		}
 
-		string ResolveMethodName (MemberReferenceExpression mre, out object[] typeArgs)
+		string ResolveMethodName (MemberReferenceExpression method, out object[] typeArgs)
 		{
-			if (mre.TypeArguments.Count > 0) {
-				List<object> args = new List<object> ();
+			if (method.TypeArguments.Count > 0) {
+				var args = new List<object> ();
 
-				foreach (var arg in mre.TypeArguments) {
+				foreach (var arg in method.TypeArguments) {
 					var type = arg.AcceptVisitor (this);
 					args.Add (type.Type);
 				}
@@ -670,7 +670,25 @@ namespace Mono.Debugging.Evaluation
 				typeArgs = null;
 			}
 
-			return mre.MemberName;
+			return method.MemberName;
+		}
+
+		string ResolveMethodName (IdentifierExpression method, out object[] typeArgs)
+		{
+			if (method.TypeArguments.Count > 0) {
+				var args = new List<object> ();
+
+				foreach (var arg in method.TypeArguments) {
+					var type = arg.AcceptVisitor (this);
+					args.Add (type.Type);
+				}
+
+				typeArgs = args.ToArray ();
+			} else {
+				typeArgs = null;
+			}
+
+			return method.Identifier;
 		}
 
 		public ValueReference VisitInvocationExpression (InvocationExpression invocationExpression)
@@ -682,8 +700,8 @@ namespace Mono.Debugging.Evaluation
 			ValueReference target = null;
 			string methodName;
 
-			object[] types = new object [invocationExpression.Arguments.Count];
-			object[] args = new object [invocationExpression.Arguments.Count];
+			var types = new object [invocationExpression.Arguments.Count];
+			var args = new object [invocationExpression.Arguments.Count];
 			object[] typeArgs = null;
 			int n = 0;
 
@@ -701,19 +719,21 @@ namespace Mono.Debugging.Evaluation
 					invokeBaseMethod = true;
 				methodName = ResolveMethodName (field, out typeArgs);
 			} else if (invocationExpression.Target is IdentifierExpression) {
-				methodName = ((IdentifierExpression) invocationExpression.Target).Identifier;
+				var method = (IdentifierExpression) invocationExpression.Target;
 				var vref = ctx.Adapter.GetThisReference (ctx);
 
-				if (vref != null && ctx.Adapter.HasMethod (ctx, vref.Type, methodName, BindingFlags.Instance)) {
+				methodName = ResolveMethodName (method, out typeArgs);
+
+				if (vref != null && ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, BindingFlags.Instance)) {
 					// There is an instance method for 'this', although it may not have an exact signature match. Check it now.
-					if (ctx.Adapter.HasMethod (ctx, vref.Type, methodName, types, BindingFlags.Instance)) {
+					if (ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, types, BindingFlags.Instance)) {
 						target = vref;
 					} else {
 						// There isn't an instance method with exact signature match.
 						// If there isn't a static method, then use the instance method,
 						// which will report the signature match error when invoked
 						object etype = ctx.Adapter.GetEnclosingType (ctx);
-						if (!ctx.Adapter.HasMethod (ctx, etype, methodName, types, BindingFlags.Static))
+						if (!ctx.Adapter.HasMethod (ctx, etype, methodName, typeArgs, types, BindingFlags.Static))
 							target = vref;
 					}
 				} else {
