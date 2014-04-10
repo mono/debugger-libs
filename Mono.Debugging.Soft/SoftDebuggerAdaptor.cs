@@ -1432,15 +1432,9 @@ namespace Mono.Debugging.Soft
 		
 		TypeMirror ToTypeMirror (EvaluationContext ctx, object type)
 		{
-			TypeMirror t = type as TypeMirror;
-			if (t != null)
-				return t;
-			return (TypeMirror) GetType (ctx, ((Type)type).FullName);
-		}
+			var tm = type as TypeMirror;
 
-		public override object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] argTypes, object[] argValues)
-		{
-			return RuntimeInvoke (ctx, targetType, target, methodName, new object [0], argTypes, argValues);
+			return tm ?? (TypeMirror) GetType (ctx, ((Type) type).FullName);
 		}
 
 		public override object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] genericTypeArgs, object[] argTypes, object[] argValues)

@@ -1266,30 +1266,21 @@ namespace Mono.Debugging.Evaluation
 		
 		// argTypes can be null, meaning that it has to return true if there is any method with that name
 		// flags will only contain Static or Instance flags
-		// FIXME: this should become non-virtual
-		public virtual bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] argTypes, BindingFlags flags)
+		public bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] argTypes, BindingFlags flags)
 		{
 			return HasMethod (ctx, targetType, methodName, null, argTypes, flags);
 		}
 
 		// argTypes can be null, meaning that it has to return true if there is any method with that name
 		// flags will only contain Static or Instance flags
-		public virtual bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] genericTypeArgs, object[] argTypes, BindingFlags flags)
+		public abstract bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] genericTypeArgs, object[] argTypes, BindingFlags flags);
+
+		public object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] argTypes, object[] argValues)
 		{
-			return false;
+			return RuntimeInvoke (ctx, targetType, target, methodName, null, argTypes, argValues);
 		}
 
-		// FIXME: this should become non-virtual and simply call the newer method
-		public virtual object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] argTypes, object[] argValues)
-		{
-			return null;
-		}
-
-		public virtual object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] genericTypeArgs, object[] argTypes, object[] argValues)
-		{
-			// Note: this is for backward compatibility with debugger backends that haven't yet implemented this particular overload
-			return RuntimeInvoke (ctx, targetType, target, methodName, argTypes, argValues);
-		}
+		public abstract object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] genericTypeArgs, object[] argTypes, object[] argValues);
 		
 		public virtual ValidationResult ValidateExpression (EvaluationContext ctx, string expression)
 		{
