@@ -951,7 +951,7 @@ namespace Mono.Debugging.Soft
 		static bool CheckTypeName (string typeName, string name)
 		{
 			// if the name provided is empty, it matches anything.
-			if (name.Length == 0)
+			if (string.IsNullOrEmpty (name))
 				return true;
 
 			if (name.StartsWith ("global::", StringComparison.Ordinal)) {
@@ -962,7 +962,7 @@ namespace Mono.Debugging.Soft
 					return false;
 			} else {
 				// be a little more flexible with what we match... i.e. "Console" should match "System.Console"
-				if (typeName.Length > name.Length) {
+				if (typeName != null && typeName.Length > name.Length) {
 					if (!typeName.EndsWith (name, StringComparison.Ordinal))
 						return false;
 
@@ -979,7 +979,7 @@ namespace Mono.Debugging.Soft
 
 		static bool CheckTypeName (TypeMirror type, string name)
 		{
-			if (name.Length == 0) {
+			if (string.IsNullOrEmpty (name)) {
 				// empty name matches anything
 				return true;
 			}
@@ -1994,7 +1994,12 @@ namespace Mono.Debugging.Soft
 			foreach (var bi in pending_bes.Where (b => b.BreakEvent is FunctionBreakpoint)) {
 				if (CheckTypeName (type, bi.TypeName)) {
 					var bp = (FunctionBreakpoint) bi.BreakEvent;
-					string methodName = bp.FunctionName.Substring (bi.TypeName.Length + 1);
+					string methodName;
+
+					if (!string.IsNullOrEmpty (bi.TypeName))
+						methodName = bp.FunctionName.Substring (bi.TypeName.Length + 1);
+					else
+						methodName = bp.FunctionName;
 					
 					foreach (var method in type.GetMethodsByNameFlags (methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static, false)) {
 						if (!CheckMethodParams (method, bp.ParamTypes))
