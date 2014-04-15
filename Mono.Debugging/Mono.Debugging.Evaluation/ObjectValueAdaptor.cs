@@ -1066,6 +1066,8 @@ namespace Mono.Debugging.Evaluation
 			return GetValueTypeName (ctx, obj);
 		}
 
+		protected abstract object GetBaseTypeWithAttribute (EvaluationContext ctx, object type, object attrType);
+
 		public object GetProxyObject (EvaluationContext ctx, object obj)
 		{
 			TypeDisplayData data = GetTypeDisplayData (ctx, GetValueType (ctx, obj));
@@ -1085,8 +1087,14 @@ namespace Mono.Debugging.Evaluation
 				while (endIndex < proxyType.Length && char.IsDigit (proxyType[endIndex]))
 					endIndex++;
 
+				var attrType = GetType (ctx, "System.Diagnostics.DebuggerTypeProxyAttribute");
 				int num = int.Parse (proxyType.Substring (startIndex, endIndex - startIndex));
-				typeArgs = GetTypeArgs (ctx, GetValueType (ctx, obj));
+				var proxiedType = GetBaseTypeWithAttribute (ctx, GetValueType (ctx, obj), attrType);
+
+				if (proxiedType == null || !IsGenericType (ctx, proxiedType))
+					return obj;
+
+				typeArgs = GetTypeArgs (ctx, proxiedType);
 				if (typeArgs.Length != num)
 					return obj;
 

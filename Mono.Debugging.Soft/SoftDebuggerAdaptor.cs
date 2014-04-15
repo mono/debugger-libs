@@ -1124,6 +1124,21 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 
+		protected override object GetBaseTypeWithAttribute (EvaluationContext ctx, object type, object attrType)
+		{
+			var atm = attrType as TypeMirror;
+			var tm = type as TypeMirror;
+
+			while (tm != null) {
+				if (tm.GetCustomAttributes (atm, false).Any ())
+					return tm;
+
+				tm = tm.BaseType;
+			}
+
+			return null;
+		}
+
 		public override object GetParentType (EvaluationContext ctx, object type)
 		{
 			var tm = type as TypeMirror;
