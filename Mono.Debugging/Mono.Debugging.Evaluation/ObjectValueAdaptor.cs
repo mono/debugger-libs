@@ -514,7 +514,7 @@ namespace Mono.Debugging.Evaluation
 			TypeDisplayData tdata = GetTypeDisplayData (ctx, type);
 			bool groupPrivateMembers = ctx.Options.GroupPrivateMembers || IsExternalType (ctx, type);
 
-			List<ObjectValue> values = new List<ObjectValue> ();
+			var values = new List<ObjectValue> ();
 			BindingFlags flattenFlag = ctx.Options.FlattenHierarchy ? (BindingFlags)0 : BindingFlags.DeclaredOnly;
 			BindingFlags nonPublicFlag = !(groupPrivateMembers || showRawView) ? BindingFlags.NonPublic : (BindingFlags) 0;
 			BindingFlags staticFlag = ctx.Options.GroupStaticMembers ? (BindingFlags)0 : BindingFlags.Static;
@@ -522,7 +522,7 @@ namespace Mono.Debugging.Evaluation
 			
 			// Load all members to a list before creating the object values,
 			// to avoid problems with objects being invalidated due to evaluations in the target,
-			List<ValueReference> list = new List<ValueReference> ();
+			var list = new List<ValueReference> ();
 			list.AddRange (GetMembersSorted (ctx, objectSource, type, proxy, access));
 			var names = new ObjectValueNameTracker (ctx);
 			object tdataType = type;
@@ -1129,14 +1129,15 @@ namespace Mono.Debugging.Evaluation
 
 			try {
 				td = OnGetTypeDisplayData (ctx, type);
-			}
-			catch (Exception ex) {
+			} catch (Exception ex) {
 				ctx.WriteDebuggerError (ex);
 			}
+
 			if (td == null)
 				typeDisplayData[tname] = td = TypeDisplayData.Default;
 			else
 				typeDisplayData[tname] = td;
+
 			return td;
 		}
 

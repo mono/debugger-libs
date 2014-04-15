@@ -1277,32 +1277,35 @@ namespace Mono.Debugging.Soft
 		
 		protected override TypeDisplayData OnGetTypeDisplayData (EvaluationContext ctx, object type)
 		{
-			var soft = (SoftEvaluationContext) ctx;
-
 			Dictionary<string, DebuggerBrowsableState> memberData = null;
+			var soft = (SoftEvaluationContext) ctx;
 			bool isCompilerGenerated = false;
 			string displayValue = null;
 			string displayName = null;
 			string displayType = null;
 			string proxyType = null;
 
-
 			try {
 				var tm = (TypeMirror) type;
+
 				foreach (var attr in tm.GetCustomAttributes (true)) {
-					string attrName = attr.Constructor.DeclaringType.FullName;
-					if (attrName == "System.Diagnostics.DebuggerDisplayAttribute") {
+					var attrName = attr.Constructor.DeclaringType.FullName;
+					switch (attrName) {
+					case "System.Diagnostics.DebuggerDisplayAttribute":
 						var display = BuildAttribute<DebuggerDisplayAttribute> (attr);
 						displayValue = display.Value;
 						displayName = display.Name;
 						displayType = display.Type;
-					} else if (attrName == "System.Diagnostics.DebuggerTypeProxyAttribute") {
+						break;
+					case "System.Diagnostics.DebuggerTypeProxyAttribute":
 						var proxy = BuildAttribute<DebuggerTypeProxyAttribute> (attr);
 						proxyType = proxy.ProxyTypeName;
 						if (!string.IsNullOrEmpty (proxyType))
 							ForceLoadType (soft, proxyType);
-					} else if (attrName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute") {
+						break;
+					case "System.Runtime.CompilerServices.CompilerGeneratedAttribute":
 						isCompilerGenerated = true;
+						break;
 					}
 				}
 
