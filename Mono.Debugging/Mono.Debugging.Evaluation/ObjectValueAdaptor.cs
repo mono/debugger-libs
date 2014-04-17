@@ -707,7 +707,7 @@ namespace Mono.Debugging.Evaluation
 
 		protected virtual CompletionData GetMemberCompletionData (EvaluationContext ctx, ValueReference vr)
 		{
-			CompletionData data = new CompletionData ();
+			var data = new CompletionData ();
 
 			foreach (ValueReference cv in vr.GetChildReferences (ctx.Options))
 				data.Items.Add (new CompletionItem (cv.Name, cv.Flags));
