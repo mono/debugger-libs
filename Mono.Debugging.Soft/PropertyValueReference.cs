@@ -24,8 +24,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System;
-
 using Mono.Debugging.Evaluation;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Client;
@@ -127,14 +125,8 @@ namespace Mono.Debugging.Soft
 		protected override object GetValueExplicitly ()
 		{
 			var ctx = (SoftEvaluationContext) Context;
-			var getter = property.GetGetMethod (true);
-			var self = (Value) obj ?? declaringType;
 
-			try {
-				return getter.Evaluate (self, indexerArgs);
-			} catch (NotSupportedException) {
-				return ctx.RuntimeInvoke (getter, self, indexerArgs);
-			}
+			return ctx.RuntimeInvoke (property.GetGetMethod (true), obj ?? declaringType, indexerArgs);
 		}
 
 		protected override bool CanEvaluate (EvaluationOptions options)
