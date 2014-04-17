@@ -446,9 +446,6 @@ namespace Mono.Debugging.Client
 		
 		void OnBreakEventAdded (BreakEvent be)
 		{
-			if (be is RunToCursorBreakpoint)
-				return;
-
 			OnChanged ();
 			EventHandler<BreakEventArgs> breakEventAdded = BreakEventAdded;
 			if (breakEventAdded != null)
@@ -466,9 +463,6 @@ namespace Mono.Debugging.Client
 		
 		void OnBreakEventRemoved (BreakEvent be)
 		{
-			if (be is RunToCursorBreakpoint)
-				return;
-
 			OnChanged ();
 			EventHandler<BreakEventArgs> breakEventRemoved = BreakEventRemoved;
 			if (breakEventRemoved != null)
@@ -493,9 +487,6 @@ namespace Mono.Debugging.Client
 		
 		internal void NotifyStatusChanged (BreakEvent be)
 		{
-			if (be is RunToCursorBreakpoint)
-				return;
-
 			try {
 				EventHandler<BreakEventArgs> breakEventStatusChanged = BreakEventStatusChanged;
 				if (breakEventStatusChanged != null)
@@ -516,9 +507,6 @@ namespace Mono.Debugging.Client
 		
 		internal void NotifyBreakEventChanged (BreakEvent be)
 		{
-			if (be is RunToCursorBreakpoint)
-				return;
-
 			try {
 				EventHandler<BreakEventArgs> breakEventModified = BreakEventModified;
 				if (breakEventModified != null)
@@ -540,8 +528,6 @@ namespace Mono.Debugging.Client
 		
 		internal void NotifyBreakEventUpdated (BreakEvent be)
 		{
-			if (be is RunToCursorBreakpoint)
-				return;
 
 			try {
 				EventHandler<BreakEventArgs> breakEventUpdated = BreakEventUpdated;
