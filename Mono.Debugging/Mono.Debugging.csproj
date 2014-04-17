@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.21022</ProductVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{90C99ADB-7D4B-4EB4-98C2-40BD1B14C7D2}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -122,6 +122,7 @@
     <Compile Include="Mono.Debugging.Backend\IRawValueString.cs" />
     <Compile Include="Mono.Debugging.Backend\EvaluationResult.cs" />
     <Compile Include="Mono.Debugging.Client\DebuggerLoggingService.cs" />
+    <Compile Include="Mono.Debugging.Client\RunToCursorBreakpoint.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
