@@ -1066,7 +1066,11 @@ namespace Mono.Debugging.Evaluation
 			return GetValueTypeName (ctx, obj);
 		}
 
-		protected abstract object GetBaseTypeWithAttribute (EvaluationContext ctx, object type, object attrType);
+		// FIXME: next time we can break ABI/API, make this abstract
+		protected virtual object GetBaseTypeWithAttribute (EvaluationContext ctx, object type, object attrType)
+		{
+			return null;
+		}
 
 		public object GetProxyObject (EvaluationContext ctx, object obj)
 		{
