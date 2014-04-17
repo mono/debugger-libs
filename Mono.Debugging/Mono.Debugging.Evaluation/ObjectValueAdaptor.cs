@@ -75,9 +75,7 @@ namespace Mono.Debugging.Evaluation
 		{
 			DefaultEvaluationWaitTime = 100;
 			
-			asyncOperationManager.BusyStateChanged += delegate(object sender, BusyStateEventArgs e) {
-				OnBusyStateChanged (e);
-			};
+			asyncOperationManager.BusyStateChanged += (sender, e) => OnBusyStateChanged (e);
 			asyncEvaluationTracker.WaitTime = DefaultEvaluationWaitTime;
 		}
 		
@@ -116,7 +114,7 @@ namespace Mono.Debugging.Evaluation
 			// Note: '[' denotes the start of an array
 			//       '`' denotes a generic type
 			//       ',' denotes the start of the assembly name
-			int tokenIndex = typeName.IndexOfAny (new char [] { '[', '`', ',' }, startIndex, endIndex - startIndex);
+			int tokenIndex = typeName.IndexOfAny (new [] { '[', '`', ',' }, startIndex, endIndex - startIndex);
 			List<string> genericArgs = null;
 			string array = string.Empty;
 			int genericEndIndex = -1;
@@ -138,7 +136,7 @@ namespace Mono.Debugging.Evaluation
 				if (genericEndIndex == -1) {
 					// Mono's compiler seems to generate non-generic types with '`'s in the name
 					// e.g. __EventHandler`1_FileCopyEventArgs_DelegateFactory_2
-					tokenIndex = typeName.IndexOfAny (new char [] { '[', ',' }, tokenIndex, endIndex - tokenIndex);
+					tokenIndex = typeName.IndexOfAny (new [] { '[', ',' }, tokenIndex, endIndex - tokenIndex);
 					goto retry;
 				}
 				
@@ -200,7 +198,7 @@ namespace Mono.Debugging.Evaluation
 				i = next + 1;
 			}
 			
-			return sb.ToString () + array;
+			return sb + array;
 		}
 		
 		List<string> GetGenericArguments (string typeName, ref int i, int endIndex)
@@ -315,13 +313,16 @@ namespace Mono.Debugging.Evaluation
 		public virtual IEnumerable<EnumMember> GetEnumMembers (EvaluationContext ctx, object type)
 		{
 			object longType = GetType (ctx, "System.Int64");
-			TypeValueReference tref = new TypeValueReference (ctx, type);
-			foreach (ValueReference cr in tref.GetChildReferences (ctx.Options)) {
-				object c = TryCast (ctx, cr.Value, longType);
+			var tref = new TypeValueReference (ctx, type);
+
+			foreach (var cr in tref.GetChildReferences (ctx.Options)) {
+				var c = TryCast (ctx, cr.Value, longType);
 				if (c == null)
 					continue;
+
 				long val = (long) TargetObjectToObject (ctx, c);
-				EnumMember em = new EnumMember () { Name = cr.Name, Value = val };
+				var em = new EnumMember { Name = cr.Name, Value = val };
+
 				yield return em;
 			}
 		}
@@ -330,10 +331,11 @@ namespace Mono.Debugging.Evaluation
 		{
 			object bt = GetBaseType (ctx, type);
 			string tn = bt != null ? GetTypeName (ctx, bt) : null;
+
 			if (!includeObjectClass && bt != null && (tn == "System.Object" || tn == "System.ValueType"))
 				return null;
-			else
-				return bt;
+
+			return bt;
 		}
 
 		public virtual bool IsClassInstance (EvaluationContext ctx, object val)
@@ -417,58 +419,57 @@ namespace Mono.Debugging.Evaluation
 			childTypes = childNamespaces = new string[0];
 		}
 
-		protected virtual ObjectValue CreateObjectValueImpl (EvaluationContext ctx, Mono.Debugging.Backend.IObjectValueSource source, ObjectPath path, object obj, ObjectValueFlags flags)
+		protected virtual ObjectValue CreateObjectValueImpl (EvaluationContext ctx, IObjectValueSource source, ObjectPath path, object obj, ObjectValueFlags flags)
 		{
 			object type = obj != null ? GetValueType (ctx, obj) : null;
 			string typeName = type != null ? GetTypeName (ctx, type) : "";
 
-			if (obj == null || IsNull (ctx, obj)) {
+			if (obj == null || IsNull (ctx, obj))
 				return ObjectValue.CreateNullObject (source, path, GetDisplayTypeName (typeName), flags);
-			}
-			else if (IsPrimitive (ctx, obj) || IsEnum (ctx,obj)) {
+
+			if (IsPrimitive (ctx, obj) || IsEnum (ctx,obj))
 				return ObjectValue.CreatePrimitive (source, path, GetDisplayTypeName (typeName), ctx.Evaluator.TargetObjectToExpression (ctx, obj), flags);
-			}
-			else if (IsArray (ctx, obj)) {
+
+			if (IsArray (ctx, obj))
 				return ObjectValue.CreateObject (source, path, GetDisplayTypeName (typeName), ctx.Evaluator.TargetObjectToExpression (ctx, obj), flags, null);
-			}
-			else {
-				EvaluationResult tvalue = null;
-				TypeDisplayData tdata = null;
-				string tname;
 
-				if (IsNullableType (ctx, type)) {
-					if (NullableHasValue (ctx, type, obj)) {
-						ValueReference value = NullableGetValue (ctx, type, obj);
+			EvaluationResult tvalue = null;
+			TypeDisplayData tdata = null;
+			string tname;
 
-						tdata = GetTypeDisplayData (ctx, value.Type);
-						obj = value.Value;
-					} else {
-						tdata = GetTypeDisplayData (ctx, type);
-						tvalue = new EvaluationResult ("null");
-					}
+			if (IsNullableType (ctx, type)) {
+				if (NullableHasValue (ctx, type, obj)) {
+					ValueReference value = NullableGetValue (ctx, type, obj);
 
-					tname = GetDisplayTypeName (typeName);
+					tdata = GetTypeDisplayData (ctx, value.Type);
+					obj = value.Value;
 				} else {
 					tdata = GetTypeDisplayData (ctx, type);
-
-					if (!string.IsNullOrEmpty (tdata.TypeDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
-						tname = EvaluateDisplayString (ctx, obj, tdata.TypeDisplayString);
-					else
-						tname = GetDisplayTypeName (typeName);
+					tvalue = new EvaluationResult ("null");
 				}
 
-				if (tvalue == null) {
-					if (!string.IsNullOrEmpty (tdata.ValueDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
-						tvalue = new EvaluationResult (EvaluateDisplayString (ctx, obj, tdata.ValueDisplayString));
-					else
-						tvalue = ctx.Evaluator.TargetObjectToExpression (ctx, obj);
-				}
+				tname = GetDisplayTypeName (typeName);
+			} else {
+				tdata = GetTypeDisplayData (ctx, type);
 
-				ObjectValue oval = ObjectValue.CreateObject (source, path, tname, tvalue, flags, null);
-				if (!string.IsNullOrEmpty (tdata.NameDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
-					oval.Name = EvaluateDisplayString (ctx, obj, tdata.NameDisplayString);
-				return oval;
+				if (!string.IsNullOrEmpty (tdata.TypeDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
+					tname = EvaluateDisplayString (ctx, obj, tdata.TypeDisplayString);
+				else
+					tname = GetDisplayTypeName (typeName);
 			}
+
+			if (tvalue == null) {
+				if (!string.IsNullOrEmpty (tdata.ValueDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
+					tvalue = new EvaluationResult (EvaluateDisplayString (ctx, obj, tdata.ValueDisplayString));
+				else
+					tvalue = ctx.Evaluator.TargetObjectToExpression (ctx, obj);
+			}
+
+			ObjectValue oval = ObjectValue.CreateObject (source, path, tname, tvalue, flags, null);
+			if (!string.IsNullOrEmpty (tdata.NameDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
+				oval.Name = EvaluateDisplayString (ctx, obj, tdata.NameDisplayString);
+
+			return oval;
 		}
 		
 		public ObjectValue[] GetObjectValueChildren (EvaluationContext ctx, IObjectSource objectSource, object obj, int firstItemIndex, int count)
@@ -482,7 +483,7 @@ namespace Mono.Debugging.Evaluation
 				return new ObjectValue[0];
 			
 			if (IsArray (ctx, obj)) {
-				ArrayElementGroup agroup = new ArrayElementGroup (ctx, CreateArrayAdaptor (ctx, obj));
+				var agroup = new ArrayElementGroup (ctx, CreateArrayAdaptor (ctx, obj));
 				return agroup.GetChildren (ctx.Options);
 			}
 
@@ -494,9 +495,9 @@ namespace Mono.Debugging.Evaluation
 					ValueReference value = NullableGetValue (ctx, type, obj);
 
 					return GetObjectValueChildren (ctx, objectSource, value.Type, value.Value, firstItemIndex, count, dereferenceProxy);
-				} else {
-					return new ObjectValue[0];
 				}
+
+				return new ObjectValue[0];
 			}
 
 			bool showRawView = false;
@@ -824,14 +825,15 @@ namespace Mono.Debugging.Evaluation
 		
 		internal IEnumerable<ValueReference> GetMembersSorted (EvaluationContext ctx, IObjectSource objectSource, object t, object co, BindingFlags bindingFlags)
 		{
-			List<ValueReference> list = new List<ValueReference> ();
-			foreach (ValueReference vr in GetMembers (ctx, t, co, bindingFlags)) {
+			var list = new List<ValueReference> ();
+
+			foreach (var vr in GetMembers (ctx, t, co, bindingFlags)) {
 				vr.ParentSource = objectSource;
 				list.Add (vr);
 			}
-			list.Sort (delegate (ValueReference v1, ValueReference v2) {
-				return v1.Name.CompareTo (v2.Name);
-			});
+
+			list.Sort ((v1, v2) => string.Compare (v1.Name, v2.Name, StringComparison.Ordinal));
+
 			return list;
 		}
 		
@@ -860,8 +862,10 @@ namespace Mono.Debugging.Evaluation
 
 		public virtual object GetParentType (EvaluationContext ctx, object type)
 		{
-			if ((type is Type))
-				return ((Type) type).DeclaringType;
+			var tt = type as Type;
+
+			if (tt != null)
+				return tt.DeclaringType;
 
 			var name = GetTypeName (ctx, type);
 			int plus = name.LastIndexOf ('+');
@@ -871,27 +875,30 @@ namespace Mono.Debugging.Evaluation
 		
 		public virtual object CreateArray (EvaluationContext ctx, object type, object[] values)
 		{
-			object arrType = GetType (ctx, "System.Collections.ArrayList");
-			object arrayList = CreateValue (ctx, arrType, new object[0]);
-			object[] objTypes = new object[] { GetType (ctx, "System.Object") };
+			var arrType = GetType (ctx, "System.Collections.ArrayList");
+			var arrayList = CreateValue (ctx, arrType, new object[0]);
+			object[] objTypes = { GetType (ctx, "System.Object") };
+
 			foreach (object value in values)
-				RuntimeInvoke (ctx, arrType, arrayList, "Add", objTypes, new object[] { value });
+				RuntimeInvoke (ctx, arrType, arrayList, "Add", objTypes, new [] { value });
 			
-			object typof = CreateTypeObject (ctx, type);
-			objTypes = new object[] { GetType (ctx, "System.Type") };
-			return RuntimeInvoke (ctx, arrType, arrayList, "ToArray", objTypes, new object[] { typof });
+			var typof = CreateTypeObject (ctx, type);
+			objTypes = new [] { GetType (ctx, "System.Type") };
+
+			return RuntimeInvoke (ctx, arrType, arrayList, "ToArray", objTypes, new [] { typof });
 		}
 		
 		public virtual object ToRawValue (EvaluationContext ctx, IObjectSource source, object obj)
 		{
 			if (IsEnum (ctx, obj)) {
-				object longType = GetType (ctx, "System.Int64");
-				object c = Cast (ctx, obj, longType);
+				var longType = GetType (ctx, "System.Int64");
+				var c = Cast (ctx, obj, longType);
+
 				return TargetObjectToObject (ctx, c);
 			}
 			
 			if (ctx.Options.ChunkRawStrings && IsString (ctx, obj)) {
-				IStringAdaptor adaptor = CreateStringAdaptor (ctx, obj);
+				var adaptor = CreateStringAdaptor (ctx, obj);
 				return new RawValueString (new RemoteRawValueString (adaptor, obj));
 			}
 			
@@ -899,7 +906,7 @@ namespace Mono.Debugging.Evaluation
 				return TargetObjectToObject (ctx, obj);
 				
 			if (IsArray (ctx, obj)) {
-				ICollectionAdaptor adaptor = CreateArrayAdaptor (ctx, obj);
+				var adaptor = CreateArrayAdaptor (ctx, obj);
 				return new RawValueArray (new RemoteRawValueArray (ctx, source, adaptor, obj));
 			}
 			
@@ -908,41 +915,50 @@ namespace Mono.Debugging.Evaluation
 		
 		public virtual object FromRawValue (EvaluationContext ctx, object obj)
 		{
-			if (obj is RawValue) {
-				RemoteRawValue val = ((RawValue)obj).Source as RemoteRawValue;
+			var rawValue = obj as RawValue;
+			if (rawValue != null) {
+				var val = rawValue.Source as RemoteRawValue;
 				if (val == null)
-					throw new InvalidOperationException ("Unknown RawValue source: " + ((RawValue)obj).Source);
+					throw new InvalidOperationException ("Unknown RawValue source: " + rawValue.Source);
+
 				return val.TargetObject;
 			}
-			else if (obj is RawValueArray) {
-				RemoteRawValueArray val = ((RawValueArray)obj).Source as RemoteRawValueArray;
+
+			var rawArray = obj as RawValueArray;
+			if (rawArray != null) {
+				var val = rawArray.Source as RemoteRawValueArray;
 				if (val == null)
-					throw new InvalidOperationException ("Unknown RawValueArray source: " + ((RawValueArray)obj).Source);
+					throw new InvalidOperationException ("Unknown RawValueArray source: " + rawArray.Source);
+
 				return val.TargetObject;
 			}
-			else if (obj is RawValueString) {
-				RemoteRawValueString val = ((RawValueString)obj).Source as RemoteRawValueString;
+
+			var rawString = obj as RawValueString;
+			if (rawString != null) {
+				var val = rawString.Source as RemoteRawValueString;
 				if (val == null)
-					throw new InvalidOperationException ("Unknown RawValueString source: " + ((RawValueString)obj).Source);
+					throw new InvalidOperationException ("Unknown RawValueString source: " + rawString.Source);
+
 				return val.TargetObject;
 			}
-			else {
-				if (obj is Array) {
-					Array arr = (Array) obj;
-					if (obj.GetType ().GetElementType () == typeof(RawValue)) {
-						throw new NotSupportedException ();
-					} else {
-						object elemType = GetType (ctx, obj.GetType ().GetElementType ().FullName);
-						if (elemType == null)
-							throw new EvaluatorException ("Unknown target type: {0}", obj.GetType ().GetElementType ().FullName);
-						object[] values = new object [arr.Length];
-						for (int n=0; n<values.Length; n++)
-							values [n] = FromRawValue (ctx, arr.GetValue (n));
-						return CreateArray (ctx, elemType, values);
-					}
-				}
-				return CreateValue (ctx, obj);
+
+			var array = obj as Array;
+			if (array != null) {
+				if (obj.GetType ().GetElementType () == typeof (RawValue))
+					throw new NotSupportedException ();
+
+				var elemType = GetType (ctx, obj.GetType ().GetElementType ().FullName);
+				if (elemType == null)
+					throw new EvaluatorException ("Unknown target type: {0}", obj.GetType ().GetElementType ().FullName);
+
+				var values = new object [array.Length];
+				for (int n = 0; n < values.Length; n++)
+					values[n] = FromRawValue (ctx, array.GetValue (n));
+
+				return CreateArray (ctx, elemType, values);
 			}
+
+			return CreateValue (ctx, obj);
 		}
 		
 		public virtual object TargetObjectToObject (EvaluationContext ctx, object obj)
@@ -979,19 +995,19 @@ namespace Mono.Debugging.Evaluation
 				string typeName = GetTypeName (ctx, type);
 				string composed = string.Empty;
 				string composedDisplay = string.Empty;
-				foreach (EnumMember em in GetEnumMembers (ctx, type)) {
+
+				foreach (var em in GetEnumMembers (ctx, type)) {
 					if (em.Value == val)
 						return new EvaluationResult (typeName + "." + em.Name, em.Name);
-					else {
-						if (em.Value != 0 && (rest & em.Value) == em.Value) {
-							rest &= ~em.Value;
-							if (composed.Length > 0) {
-								composed += "|";
-								composedDisplay += "|";
-							}
-							composed += typeName + "." + em.Name;
-							composedDisplay += em.Name;
+
+					if (em.Value != 0 && (rest & em.Value) == em.Value) {
+						rest &= ~em.Value;
+						if (composed.Length > 0) {
+							composed += "|";
+							composedDisplay += "|";
 						}
+						composed += typeName + "." + em.Name;
+						composedDisplay += em.Name;
 					}
 				}
 
@@ -1165,12 +1181,12 @@ namespace Mono.Debugging.Evaluation
 
 		public string EvaluateDisplayString (EvaluationContext ctx, object obj, string expr)
 		{
-			StringBuilder sb = new StringBuilder ();
+			var display = new StringBuilder ();
 			int i = expr.IndexOf ('{');
 			int last = 0;
 
 			while (i != -1 && i < expr.Length) {
-				sb.Append (expr.Substring (last, i - last));
+				display.Append (expr.Substring (last, i - last));
 				i++;
 
 				int j = expr.IndexOf ('}', i);
@@ -1186,11 +1202,10 @@ namespace Mono.Debugging.Evaluation
 				if (comma != -1) {
 					var option = memberExpr.Substring (comma + 1).Trim ();
 					memberExpr = memberExpr.Substring (0, comma).Trim ();
-					if (option == "nq")
-						noquotes = true;
+					noquotes |= option == "nq";
 				}
 				
-				string[] props = memberExpr.Split (new char[] { '.' });
+				var props = memberExpr.Split (new [] { '.' });
 				ValueReference member = null;
 				object val = obj;
 				
@@ -1205,22 +1220,22 @@ namespace Mono.Debugging.Evaluation
 				if (member != null) {
 					var str = ctx.Evaluator.TargetObjectToString (ctx, val);
 					if (str == null)
-						sb.Append ("null");
+						display.Append ("null");
 					else if (noquotes && IsQuoted (str))
-						sb.Append (str.Substring (1, str.Length - 2));
+						display.Append (str.Substring (1, str.Length - 2));
 					else
-						sb.Append (str);
+						display.Append (str);
 				} else {
-					sb.Append ("{Unknown member '" + memberExpr + "'}");
+					display.Append ("{Unknown member '" + memberExpr + "'}");
 				}
 
 				last = j + 1;
 				i = expr.IndexOf ('{', last);
 			}
 
-			sb.Append (expr.Substring (last));
+			display.Append (expr.Substring (last));
 
-			return sb.ToString ();
+			return display.ToString ();
 		}
 
 		public void AsyncExecute (AsyncOperation operation, int timeout)
@@ -1343,8 +1358,8 @@ namespace Mono.Debugging.Evaluation
 	
 	class ObjectValueNameTracker
 	{
-		Dictionary<string,KeyValuePair<ObjectValue, ValueReference>> names = new Dictionary<string,KeyValuePair<ObjectValue, ValueReference>> ();
-		EvaluationContext ctx;
+		readonly Dictionary<string,KeyValuePair<ObjectValue, ValueReference>> names = new Dictionary<string,KeyValuePair<ObjectValue, ValueReference>> ();
+		readonly EvaluationContext ctx;
 		
 		public ObjectValueNameTracker (EvaluationContext ctx)
 		{
@@ -1363,6 +1378,7 @@ namespace Mono.Debugging.Evaluation
 		public void Disambiguate (ValueReference val, ObjectValue oval)
 		{
 			KeyValuePair<ObjectValue, ValueReference> other;
+
 			if (names.TryGetValue (oval.Name, out other)) {
 				object tn = val.DeclaringType;
 				
