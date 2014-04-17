@@ -227,10 +227,14 @@ namespace Mono.Debugger.Soft
 		}
 
 		public void EnableEvents (params EventType[] events) {
+			EnableEvents (events, SuspendPolicy.All);
+		}
+
+		public void EnableEvents (EventType[] events, SuspendPolicy suspendPolicy) {
 			foreach (EventType etype in events) {
 				if (etype == EventType.Breakpoint)
 					throw new ArgumentException ("Breakpoint events cannot be requested using EnableEvents", "events");
-				conn.EnableEvent (etype, SuspendPolicy.All, null);
+				conn.EnableEvent (etype, suspendPolicy, null);
 			}
 		}
 
@@ -254,7 +258,6 @@ namespace Mono.Debugger.Soft
 		// Return a list of TypeMirror objects for all loaded types which reference the
 		// source file FNAME. Might return false positives.
 		// Since protocol version 2.7.
-		// ignoreCase=true supported since protocol version 2.12.
 		//
 		public IList<TypeMirror> GetTypesForSourceFile (string fname, bool ignoreCase) {
 			long[] ids = conn.VM_GetTypesForSourceFile (fname, ignoreCase);
@@ -517,6 +520,24 @@ namespace Mono.Debugger.Soft
 		internal ThreadMirror GetThread (long id) {
 			return GetObject <ThreadMirror> (id);
 		}
+
+		Dictionary <long, FieldInfoMirror> fields;
+		object fields_lock = new object ();
+
+		internal FieldInfoMirror GetField (long id) {
+			lock (fields_lock) {
+				if (fields == null)
+					fields = new Dictionary <long, FieldInfoMirror> ();
+				FieldInfoMirror obj;
+				if (id == 0)
+					return null;
+				if (!fields.TryGetValue (id, out obj)) {
+					obj = new FieldInfoMirror (this, id);
+					fields [id] = obj;
+				}
+				return obj;
+			}
+	    }
 
 		object requests_lock = new object ();
 
