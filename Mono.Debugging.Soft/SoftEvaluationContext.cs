@@ -172,7 +172,7 @@ namespace Mono.Debugging.Soft
 			}
 
 			try {
-				return method.Evaluate ((Value) target, values);
+				return method.Evaluate (target is TypeMirror ? null : (Value) target, values);
 			} catch (NotSupportedException) {
 				var mc = new MethodCall (this, method, target, values);
 				Adapter.AsyncExecute (mc, Options.EvaluationTimeout);
