@@ -499,11 +499,14 @@ namespace Mono.Debugging.Client
 			if (fileName == null)
 				throw new ArgumentNullException ("fileName");
 
+			if (fileName.Length == 0)
+				throw new ArgumentException ("Path cannot be empty.", "fileName");
+
 			if (line < 1)
 				throw new ArgumentOutOfRangeException ("line");
 
-			if (fileName.Length == 0)
-				throw new ArgumentException ("Path cannot be empty.", "fileName");
+			if (column < 1)
+				throw new ArgumentOutOfRangeException ("column");
 
 			if (!IsConnected || IsRunning || !CanSetNextStatement)
 				throw new NotSupportedException ();
