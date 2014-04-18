@@ -487,6 +487,29 @@ namespace Mono.Debugging.Client
 				});
 			}
 		}
+
+		/// <summary>
+		/// Sets the next statement on the active thread.
+		/// </summary>
+		/// <param name="fileName">File name.</param>
+		/// <param name="line">Line.</param>
+		/// <param name="column">Column.</param>
+		public void SetNextStatement (string fileName, int line, int column)
+		{
+			if (fileName == null)
+				throw new ArgumentNullException ("fileName");
+
+			if (line < 1)
+				throw new ArgumentOutOfRangeException ("line");
+
+			if (fileName.Length == 0)
+				throw new ArgumentException ("Path cannot be empty.", "fileName");
+
+			if (!IsConnected || IsRunning || !CanSetNextStatement)
+				throw new NotSupportedException ();
+
+			OnSetNextStatement (ActiveThread.Id, fileName, line, column);
+		}
 		
 		/// <summary>
 		/// Returns the status of a breakpoint for this debugger session.
@@ -1320,6 +1343,28 @@ namespace Mono.Debugging.Client
 		/// This method can only be called when the debuggee is stopped by the debugger
 		/// </remarks>
 		protected abstract void OnContinue ();
+
+		/// <summary>
+		/// Checks whether or not the debugger supports setting the next statement to use when the debugger is resumed.
+		/// </summary>
+		/// <remarks>
+		/// This method is generally used to determine whether or not UI menu items should be shown.
+		/// </remarks>
+		/// <value><c>true</c> if the debugger supports setting the next statement to use when the debugger is resumed; otherwise, <c>false</c>.</value>
+		public virtual bool CanSetNextStatement {
+			get { return false; }
+		}
+
+		/// <summary>
+		/// Sets the next statement to be executed when the debugger is resumed.
+		/// </summary>
+		/// <remarks>
+		/// This method can only be called when the debuggee is stopped by the debugger.
+		/// </remarks>
+		protected virtual void OnSetNextStatement (long threadId, string fileName, int line, int column)
+		{
+			throw new NotSupportedException ();
+		}
 		
 		//breakpoints etc
 

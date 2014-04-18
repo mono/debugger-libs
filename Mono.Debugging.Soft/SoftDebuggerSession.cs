@@ -746,6 +746,34 @@ namespace Mono.Debugging.Soft
 					return t;
 			return null;
 		}
+
+		public override bool CanSetNextStatement {
+			get { return vm.Version.AtLeast (2, 29); }
+		}
+
+		protected override void OnSetNextStatement (long threadId, string fileName, int line, int column)
+		{
+			if (!CanSetNextStatement)
+				throw new NotSupportedException ();
+
+			var thread = GetThread (threadId);
+			if (thread == null)
+				throw new ArgumentException ("Unknown thread.");
+
+			var frames = thread.GetFrames ();
+			if (frames.Length == 0)
+				throw new NotSupportedException ();
+
+			var location = FindLocationByMethod (frames[0].Method, fileName, line, column);
+			if (location == null)
+				throw new NotSupportedException ();
+
+			try {
+				thread.SetIP (location);
+			} catch (ArgumentException) {
+				throw new NotSupportedException ();
+			}
+		}
 		
 		protected override BreakEventInfo OnInsertBreakEvent (BreakEvent breakEvent)
 		{
@@ -2174,75 +2202,122 @@ namespace Mono.Debugging.Soft
 
 			return false;
 		}
-		
-		Location FindLocationByType (TypeMirror type, string file, int line, int column, out bool genericMethod, out bool insideTypeRange)
+
+		Location FindLocationByMethod (MethodMirror method, string file, int line, ref bool fuzzy, ref bool insideTypeRange, out List<Location> locations)
 		{
-			Location target_loc = null;
-			bool fuzzy = true;
-			
-			insideTypeRange = false;
-			genericMethod = false;
-			
-			//Console.WriteLine ("Trying to resolve {0}:{1},{2} in type {3}", file, line, column, type.Name);
-			foreach (var method in type.GetMethods ()) {
-				var locations = new List<Location> ();
-				int rangeFirstLine = int.MaxValue;
-				int rangeLastLine = -1;
-				
-				foreach (var location in method.Locations) {
-					string srcFile = location.SourceFile;
-					
-					//Console.WriteLine ("\tExamining {0}:{1}...", srcFile, location.LineNumber);
+			int rangeFirstLine = int.MaxValue;
+			int rangeLastLine = -1;
+			Location target = null;
 
-					if (srcFile != null && PathsAreEqual (PathToFileName (NormalizePath (srcFile)), file)) {
-						if (location.LineNumber < rangeFirstLine)
-							rangeFirstLine = location.LineNumber;
-						
-						if (location.LineNumber > rangeLastLine)
-							rangeLastLine = location.LineNumber;
-						
-						if (line >= rangeFirstLine && line <= rangeLastLine)
-							insideTypeRange = true;
+			locations = new List<Location> ();
 
-						if (location.LineNumber >= line && line >= rangeFirstLine) {
-							if (target_loc != null) {
-								if (location.LineNumber > line) {
-									if (target_loc.LineNumber - line > location.LineNumber - line) {
-										// Grab the location closest to the requested line
-										//Console.WriteLine ("\t\tLocation is closest match. (ILOffset = 0x{0:x5})", location.ILOffset);
-										locations.Clear ();
-										locations.Add (location);
-										target_loc = location;
-									}
-								} else if (target_loc.LineNumber != line) {
-									// Previous match was a fuzzy match, but now we've found an exact line match
-									//Console.WriteLine ("\t\tLocation is exact line match. (ILOffset = 0x{0:x5})", location.ILOffset);
+			foreach (var location in method.Locations) {
+				string srcFile = location.SourceFile;
+
+				//Console.WriteLine ("\tExamining {0}:{1}...", srcFile, location.LineNumber);
+
+				if (srcFile != null && PathsAreEqual (PathToFileName (NormalizePath (srcFile)), file)) {
+					if (location.LineNumber < rangeFirstLine)
+						rangeFirstLine = location.LineNumber;
+
+					if (location.LineNumber > rangeLastLine)
+						rangeLastLine = location.LineNumber;
+
+					if (line >= rangeFirstLine && line <= rangeLastLine)
+						insideTypeRange = true;
+
+					if (location.LineNumber >= line && line >= rangeFirstLine) {
+						if (target != null) {
+							if (location.LineNumber > line) {
+								if (target.LineNumber - line > location.LineNumber - line) {
+									// Grab the location closest to the requested line
+									//Console.WriteLine ("\t\tLocation is closest match. (ILOffset = 0x{0:x5})", location.ILOffset);
 									locations.Clear ();
 									locations.Add (location);
-									target_loc = location;
-									fuzzy = false;
-								} else {
-									// Line number matches exactly, use the location with the lowest ILOffset
-									if (location.ILOffset < target_loc.ILOffset)
-										target_loc = location;
-
-									locations.Add (location);
-									fuzzy = false;
+									target = location;
 								}
-							} else {
-								//Console.WriteLine ("\t\tLocation is first possible match. (ILOffset = 0x{0:x5})", location.ILOffset);
-								fuzzy = location.LineNumber != line;
+							} else if (target.LineNumber != line) {
+								// Previous match was a fuzzy match, but now we've found an exact line match
+								//Console.WriteLine ("\t\tLocation is exact line match. (ILOffset = 0x{0:x5})", location.ILOffset);
+								locations.Clear ();
 								locations.Add (location);
-								target_loc = location;
+								target = location;
+								fuzzy = false;
+							} else {
+								// Line number matches exactly, use the location with the lowest ILOffset
+								if (location.ILOffset < target.ILOffset)
+									target = location;
+
+								locations.Add (location);
+								fuzzy = false;
 							}
+						} else {
+							//Console.WriteLine ("\t\tLocation is first possible match. (ILOffset = 0x{0:x5})", location.ILOffset);
+							fuzzy = location.LineNumber != line;
+							locations.Add (location);
+							target = location;
 						}
-					} else {
-						rangeFirstLine = int.MaxValue;
-						rangeLastLine = -1;
 					}
+				} else {
+					rangeFirstLine = int.MaxValue;
+					rangeLastLine = -1;
 				}
-				
-				if (target_loc != null) {
+			}
+
+			return target;
+		}
+
+		Location FindLocationByMethod (MethodMirror method, string file, int line, int column)
+		{
+			bool insideTypeRange = false;
+			List<Location> locations;
+			bool fuzzy = true;
+			Location target;
+
+			if ((target = FindLocationByMethod (method, file, line, ref fuzzy, ref insideTypeRange, out locations)) != null) {
+				// If we got a fuzzy match, then we need to make sure that there isn't a better
+				// match in another method (e.g. code might have been extracted out into another
+				// method by the compiler.
+				if (!fuzzy) {
+					// Exact line match... now find the best column match.
+					locations.Sort (new LocationComparer ());
+
+					// Find the closest-matching location based on column.
+					target = locations[0];
+					for (int i = 1; i < locations.Count; i++) {
+						if (locations[i].ColumnNumber > column)
+							break;
+
+						// if the column numbers match, then target_loc should have the lower ILOffset (which we want)
+						if (target.ColumnNumber == locations[i].ColumnNumber)
+							continue;
+
+						target = locations[i];
+					}
+
+					return target;
+				}
+			}
+
+			if (target != null && fuzzy && CheckBetterMatch (method.DeclaringType, file, line, target))
+				return null;
+
+			return target;
+		}
+
+		Location FindLocationByType (TypeMirror type, string file, int line, int column, out bool genericMethod, out bool insideTypeRange)
+		{
+			Location target = null;
+			bool fuzzy = true;
+
+			insideTypeRange = false;
+			genericMethod = false;
+
+			//Console.WriteLine ("Trying to resolve {0}:{1},{2} in type {3}", file, line, column, type.Name);
+			foreach (var method in type.GetMethods ()) {
+				List<Location> locations;
+
+				if ((target = FindLocationByMethod (method, file, line, ref fuzzy, ref insideTypeRange, out locations)) != null) {
 					genericMethod = IsGenericMethod (method);
 					
 					// If we got a fuzzy match, then we need to make sure that there isn't a better
@@ -2253,29 +2328,29 @@ namespace Mono.Debugging.Soft
 						locations.Sort (new LocationComparer ());
 
 						// Find the closest-matching location based on column.
-						target_loc = locations[0];
+						target = locations[0];
 						for (int i = 1; i < locations.Count; i++) {
 							if (locations[i].ColumnNumber > column)
 								break;
 
 							// if the column numbers match, then target_loc should have the lower ILOffset (which we want)
-							if (target_loc.ColumnNumber == locations[i].ColumnNumber)
+							if (target.ColumnNumber == locations[i].ColumnNumber)
 								continue;
 
-							target_loc = locations[i];
+							target = locations[i];
 						}
 
-						return target_loc;
+						return target;
 					}
 				}
 			}
 			
-			if (target_loc != null && fuzzy && CheckBetterMatch (type, file, line, target_loc)) {
+			if (target != null && fuzzy && CheckBetterMatch (type, file, line, target)) {
 				insideTypeRange = false;
 				return null;
 			}
 			
-			return target_loc;
+			return target;
 		}
 
 		void ResolvePendingBreakpoint (BreakInfo bi, Location l)
