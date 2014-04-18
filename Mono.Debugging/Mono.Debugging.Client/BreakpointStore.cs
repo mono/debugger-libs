@@ -165,8 +165,9 @@ namespace Mono.Debugging.Client
 
 			filename = Path.GetFullPath (filename);
 			
-			for (int n=0; n<breakpoints.Count; n++) {
-				Breakpoint bp = breakpoints [n] as Breakpoint;
+			for (int n = 0; n < breakpoints.Count; n++) {
+				var bp = breakpoints[n] as Breakpoint;
+
 				if (bp != null && FileNameEquals (bp.FileName, filename) &&
 				    (bp.OriginalLine == line || bp.Line == line) &&
 				    (bp.OriginalColumn == column || bp.Column == column)) {
@@ -186,8 +187,9 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return false;
 
-			for (int n=0; n<breakpoints.Count; n++) {
-				Catchpoint cp = breakpoints [n] as Catchpoint;
+			for (int n = 0; n < breakpoints.Count; n++) {
+				var cp = breakpoints[n] as Catchpoint;
+
 				if (cp != null && cp.ExceptionName == exceptionName) {
 					breakpoints.RemoveAt (n);
 					OnBreakEventRemoved (cp);
@@ -195,6 +197,22 @@ namespace Mono.Debugging.Client
 				}
 			}
 			return true;
+		}
+
+		public void RemoveRunToCursorBreakpoints ()
+		{
+			if (IsReadOnly)
+				return;
+
+			for (int n = 0; n < breakpoints.Count; n++) {
+				var bp = breakpoints[n] as RunToCursorBreakpoint;
+
+				if (bp != null) {
+					breakpoints.RemoveAt (n);
+					OnBreakEventRemoved (bp);
+					n--;
+				}
+			}
 		}
 		
 		public bool Remove (BreakEvent bp)
