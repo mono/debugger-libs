@@ -1153,7 +1153,7 @@ namespace Mono.Debugging.Soft
 					bool genericMethod;
 					bool insideRange;
 					
-					var loc = GetLocFromType (type, filename, line, column, out genericMethod, out insideRange);
+					var loc = FindLocationByType (type, filename, line, column, out genericMethod, out insideRange);
 					if (insideRange)
 						insideLoadedRange = true;
 					
@@ -2033,7 +2033,7 @@ namespace Mono.Debugging.Soft
 						bool insideLoadedRange;
 						bool genericMethod;
 						
-						loc = GetLocFromType (type, s, bp.Line, bp.Column, out genericMethod, out insideLoadedRange);
+						loc = FindLocationByType (type, s, bp.Line, bp.Column, out genericMethod, out insideLoadedRange);
 						if (loc != null) {
 							OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
 							                                        s, bp.Line, bp.Column, GetPrettyMethodName (loc.Method), loc.ILOffset));
@@ -2175,7 +2175,7 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 		
-		Location GetLocFromType (TypeMirror type, string file, int line, int column, out bool genericMethod, out bool insideTypeRange)
+		Location FindLocationByType (TypeMirror type, string file, int line, int column, out bool genericMethod, out bool insideTypeRange)
 		{
 			Location target_loc = null;
 			bool fuzzy = true;
@@ -2189,7 +2189,7 @@ namespace Mono.Debugging.Soft
 				int rangeFirstLine = int.MaxValue;
 				int rangeLastLine = -1;
 				
-				foreach (Location location in method.Locations) {
+				foreach (var location in method.Locations) {
 					string srcFile = location.SourceFile;
 					
 					//Console.WriteLine ("\tExamining {0}:{1}...", srcFile, location.LineNumber);
