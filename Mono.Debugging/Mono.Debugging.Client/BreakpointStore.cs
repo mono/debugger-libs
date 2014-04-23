@@ -83,8 +83,8 @@ namespace Mono.Debugging.Client
 
 		public bool IsReadOnly {
 			get {
-				ReadOnlyCheckEventArgs args = new ReadOnlyCheckEventArgs ();
-				EventHandler<ReadOnlyCheckEventArgs> checkingReadOnly = CheckingReadOnly;
+				var args = new ReadOnlyCheckEventArgs ();
+				var checkingReadOnly = CheckingReadOnly;
 				if (checkingReadOnly != null)
 					checkingReadOnly (this, args);
 				return args.IsReadOnly;
@@ -115,7 +115,7 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return null;
 
-			Breakpoint bp = new Breakpoint (filename, line, column);
+			var bp = new Breakpoint (filename, line, column);
 			Add (bp);
 
 			return bp;
@@ -149,7 +149,7 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return null;
 
-			Catchpoint cp = new Catchpoint (exceptionName);
+			var cp = new Catchpoint (exceptionName);
 			Add (cp);
 
 			return cp;
@@ -242,7 +242,7 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return null;
 			
-			ReadOnlyCollection<Breakpoint> col = GetBreakpointsAtFileLine (filename, line);
+			var col = GetBreakpointsAtFileLine (filename, line);
 			if (col.Count > 0) {
 				// Remove only the most-recently-added breakpoint on the specified line
 				Remove (col[col.Count - 1]);
