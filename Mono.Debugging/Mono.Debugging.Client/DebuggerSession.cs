@@ -257,15 +257,38 @@ namespace Mono.Debugging.Client
 				}
 			}
 		}
-		
+
+		readonly Queue<Action> actionsQueue = new Queue<Action>();
+
 		void Dispatch (Action action)
 		{
 			if (UseOperationThread) {
-				ThreadPool.QueueUserWorkItem (delegate {
-					lock (slock) {
-						action ();
+				lock (actionsQueue) {
+					actionsQueue.Enqueue (action);
+					if (actionsQueue.Count == 1) {
+						ThreadPool.QueueUserWorkItem (delegate {
+							while (true) {
+								Action actionToExecute = null;
+								lock (actionsQueue) {
+									if (actionsQueue.Count > 0) {
+										actionToExecute = actionsQueue.Peek ();
+									} else {
+										return;
+									}
+								}
+								try {
+									lock (slock) {
+										actionToExecute ();
+									}
+								} finally {
+									lock (actionsQueue) {
+										actionsQueue.Dequeue ();
+									}
+								}
+							}
+						});
 					}
-				});
+				}
 			} else {
 				lock (slock) {
 					action ();
