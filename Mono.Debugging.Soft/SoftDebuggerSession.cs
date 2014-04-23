@@ -1421,13 +1421,15 @@ namespace Mono.Debugging.Soft
 			if (Options.ProjectAssembliesOnly && !IsUserAssembly (method.DeclaringType.Assembly))
 				return true;
 
-			foreach (var attr in method.GetCustomAttributes (false)) {
-				var attrName = attr.Constructor.DeclaringType.FullName;
+			if (vm.Version.AtLeast (2, 21)) {
+				foreach (var attr in method.GetCustomAttributes (false)) {
+					var attrName = attr.Constructor.DeclaringType.FullName;
 
-				switch (attrName) {
-				case "System.Diagnostics.DebuggerHiddenAttribute":      return true;
-				case "System.Diagnostics.DebuggerStepThroughAttribute": return true;
-				case "System.Diagnostics.DebuggerNonUserCodeAttribute": return Options.ProjectAssembliesOnly;
+					switch (attrName) {
+					case "System.Diagnostics.DebuggerHiddenAttribute":      return true;
+					case "System.Diagnostics.DebuggerStepThroughAttribute": return true;
+					case "System.Diagnostics.DebuggerNonUserCodeAttribute": return Options.ProjectAssembliesOnly;
+					}
 				}
 			}
 
@@ -1445,11 +1447,13 @@ namespace Mono.Debugging.Soft
 
 		bool ContinueOnStepInto (MethodMirror method)
 		{
-			foreach (var attr in method.GetCustomAttributes (false)) {
-				var attrName = attr.Constructor.DeclaringType.FullName;
+			if (vm.Version.AtLeast (2, 21)) {
+				foreach (var attr in method.GetCustomAttributes (false)) {
+					var attrName = attr.Constructor.DeclaringType.FullName;
 
-				if (attrName == "System.Diagnostics.DebuggerStepperBoundaryAttribute")
-					return true;
+					if (attrName == "System.Diagnostics.DebuggerStepperBoundaryAttribute")
+						return true;
+				}
 			}
 
 			return false;
