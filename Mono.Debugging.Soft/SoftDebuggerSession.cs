@@ -966,13 +966,12 @@ namespace Mono.Debugging.Soft
 		void InsertCatchpoint (Catchpoint cp, BreakInfo bi, TypeMirror excType)
 		{
 			ExceptionEventRequest request;
-			
+
 			request = vm.CreateExceptionRequest (excType, true, true);
 			request.Count = cp.HitCount; // Note: need to set HitCount *before* enabling
-			request.Enabled = cp.Enabled;
 			if (vm.Version.AtLeast (2, 25))
-				request.IncludeSubclasses = cp.IncludeSubclasses;
-			
+				request.IncludeSubclasses = cp.IncludeSubclasses; // Note: need to set IncludeSubclasses *before* enabling
+			request.Enabled = cp.Enabled;
 			bi.Requests.Add (request);
 		}
 		
