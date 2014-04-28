@@ -2592,28 +2592,45 @@ namespace Mono.Debugging.Soft
 
 			return lines.ToArray ();
 		}
+
+		public AssemblyLine[] Disassemble (Mono.Debugger.Soft.StackFrame frame)
+		{
+			var body = frame.Method.GetMethodBody ();
+			var instructions = body.Instructions;
+			var lines = new List<AssemblyLine> ();
+
+			foreach (var instruction in instructions) {
+				var location = frame.Method.LocationAtILOffset (instruction.Offset);
+				int lineNumber = location != null ? location.LineNumber : -1;
+				var code = Disassemble (instruction);
+
+				lines.Add (new AssemblyLine (instruction.Offset, frame.Method.FullName, code, lineNumber));
+			}
+
+			return lines.ToArray ();
+		}
 		
 		public AssemblyLine[] Disassemble (Mono.Debugger.Soft.StackFrame frame, int firstLine, int count)
 		{
-			MethodBodyMirror body = frame.Method.GetMethodBody ();
+			var body = frame.Method.GetMethodBody ();
 			var instructions = body.Instructions;
 			ILInstruction current = null;
-			foreach (var ins in instructions) {
-				if (ins.Offset >= frame.ILOffset) {
-					current = ins;
+
+			foreach (var instruction in instructions) {
+				if (instruction.Offset >= frame.ILOffset) {
+					current = instruction;
 					break;
 				}
 			}
+
 			if (current == null)
 				return new AssemblyLine [0];
 			
-			var result = new List<AssemblyLine> ();
-			
-			int pos = firstLine;
+			var lines = new List<AssemblyLine> ();
 			
 			while (firstLine < 0 && count > 0) {
 				if (current.Previous == null) {
-					result.Add (AssemblyLine.OutOfRange);
+					lines.Add (AssemblyLine.OutOfRange);
 					firstLine = 0;
 					break;
 				}
@@ -2629,17 +2646,20 @@ namespace Mono.Debugging.Soft
 			
 			while (count > 0) {
 				if (current != null) {
-					Location loc = frame.Method.LocationAtILOffset (current.Offset);
-					result.Add (new AssemblyLine (current.Offset, frame.Method.FullName, Disassemble (current), loc != null ? loc.LineNumber : -1));
+					var location = frame.Method.LocationAtILOffset (current.Offset);
+					int lineNumber = location != null ? location.LineNumber : -1;
+					var code = Disassemble (current);
+
+					lines.Add (new AssemblyLine (current.Offset, frame.Method.FullName, code, lineNumber));
 					current = current.Next;
-					pos++;
 				} else {
-					result.Add (AssemblyLine.OutOfRange);
+					lines.Add (AssemblyLine.OutOfRange);
 				}
 
 				count--;
 			}
-			return result.ToArray ();
+
+			return lines.ToArray ();
 		}
 
 		static string EscapeString (string text)
