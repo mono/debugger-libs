@@ -2613,14 +2613,13 @@ namespace Mono.Debugging.Soft
 			
 			while (firstLine < 0 && count > 0) {
 				if (current.Previous == null) {
-//					result.Add (new AssemblyLine (99999, "<" + (pos++) + ">"));
 					result.Add (AssemblyLine.OutOfRange);
-					count--;
-					firstLine++;
-				} else {
-					current = current.Previous;
-					firstLine++;
+					firstLine = 0;
+					break;
 				}
+
+				current = current.Previous;
+				firstLine++;
 			}
 			
 			while (current != null && firstLine > 0) {
@@ -2634,9 +2633,10 @@ namespace Mono.Debugging.Soft
 					result.Add (new AssemblyLine (current.Offset, frame.Method.FullName, Disassemble (current), loc != null ? loc.LineNumber : -1));
 					current = current.Next;
 					pos++;
-				} else
+				} else {
 					result.Add (AssemblyLine.OutOfRange);
-//					result.Add (new AssemblyLine (99999, "<" + (pos++) + ">"));
+				}
+
 				count--;
 			}
 			return result.ToArray ();
