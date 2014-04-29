@@ -774,6 +774,30 @@ namespace Mono.Debugging.Soft
 				throw new NotSupportedException ();
 			}
 		}
+
+		protected override void OnSetNextStatement (long threadId, int ilOffset)
+		{
+			if (!CanSetNextStatement)
+				throw new NotSupportedException ();
+
+			var thread = GetThread (threadId);
+			if (thread == null)
+				throw new ArgumentException ("Unknown thread.");
+
+			var frames = thread.GetFrames ();
+			if (frames.Length == 0)
+				throw new NotSupportedException ();
+
+			var location = frames[0].Method.LocationAtILOffset (ilOffset);
+			if (location == null)
+				throw new NotSupportedException ();
+
+			try {
+				thread.SetIP (location);
+			} catch (ArgumentException) {
+				throw new NotSupportedException ();
+			}
+		}
 		
 		protected override BreakEventInfo OnInsertBreakEvent (BreakEvent breakEvent)
 		{

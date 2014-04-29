@@ -513,6 +513,21 @@ namespace Mono.Debugging.Client
 
 			OnSetNextStatement (ActiveThread.Id, fileName, line, column);
 		}
+
+		/// <summary>
+		/// Sets the next statement on the active thread.
+		/// </summary>
+		/// <param name="ilOffset">The IL offset.</param>
+		public void SetNextStatement (int ilOffset)
+		{
+			if (ilOffset < 0)
+				throw new ArgumentOutOfRangeException ("ilOffset");
+
+			if (!IsConnected || IsRunning || !CanSetNextStatement)
+				throw new NotSupportedException ();
+
+			OnSetNextStatement (ActiveThread.Id, ilOffset);
+		}
 		
 		/// <summary>
 		/// Returns the status of a breakpoint for this debugger session.
@@ -1365,6 +1380,17 @@ namespace Mono.Debugging.Client
 		/// This method can only be called when the debuggee is stopped by the debugger.
 		/// </remarks>
 		protected virtual void OnSetNextStatement (long threadId, string fileName, int line, int column)
+		{
+			throw new NotSupportedException ();
+		}
+
+		/// <summary>
+		/// Sets the next statement to be executed when the debugger is resumed.
+		/// </summary>
+		/// <remarks>
+		/// This method can only be called when the debuggee is stopped by the debugger.
+		/// </remarks>
+		protected virtual void OnSetNextStatement (long threadId, int ilOffset)
 		{
 			throw new NotSupportedException ();
 		}
