@@ -189,12 +189,8 @@ namespace Mono.Debugging.Evaluation
 				return false;
 
 			object objectType = ctx.Adapter.GetType (ctx, "System.Object");
-			object[] argTypes = new object[] {
-				objectType, objectType
-			};
-			object[] args = new object[] {
-				v1, v2
-			};
+			object[] argTypes = { objectType, objectType };
+			object[] args = { v1, v2 };
 
 			object result = ctx.Adapter.RuntimeInvoke (ctx, objectType, null, "ReferenceEquals", argTypes, args);
 			var literal = LiteralValueReference.CreateTargetObjectLiteral (ctx, "result", result);
@@ -213,20 +209,20 @@ namespace Mono.Debugging.Evaluation
 			string method = negate ? "op_Inequality" : "op_Equality";
 			object v1type = ctx.Adapter.GetValueType (ctx, targetVal1);
 			object v2type = ctx.Adapter.GetValueType (ctx, targetVal2);
-			object[] argTypes = new object[] { v2type };
+			object[] argTypes = { v2type };
 			object target, targetType;
 			object[] args;
 
 			if (ctx.Adapter.HasMethod (ctx, v1type, method, argTypes, BindingFlags.Instance | BindingFlags.Public)) {
-				args = new object[] { targetVal2 };
+				args = new [] { targetVal2 };
 				targetType = v1type;
 				target = targetVal1;
 				negate = false;
 			} else {
 				method = ctx.Adapter.IsValueType (v1type) ? "Equals" : "ReferenceEquals";
 				targetType = ctx.Adapter.GetType (ctx, "System.Object");
-				argTypes = new object[] { targetType, targetType };
-				args = new object[] { targetVal1, targetVal2 };
+				argTypes = new [] { targetType, targetType };
+				args = new [] { targetVal1, targetVal2 };
 				target = null;
 			}
 
@@ -341,13 +337,15 @@ namespace Mono.Debugging.Evaluation
 		static string ResolveType (EvaluationContext ctx, TypeReferenceExpression mre, List<object> args)
 		{
 			var memberType = mre.Type as MemberType;
+
 			if (memberType != null) {
-				string name = memberType.MemberName;
+				var name = memberType.MemberName;
 
 				if (memberType.TypeArguments.Count > 0) {
 					name += "`" + memberType.TypeArguments.Count;
+
 					foreach (var arg in memberType.TypeArguments) {
-						object resolved = arg.Resolve (ctx);
+						var resolved = arg.Resolve (ctx);
 
 						if (resolved == null)
 							return null;
@@ -355,6 +353,7 @@ namespace Mono.Debugging.Evaluation
 						args.Add (resolved);
 					}
 				}
+
 				return name;
 			}
 
@@ -366,20 +365,21 @@ namespace Mono.Debugging.Evaluation
 			string parent, name;
 
 			if (mre.Target is MemberReferenceExpression) {
-				parent = ResolveType (ctx, (MemberReferenceExpression)mre.Target, args);
+				parent = ResolveType (ctx, (MemberReferenceExpression) mre.Target, args);
+			} else if (mre.Target is TypeReferenceExpression) {
+				parent = ResolveType (ctx, (TypeReferenceExpression) mre.Target, args);
 			} else if (mre.Target is IdentifierExpression) {
-				parent = ((IdentifierExpression)mre.Target).Identifier;
-			} else if (mre.Target is TypeReferenceExpression)
-				parent = ResolveType (ctx, (TypeReferenceExpression)mre.Target, args);
-			else {
+				parent = ((IdentifierExpression) mre.Target).Identifier;
+			} else {
 				return null;
 			}
 
 			name = parent + "." + mre.MemberName;
 			if (mre.TypeArguments.Count > 0) {
 				name += "`" + mre.TypeArguments.Count;
+
 				foreach (var arg in mre.TypeArguments) {
-					object resolved = arg.Resolve (ctx);
+					var resolved = arg.Resolve (ctx);
 
 					if (resolved == null)
 						return null;

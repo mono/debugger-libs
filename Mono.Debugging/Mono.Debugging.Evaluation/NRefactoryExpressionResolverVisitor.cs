@@ -61,29 +61,30 @@ namespace Mono.Debugging.Evaluation
 			if (replacements.Count == 0)
 				return expression;
 
-			replacements.Sort ((Replacement r1, Replacement r2) => r1.Offset.CompareTo (r2.Offset));
-			StringBuilder sb = new StringBuilder ();
+			replacements.Sort ((r1, r2) => r1.Offset.CompareTo (r2.Offset));
+			var resolved = new StringBuilder ();
 			int i = 0;
 
-			foreach (Replacement r in replacements) {
-				sb.Append (expression, i, r.Offset - i);
-				sb.Append (r.NewText);
-				i = r.Offset + r.Length;
+			foreach (var replacement in replacements) {
+				resolved.Append (expression, i, replacement.Offset - i);
+				resolved.Append (replacement.NewText);
+				i = replacement.Offset + replacement.Length;
 			}
 
-			Replacement last = replacements [replacements.Count - 1];
-			sb.Append (expression, last.Offset + last.Length, expression.Length - (last.Offset + last.Length));
+			var last = replacements[replacements.Count - 1];
+			resolved.Append (expression, last.Offset + last.Length, expression.Length - (last.Offset + last.Length));
 
-			return sb.ToString ();
+			return resolved.ToString ();
 		}
 
 		void ReplaceType (string name, int offset, int length)
 		{
-			string type = session.ResolveIdentifierAsType (name, location);
+			var type = session.ResolveIdentifierAsType (name, location);
+
 			if (!string.IsNullOrEmpty (type)) {
 				type = "global::" + type;
-				Replacement r = new Replacement () { Offset = offset, Length = length, NewText = type };
-				replacements.Add (r);
+				var replacement = new Replacement { Offset = offset, Length = length, NewText = type };
+				replacements.Add (replacement);
 			}
 		}
 
@@ -95,12 +96,13 @@ namespace Mono.Debugging.Evaluation
 			ReplaceType(type.ToString(), offset, length);
 		}
 
-		public override void VisitIdentifierExpression(IdentifierExpression identifierExpression)
+		public override void VisitIdentifierExpression (IdentifierExpression identifierExpression)
 		{
 			base.VisitIdentifierExpression (identifierExpression);
 
 			int length = identifierExpression.IdentifierToken.EndLocation.Column - identifierExpression.IdentifierToken.StartLocation.Column;
 			int offset = identifierExpression.IdentifierToken.StartLocation.Column - 1;
+
 			if (identifierExpression.TypeArguments.Count > 0)
 				ReplaceType (identifierExpression.Identifier + "`" + identifierExpression.TypeArguments.Count, offset, length);
 			else
@@ -120,7 +122,7 @@ namespace Mono.Debugging.Evaluation
 			base.VisitComposedType (composedType);
 		}
 
-		public override void VisitMemberType(MemberType memberType)
+		public override void VisitMemberType (MemberType memberType)
 		{
 			int length = memberType.MemberNameToken.EndLocation.Column - memberType.MemberNameToken.StartLocation.Column;
 			int offset = memberType.MemberNameToken.StartLocation.Column - 1;
@@ -134,6 +136,7 @@ namespace Mono.Debugging.Evaluation
 		public override void VisitSimpleType (SimpleType simpleType)
 		{
 			base.VisitSimpleType (simpleType);
+
 			int length = simpleType.IdentifierToken.EndLocation.Column - simpleType.IdentifierToken.StartLocation.Column;
 			int offset = simpleType.IdentifierToken.StartLocation.Column - 1;
 
