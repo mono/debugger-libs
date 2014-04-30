@@ -92,17 +92,19 @@ namespace Mono.Debugging.Evaluation
 			int length = type.EndLocation.Column - type.StartLocation.Column;
 			int offset = type.StartLocation.Column - 1;
 
-			ReplaceType (type.ToString (), offset, length);
+			ReplaceType(type.ToString(), offset, length);
 		}
 
-		public override void VisitIdentifierExpression (IdentifierExpression identifierExpression)
+		public override void VisitIdentifierExpression(IdentifierExpression identifierExpression)
 		{
 			base.VisitIdentifierExpression (identifierExpression);
 
-			int length = identifierExpression.EndLocation.Column - identifierExpression.StartLocation.Column;
-			int offset = identifierExpression.StartLocation.Column - 1;
-
-			ReplaceType (identifierExpression.Identifier, offset, length);
+			int length = identifierExpression.IdentifierToken.EndLocation.Column - identifierExpression.IdentifierToken.StartLocation.Column;
+			int offset = identifierExpression.IdentifierToken.StartLocation.Column - 1;
+			if (identifierExpression.TypeArguments.Count > 0)
+				ReplaceType (identifierExpression.Identifier + "`" + identifierExpression.TypeArguments.Count, offset, length);
+			else
+				ReplaceType (identifierExpression.Identifier, offset, length);
 		}
 
 		public override void VisitTypeReferenceExpression (TypeReferenceExpression typeReferenceExpression)
@@ -118,14 +120,27 @@ namespace Mono.Debugging.Evaluation
 			base.VisitComposedType (composedType);
 		}
 
-		public override void VisitMemberType (MemberType memberType)
+		public override void VisitMemberType(MemberType memberType)
 		{
-			ReplaceType (memberType);
+			int length = memberType.MemberNameToken.EndLocation.Column - memberType.MemberNameToken.StartLocation.Column;
+			int offset = memberType.MemberNameToken.StartLocation.Column - 1;
+
+			if (memberType.TypeArguments.Count > 0)
+				ReplaceType (memberType.MemberName + "`" + memberType.TypeArguments.Count, offset, length);
+			else
+				ReplaceType (memberType.MemberName, offset, length);
 		}
 
 		public override void VisitSimpleType (SimpleType simpleType)
 		{
-			ReplaceType (simpleType);
+			base.VisitSimpleType (simpleType);
+			int length = simpleType.IdentifierToken.EndLocation.Column - simpleType.IdentifierToken.StartLocation.Column;
+			int offset = simpleType.IdentifierToken.StartLocation.Column - 1;
+
+			if (simpleType.TypeArguments.Count > 0)
+				ReplaceType (simpleType.Identifier + "`" + simpleType.TypeArguments.Count, offset, length);
+			else
+				ReplaceType (simpleType.Identifier, offset, length);
 		}
 	}
 }

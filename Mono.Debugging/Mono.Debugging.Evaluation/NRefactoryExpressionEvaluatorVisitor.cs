@@ -338,15 +338,40 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateObjectLiteral (ctx, expression, res);
 		}
 
+		static string ResolveType (EvaluationContext ctx, TypeReferenceExpression mre, List<object> args)
+		{
+			var memberType = mre.Type as MemberType;
+			if (memberType != null) {
+				string name = memberType.MemberName;
+
+				if (memberType.TypeArguments.Count > 0) {
+					name += "`" + memberType.TypeArguments.Count;
+					foreach (var arg in memberType.TypeArguments) {
+						object resolved = arg.Resolve (ctx);
+
+						if (resolved == null)
+							return null;
+
+						args.Add (resolved);
+					}
+				}
+				return name;
+			}
+
+			return mre.ToString ();
+		}
+
 		static string ResolveType (EvaluationContext ctx, MemberReferenceExpression mre, List<object> args)
 		{
 			string parent, name;
 
 			if (mre.Target is MemberReferenceExpression) {
-				parent = ResolveType (ctx, (MemberReferenceExpression) mre.Target, args);
+				parent = ResolveType (ctx, (MemberReferenceExpression)mre.Target, args);
 			} else if (mre.Target is IdentifierExpression) {
-				parent = ((IdentifierExpression) mre.Target).Identifier;
-			} else {
+				parent = ((IdentifierExpression)mre.Target).Identifier;
+			} else if (mre.Target is TypeReferenceExpression)
+				parent = ResolveType (ctx, (TypeReferenceExpression)mre.Target, args);
+			else {
 				return null;
 			}
 
