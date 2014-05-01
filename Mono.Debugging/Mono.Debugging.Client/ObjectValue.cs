@@ -27,10 +27,10 @@
 //
 
 using System;
-using System.Text;
-using Mono.Debugging.Backend;
-using System.Collections.Generic;
 using System.Threading;
+using System.Collections.Generic;
+
+using Mono.Debugging.Backend;
 
 namespace Mono.Debugging.Client
 {
@@ -52,6 +52,9 @@ namespace Mono.Debugging.Client
 		ManualResetEvent evaluatedEvent;
 
 		[NonSerialized]
+		readonly object mutex = new object ();
+
+		[NonSerialized]
 		UpdateCallback updateCallback;
 		
 		[NonSerialized]
@@ -62,11 +65,11 @@ namespace Mono.Debugging.Client
 		
 		static ObjectValue Create (IObjectValueSource source, ObjectPath path, string typeName)
 		{
-			ObjectValue ob = new ObjectValue ();
-			ob.source = source;
-			ob.path = path;
-			ob.typeName = typeName;
-			return ob;
+			var val = new ObjectValue ();
+			val.typeName = typeName;
+			val.source = source;
+			val.path = path;
+			return val;
 		}
 		
 		public static ObjectValue CreateObject (IObjectValueSource source, ObjectPath path, string typeName, string value, ObjectValueFlags flags, ObjectValue[] children)
@@ -76,16 +79,18 @@ namespace Mono.Debugging.Client
 		
 		public static ObjectValue CreateObject (IObjectValueSource source, ObjectPath path, string typeName, EvaluationResult value, ObjectValueFlags flags, ObjectValue[] children)
 		{
-			ObjectValue ob = Create (source, path, typeName);
-			ob.path = path;
-			ob.flags = flags | ObjectValueFlags.Object;
-			ob.value = value.Value;
-			ob.displayValue = value.DisplayValue;
+			var val = Create (source, path, typeName);
+			val.flags = flags | ObjectValueFlags.Object;
+			val.displayValue = value.DisplayValue;
+			val.value = value.Value;
+			val.path = path;
+
 			if (children != null) {
-				ob.children = new List<ObjectValue> ();
-				ob.children.AddRange (children);
+				val.children = new List<ObjectValue> ();
+				val.children.AddRange (children);
 			}
-			return ob;
+
+			return val;
 		}
 		
 		public static ObjectValue CreateNullObject (IObjectValueSource source, string name, string typeName, ObjectValueFlags flags)
@@ -95,40 +100,42 @@ namespace Mono.Debugging.Client
 		
 		public static ObjectValue CreateNullObject (IObjectValueSource source, ObjectPath path, string typeName, ObjectValueFlags flags)
 		{
-			ObjectValue ob = Create (source, path, typeName);
-			ob.flags = flags | ObjectValueFlags.Object;
-			ob.value = "(null)";
-			ob.isNull = true;
-			return ob;
+			var val = Create (source, path, typeName);
+			val.flags = flags | ObjectValueFlags.Object;
+			val.value = "(null)";
+			val.isNull = true;
+			return val;
 		}
 		
 		public static ObjectValue CreatePrimitive (IObjectValueSource source, ObjectPath path, string typeName, EvaluationResult value, ObjectValueFlags flags)
 		{
-			ObjectValue ob = Create (source, path, typeName);
-			ob.flags = flags | ObjectValueFlags.Primitive;
-			ob.value = value.Value;
-			ob.displayValue = value.DisplayValue;
-			return ob;
+			var val = Create (source, path, typeName);
+			val.flags = flags | ObjectValueFlags.Primitive;
+			val.displayValue = value.DisplayValue;
+			val.value = value.Value;
+			return val;
 		}
 		
 		public static ObjectValue CreateArray (IObjectValueSource source, ObjectPath path, string typeName, int arrayCount, ObjectValueFlags flags, ObjectValue[] children)
 		{
-			ObjectValue ob = Create (source, path, typeName);
-			ob.arrayCount = arrayCount;
-			ob.flags = flags | ObjectValueFlags.Array;
-			ob.value = "[" + arrayCount + "]";
+			var val = Create (source, path, typeName);
+			val.flags = flags | ObjectValueFlags.Array;
+			val.value = "[" + arrayCount + "]";
+			val.arrayCount = arrayCount;
+
 			if (children != null && children.Length > 0) {
-				ob.children = new List<ObjectValue> ();
-				ob.children.AddRange (children);
+				val.children = new List<ObjectValue> ();
+				val.children.AddRange (children);
 			}
-			return ob;
+
+			return val;
 		}
 		
 		public static ObjectValue CreateUnknown (IObjectValueSource source, ObjectPath path, string typeName)
 		{
-			ObjectValue ob = Create (source, path, typeName);
-			ob.flags = ObjectValueFlags.Unknown | ObjectValueFlags.ReadOnly;
-			return ob;
+			var val = Create (source, path, typeName);
+			val.flags = ObjectValueFlags.Unknown | ObjectValueFlags.ReadOnly;
+			return val;
 		}
 		
 		public static ObjectValue CreateUnknown (string name)
@@ -138,10 +145,10 @@ namespace Mono.Debugging.Client
 		
 		public static ObjectValue CreateError (IObjectValueSource source, ObjectPath path, string typeName, string value, ObjectValueFlags flags)
 		{
-			ObjectValue ob = Create (source, path, typeName);
-			ob.flags = flags | ObjectValueFlags.Error;
-			ob.value = value;
-			return ob;
+			var val = Create (source, path, typeName);
+			val.flags = flags | ObjectValueFlags.Error;
+			val.value = value;
+			return val;
 		}
 		
 		public static ObjectValue CreateImplicitNotSupported (IObjectValueSource source, ObjectPath path, string typeName, ObjectValueFlags flags)
@@ -151,28 +158,28 @@ namespace Mono.Debugging.Client
 		
 		public static ObjectValue CreateNotSupported (IObjectValueSource source, ObjectPath path, string typeName, string message, ObjectValueFlags flags)
 		{
-			ObjectValue ob = Create (source, path, typeName);
-			ob.flags = flags | ObjectValueFlags.NotSupported;
-			ob.value = message;
-			return ob;
+			var val = Create (source, path, typeName);
+			val.flags = flags | ObjectValueFlags.NotSupported;
+			val.value = message;
+			return val;
 		}
 		
 		public static ObjectValue CreateFatalError (string name, string message, ObjectValueFlags flags)
 		{
-			ObjectValue ob = new ObjectValue ();
-			ob.flags = flags | ObjectValueFlags.Error;
-			ob.value = message;
-			ob.name = name;
-			return ob;
+			var val = new ObjectValue ();
+			val.flags = flags | ObjectValueFlags.Error;
+			val.value = message;
+			val.name = name;
+			return val;
 		}
 		
 		public static ObjectValue CreateEvaluating (IObjectValueUpdater updater, ObjectPath path, ObjectValueFlags flags)
 		{
-			ObjectValue ob = Create (null, path, null);
-			ob.updater = updater;
-			ob.path = path;
-			ob.flags = flags | ObjectValueFlags.Evaluating;
-			return ob;
+			var val = Create (null, path, null);
+			val.flags = flags | ObjectValueFlags.Evaluating;
+			val.updater = updater;
+			val.path = path;
+			return val;
 		}
 		
 		/// <summary>
@@ -186,15 +193,8 @@ namespace Mono.Debugging.Client
 		/// Name of the value (for example, the property name)
 		/// </summary>
 		public string Name {
-			get {
-				if (name == null)
-					return path [path.Length - 1];
-
-				return name;
-			}
-			set {
-				name = value;
-			}
+			get { return name ?? path[path.Length - 1]; }
+			set { name = value; }
 		}
 
 		/// <summary>
@@ -222,6 +222,7 @@ namespace Mono.Debugging.Client
 			set {
 				if (IsReadOnly || source == null)
 					throw new InvalidOperationException ("Value is not editable");
+
 				EvaluationResult res = source.SetValue (path, value, null);
 				if (res != null) {
 					this.value = res.Value;
@@ -553,23 +554,30 @@ namespace Mono.Debugging.Client
 		{
 			if (!IsArray)
 				throw new InvalidOperationException ("Object is not an array.");
+
 			if (index >= arrayCount || index < 0 || IsEvaluating)
 				throw new IndexOutOfRangeException ();
 			
 			if (children == null)
 				children = new List<ObjectValue> ();
+
 			if (index >= children.Count) {
 				int nc = (index + 50);
-				if (nc > arrayCount) nc = arrayCount;
+
+				if (nc > arrayCount)
+					nc = arrayCount;
+
 				nc = nc - children.Count;
+
 				try {
-					ObjectValue[] items = source.GetChildren (path, children.Count, nc, options);
+					var items = source.GetChildren (path, children.Count, nc, options);
 					ConnectCallbacks (parentFrame, items);
 					children.AddRange (items);
 				} catch (Exception ex) {
 					return CreateFatalError ("", ex.Message, ObjectValueFlags.ArrayElement | ObjectValueFlags.ReadOnly);
 				}
 			}
+
 			return children [index];
 		}
 		
@@ -583,8 +591,10 @@ namespace Mono.Debugging.Client
 			get {
 				if (!IsArray)
 					throw new InvalidOperationException ("Object is not an array.");
+
 				if (IsEvaluating)
 					return 0;
+
 				return arrayCount; 
 			}
 		}
@@ -636,7 +646,7 @@ namespace Mono.Debugging.Client
 
 		public event EventHandler ValueChanged {
 			add {
-				lock (this) {
+				lock (mutex) {
 					if (IsEvaluating)
 						valueChanged += value;
 					else
@@ -644,7 +654,7 @@ namespace Mono.Debugging.Client
 				}
 			}
 			remove {
-				lock (this) {
+				lock (mutex) {
 					valueChanged -= value;
 				}
 			}
@@ -671,7 +681,8 @@ namespace Mono.Debugging.Client
 		{
 			if (!CanRefresh)
 				return;
-			ObjectValue val = source.GetValue (path, options);
+
+			var val = source.GetValue (path, options);
 			UpdateFrom (val, false);
 		}
 
@@ -683,7 +694,7 @@ namespace Mono.Debugging.Client
 		/// </value>
 		public WaitHandle WaitHandle {
 			get {
-				lock (this) {
+				lock (mutex) {
 					if (evaluatedEvent == null)
 						evaluatedEvent = new ManualResetEvent (!IsEvaluating);
 					return evaluatedEvent;
@@ -697,7 +708,7 @@ namespace Mono.Debugging.Client
 
 		internal void UpdateFrom (ObjectValue val, bool notify)
 		{
-			lock (this) {
+			lock (mutex) {
 				arrayCount = val.arrayCount;
 				if (val.name != null)
 					name = val.name;
@@ -737,26 +748,31 @@ namespace Mono.Debugging.Client
 		internal static void ConnectCallbacks (StackFrame parentFrame, params ObjectValue[] values)
 		{
 			Dictionary<IObjectValueUpdater, List<UpdateCallback>> callbacks = null;
-			List<ObjectValue> valueList = new List<ObjectValue> (values);
-			for (int n=0; n<valueList.Count; n++) {
-				ObjectValue val = valueList [n];
+			var valueList = new List<ObjectValue> (values);
+
+			foreach (var val in valueList) {
 				val.source = parentFrame.DebuggerSession.WrapDebuggerObject (val.source);
 				val.updater = parentFrame.DebuggerSession.WrapDebuggerObject (val.updater);
 				val.parentFrame = parentFrame;
+
 				UpdateCallback cb = val.GetUpdateCallback ();
 				if (cb != null) {
 					if (callbacks == null)
 						callbacks = new Dictionary<IObjectValueUpdater, List<UpdateCallback>> ();
+
 					List<UpdateCallback> list;
 					if (!callbacks.TryGetValue (val.Updater, out list)) {
 						list = new List<UpdateCallback> ();
 						callbacks [val.Updater] = list;
 					}
+
 					list.Add (cb);
 				}
+
 				if (val.children != null)
 					valueList.AddRange (val.children);
 			}
+
 			if (callbacks != null) {
 				// Do the callback connection in a background thread
 				ThreadPool.QueueUserWorkItem (delegate {
@@ -774,7 +790,8 @@ namespace Mono.Debugging.Client
 		
 		public void UpdateValue (ObjectValue newValue)
 		{
-			ObjectValue val = valRef.Target as ObjectValue;
+			var val = valRef.Target as ObjectValue;
+
 			if (val != null)
 				val.UpdateFrom (newValue, true);
 		}
