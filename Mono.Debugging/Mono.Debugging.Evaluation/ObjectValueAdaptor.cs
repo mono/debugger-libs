@@ -205,37 +205,48 @@ namespace Mono.Debugging.Evaluation
 		{
 			// Get a list of the generic arguments.
 			// When returning, i points to the next char after the closing ']'
-			List<string> genericArgs = new List<string> ();
+			var genericArgs = new List<string> ();
+
 			i++;
+
 			while (i < endIndex && typeName [i] != ']') {
 				int pend = FindTypeEnd (typeName, i, endIndex);
 				bool escaped = typeName [i] == '[';
+
 				genericArgs.Add (GetDisplayTypeName (typeName, escaped ? i + 1 : i, escaped ? pend - 1 : pend));
 				i = pend;
+
 				if (i < endIndex && typeName[i] == ',')
 					i++;
 			}
+
 			i++;
+
 			return genericArgs;
 		}
 		
-		int FindTypeEnd (string s, int i, int endIndex)
+		static int FindTypeEnd (string typeName, int startIndex, int endIndex)
 		{
-			int bc = 0;
+			int i = startIndex;
+			int brackets = 0;
+
 			while (i < endIndex) {
-				char c = s[i];
-				if (c == '[')
-					bc++;
-				else if (c == ']') {
-					if (bc > 0)
-						bc--;
-					else
+				char c = typeName[i];
+
+				if (c == '[') {
+					brackets++;
+				} else if (c == ']') {
+					if (brackets <= 0)
 						return i;
-				}
-				else if (c == ',' && bc == 0)
+
+					brackets--;
+				} else if (c == ',' && brackets == 0) {
 					return i;
+				}
+
 				i++;
 			}
+
 			return i;
 		}
 		
