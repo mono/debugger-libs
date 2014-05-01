@@ -166,7 +166,7 @@ namespace Mono.Debugging.Evaluation
 			// Insert the generic arguments next to each type.
 			// for example: Foo`1+Bar`1[System.Int32,System.String]
 			// is converted to: Foo<int>.Bar<string>
-			StringBuilder sb = new StringBuilder (name);
+			var builder = new StringBuilder (name);
 			int i = typeEndIndex + 1;
 			int genericIndex = 0;
 			int argCount, next;
@@ -180,25 +180,25 @@ namespace Mono.Debugging.Evaluation
 				}
 				
 				// insert the argument types
-				sb.Append ('<');
+				builder.Append ('<');
 				while (argCount > 0 && genericIndex < genericArgs.Count) {
-					sb.Append (genericArgs[genericIndex++]);
+					builder.Append (genericArgs[genericIndex++]);
 					if (--argCount > 0)
-						sb.Append (',');
+						builder.Append (',');
 				}
-				sb.Append ('>');
+				builder.Append ('>');
 				
 				// Find the end of the next generic type component
 				if ((next = typeName.IndexOf ('`', i, genericEndIndex - i)) == -1)
 					next = genericEndIndex;
 				
 				// Append the next generic type component
-				sb.Append (typeName.Substring (i, next - i));
+				builder.Append (typeName.Substring (i, next - i));
 				
 				i = next + 1;
 			}
 			
-			return sb + array;
+			return builder + array;
 		}
 		
 		List<string> GetGenericArguments (string typeName, ref int i, int endIndex)

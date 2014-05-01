@@ -63,7 +63,7 @@ namespace Mono.Debugging.Evaluation
 					var mref = Exception.GetChild ("Message", options);
 					if (mref != null) {
 						string val = (string) mref.ObjectValue;
-						return ObjectValue.CreatePrimitive (null, new ObjectPath ("Message"), "System.String", new EvaluationResult (val), ObjectValueFlags.Literal);
+						return ObjectValue.CreatePrimitive (null, new ObjectPath ("Message"), "string", new EvaluationResult (val), ObjectValueFlags.Literal);
 					}
 
 					return ObjectValue.CreateUnknown ("Message");
@@ -72,7 +72,7 @@ namespace Mono.Debugging.Evaluation
 				var mref = Exception.GetChild ("Message", options);
 				if (mref != null) {
 					string val = (string) mref.ObjectValue;
-					messageValue = ObjectValue.CreatePrimitive (null, new ObjectPath ("Message"), "System.String", new EvaluationResult (val), ObjectValueFlags.Literal);
+					messageValue = ObjectValue.CreatePrimitive (null, new ObjectPath ("Message"), "string", new EvaluationResult (val), ObjectValueFlags.Literal);
 				}
 			}
 
