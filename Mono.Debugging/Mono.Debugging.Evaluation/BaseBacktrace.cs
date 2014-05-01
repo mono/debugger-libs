@@ -243,11 +243,11 @@ namespace Mono.Debugging.Evaluation
 			
 			finfo = new FrameInfo ();
 			finfo.Context = ctx;
-			finfo.LocalVariables.AddRange (ctx.Adapter.GetLocalVariables (ctx));
-			finfo.Parameters.AddRange (ctx.Adapter.GetParameters (ctx));
-			finfo.This = ctx.Adapter.GetThisReference (ctx);
+			finfo.LocalVariables.AddRange (ctx.Evaluator.GetLocalVariables (ctx));
+			finfo.Parameters.AddRange (ctx.Evaluator.GetParameters (ctx));
+			finfo.This = ctx.Evaluator.GetThisReference (ctx);
 
-			var exp = ctx.Adapter.GetCurrentException (ctx);
+			var exp = ctx.Evaluator.GetCurrentException (ctx);
 			if (exp != null)
 				finfo.Exception = new ExceptionInfoSource (ctx, exp);
 

@@ -32,6 +32,7 @@ using System.Runtime.Serialization;
 
 using Mono.Debugging.Backend;
 using Mono.Debugging.Client;
+using System.Collections.Generic;
 
 namespace Mono.Debugging.Evaluation
 {
@@ -173,6 +174,26 @@ namespace Mono.Debugging.Evaluation
 		}
 
 		public abstract string Resolve (DebuggerSession session, SourceLocation location, string exp);
+
+		public virtual IEnumerable<ValueReference> GetLocalVariables (EvaluationContext ctx)
+		{
+			return ctx.Adapter.GetLocalVariables (ctx);
+		}
+
+		public virtual ValueReference GetThisReference (EvaluationContext ctx)
+		{
+			return ctx.Adapter.GetThisReference (ctx);
+		}
+
+		public virtual IEnumerable<ValueReference> GetParameters (EvaluationContext ctx)
+		{
+			return ctx.Adapter.GetParameters (ctx);
+		}
+
+		public virtual ValueReference GetCurrentException (EvaluationContext ctx)
+		{
+			return ctx.Adapter.GetCurrentException (ctx);
+		}
 	}
 	
 	[Serializable]
