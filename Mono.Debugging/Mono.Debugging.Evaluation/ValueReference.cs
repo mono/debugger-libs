@@ -85,7 +85,7 @@ namespace Mono.Debugging.Evaluation
 		public ObjectValue CreateObjectValue (bool withTimeout, EvaluationOptions options)
 		{
 			if (!CanEvaluate (options))
-				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), ctx.Adapter.GetTypeName (GetContext (options), Type), Flags);
+				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), ctx.Adapter.GetDisplayTypeName (GetContext (options), Type), Flags);
 
 			if (withTimeout) {
 				return ctx.Adapter.CreateObjectValueAsync (Name, Flags, delegate {
@@ -99,15 +99,15 @@ namespace Mono.Debugging.Evaluation
 		public ObjectValue CreateObjectValue (EvaluationOptions options)
 		{
 			if (!CanEvaluate (options))
-				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), ctx.Adapter.GetTypeName (GetContext (options), Type), Flags);
+				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), ctx.Adapter.GetDisplayTypeName (GetContext (options), Type), Flags);
 			
 			Connect ();
 			try {
 				return OnCreateObjectValue (options);
 			} catch (ImplicitEvaluationDisabledException) {
-				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), ctx.Adapter.GetTypeName (GetContext (options), Type), Flags);
+				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), ctx.Adapter.GetDisplayTypeName (GetContext (options), Type), Flags);
 			} catch (NotSupportedExpressionException ex) {
-				return DC.ObjectValue.CreateNotSupported (this, new ObjectPath (Name), ex.Message, ctx.Adapter.GetTypeName (GetContext (options), Type), Flags);
+				return DC.ObjectValue.CreateNotSupported (this, new ObjectPath (Name), ctx.Adapter.GetDisplayTypeName (GetContext (options), Type), ex.Message, Flags);
 			} catch (EvaluatorException ex) {
 				return DC.ObjectValue.CreateError (this, new ObjectPath (Name), "", ex.Message, Flags);
 			} catch (Exception ex) {
