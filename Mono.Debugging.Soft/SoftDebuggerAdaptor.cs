@@ -1359,11 +1359,11 @@ namespace Mono.Debugging.Soft
 		static T GetAttribute<T> (CustomAttributeDataMirror[] attrs)
 		{
 			foreach (var attr in attrs) {
-				if (attr.Constructor.DeclaringType.FullName == typeof(T).FullName)
+				if (attr.Constructor.DeclaringType.FullName == typeof (T).FullName)
 					return BuildAttribute<T> (attr);
 			}
 
-			return default(T);
+			return default (T);
 		}
 
 		public override bool IsTypeLoaded (EvaluationContext ctx, string typeName)
@@ -1414,38 +1414,47 @@ namespace Mono.Debugging.Soft
 		
 		static T BuildAttribute<T> (CustomAttributeDataMirror attr)
 		{
-			List<object> args = new List<object> ();
+			var args = new List<object> ();
+			Type type = typeof (T);
 
-			foreach (CustomAttributeTypedArgumentMirror arg in attr.ConstructorArguments) {
+			foreach (var arg in attr.ConstructorArguments) {
 				object val = arg.Value;
+
 				if (val is TypeMirror) {
 					// The debugger attributes that take a type as parameter of the constructor have
 					// a corresponding constructor overload that takes a type name. We'll use that
 					// constructor because we can't load target types in the debugger process.
 					// So what we do here is convert the Type to a String.
-					TypeMirror tm = (TypeMirror) val;
+					var tm = (TypeMirror) val;
+
 					val = tm.FullName + ", " + tm.Assembly.ManifestModule.Name;
 				} else if (val is EnumMirror) {
-					EnumMirror em = (EnumMirror) val;
-					val = em.Value;
+					var em = (EnumMirror) val;
+
+					if (type == typeof (DebuggerBrowsableAttribute))
+						val = (DebuggerBrowsableState) em.Value;
+					else
+						val = em.Value;
 				}
+
 				args.Add (val);
 			}
 
-			Type type = typeof(T);
-			object at = Activator.CreateInstance (type, args.ToArray ());
-			foreach (CustomAttributeNamedArgumentMirror arg in attr.NamedArguments) {
+			var attribute = Activator.CreateInstance (type, args.ToArray ());
+
+			foreach (var arg in attr.NamedArguments) {
 				object val = arg.TypedValue.Value;
 				string postFix = "";
-				if (arg.TypedValue.ArgumentType == typeof(Type))
+
+				if (arg.TypedValue.ArgumentType == typeof (Type))
 					postFix = "TypeName";
 				if (arg.Field != null)
-					type.GetField (arg.Field.Name + postFix).SetValue (at, val);
+					type.GetField (arg.Field.Name + postFix).SetValue (attribute, val);
 				else if (arg.Property != null)
-					type.GetProperty (arg.Property.Name + postFix).SetValue (at, val, null);
+					type.GetProperty (arg.Property.Name + postFix).SetValue (attribute, val, null);
 			}
 
-			return (T) at;
+			return (T) attribute;
 		}
 		
 		TypeMirror ToTypeMirror (EvaluationContext ctx, object type)
