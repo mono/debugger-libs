@@ -79,7 +79,7 @@ namespace Mono.Debugging.Soft
 	
 	public abstract class SoftDebuggerStartArgs
 	{
-		public SoftDebuggerStartArgs ()
+		protected SoftDebuggerStartArgs ()
 		{
 			MaxConnectionAttempts = 1;
 			TimeBetweenConnectionAttempts = 500;
@@ -100,7 +100,7 @@ namespace Mono.Debugging.Soft
 	
 	public abstract class SoftDebuggerRemoteArgs : SoftDebuggerStartArgs
 	{
-		public SoftDebuggerRemoteArgs (string appName, IPAddress address, int debugPort, int outputPort)
+		protected SoftDebuggerRemoteArgs (string appName, IPAddress address, int debugPort, int outputPort)
 		{
 			if (address == null)
 				throw new ArgumentNullException ("address");
