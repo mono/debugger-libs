@@ -1517,8 +1517,9 @@ namespace Mono.Debugging.Soft
 
 		public static MethodMirror OverloadResolve (SoftEvaluationContext ctx, TypeMirror type, string methodName, TypeMirror[] genericTypeArgs, TypeMirror[] argTypes, bool allowInstance, bool allowStatic, bool throwIfNotFound)
 		{
-			var candidates = new List<MethodMirror> ();
+			const BindingFlags methodByNameFlags = BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 			var cache = ctx.Session.OverloadResolveCache;
+			var candidates = new List<MethodMirror> ();
 			var currentType = type;
 			
 			while (currentType != null) {
@@ -1531,10 +1532,7 @@ namespace Mono.Debugging.Soft
 				}
 				
 				if (methods == null) {
-					if (currentType.VirtualMachine.Version.AtLeast (2, 7))
-						methods = currentType.GetMethodsByNameFlags (methodName, BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static, !ctx.CaseSensitive);
-					else
-						methods = currentType.GetMethods ();
+					methods = currentType.GetMethodsByNameFlags (methodName, methodByNameFlags, !ctx.CaseSensitive);
 					
 					if (ctx.CaseSensitive) {
 						lock (cache) {
