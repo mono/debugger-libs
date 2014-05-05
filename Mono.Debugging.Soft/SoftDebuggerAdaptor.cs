@@ -386,9 +386,17 @@ namespace Mono.Debugging.Soft
 				values[n] = (Value) args[n];
 			}
 			
-			var ctor = OverloadResolve (cx, tm, ".ctor", null, types, true, true, true);
+			var ctor = OverloadResolve (cx, tm, ".ctor", null, types, true, false, false);
 
-			return ctor != null ? tm.NewInstance (cx.Thread, ctor, values) : null;
+			if (ctor != null)
+				return tm.NewInstance (cx.Thread, ctor, values);
+
+			if (args.Length == 0 && tm.VirtualMachine.Version.AtLeast (2, 31))
+				return tm.NewInstance ();
+
+			string typeName = ctx.Adapter.GetDisplayTypeName (ctx, type);
+
+			throw new EvaluatorException ("Constructor not found for type `{1}'.", typeName);
 		}
 
 		public override object CreateValue (EvaluationContext ctx, object value)
