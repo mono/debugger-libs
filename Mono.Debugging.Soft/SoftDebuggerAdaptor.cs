@@ -63,6 +63,61 @@ namespace Mono.Debugging.Soft
 		public SoftDebuggerAdaptor ()
 		{
 		}
+
+//		static string GetPrettyMethodName (EvaluationContext ctx, MethodMirror method)
+//		{
+//			var name = new System.Text.StringBuilder ();
+//
+//			name.Append (ctx.Adapter.GetDisplayTypeName (method.ReturnType.FullName));
+//			name.Append (" ");
+//			name.Append (ctx.Adapter.GetDisplayTypeName (method.DeclaringType.FullName));
+//			name.Append (".");
+//			name.Append (method.Name);
+//
+//			if (method.VirtualMachine.Version.AtLeast (2, 12)) {
+//				if (method.IsGenericMethodDefinition || method.IsGenericMethod) {
+//					name.Append ("<");
+//					if (method.VirtualMachine.Version.AtLeast (2, 15)) {
+//						var argTypes = method.GetGenericArguments ();
+//						for (int i = 0; i < argTypes.Length; i++) {
+//							if (i != 0)
+//								name.Append (", ");
+//							name.Append (ctx.Adapter.GetDisplayTypeName (argTypes[i].FullName));
+//						}
+//					}
+//					name.Append (">");
+//				}
+//			}
+//
+//			name.Append (" (");
+//			var @params = method.GetParameters ();
+//			for (int i = 0; i < @params.Length; i++) {
+//				if (i != 0)
+//					name.Append (", ");
+//				if (@params[i].Attributes.HasFlag (ParameterAttributes.Out)) {
+//					if (@params[i].Attributes.HasFlag (ParameterAttributes.In))
+//						name.Append ("ref ");
+//					else
+//						name.Append ("out ");
+//				}
+//				name.Append (ctx.Adapter.GetDisplayTypeName (@params[i].ParameterType.FullName));
+//				name.Append (" ");
+//				name.Append (@params[i].Name);
+//			}
+//			name.Append (")");
+//
+//			return name.ToString ();
+//		}
+
+		string InvokeToString (SoftEvaluationContext ctx, MethodMirror method, object obj)
+		{
+			try {
+				var res = ctx.RuntimeInvoke (method, obj, new Value[0]) as StringMirror;
+				return res != null ? res.Value : null;
+			} catch {
+				return GetDisplayTypeName (GetValueTypeName (ctx, obj));
+			}
+		}
 		
 		public override string CallToString (EvaluationContext ctx, object obj)
 		{
@@ -95,16 +150,12 @@ namespace Mono.Debugging.Soft
 					return ((PrimitiveValue) sm.Fields[0]).Value.ToString ();
 			} else if (om != null && cx.Options.AllowTargetInvoke) {
 				var method = OverloadResolve (cx, om.Type, "ToString", null, new TypeMirror[0], true, false, false);
-				if (method != null && method.DeclaringType.FullName != "System.Object") {
-					var res = cx.RuntimeInvoke (method, obj, new Value[0]) as StringMirror;
-					return res != null ? res.Value : null;
-				}
+				if (method != null && method.DeclaringType.FullName != "System.Object")
+					return InvokeToString (cx, method, obj);
 			} else if (sm != null && cx.Options.AllowTargetInvoke) {
 				var method = OverloadResolve (cx, sm.Type, "ToString", null, new TypeMirror[0], true, false, false);
-				if (method != null && method.DeclaringType.FullName != "System.ValueType") {
-					var res = cx.RuntimeInvoke (method, obj, new Value[0]) as StringMirror;
-					return res != null ? res.Value : null;
-				}
+				if (method != null && method.DeclaringType.FullName != "System.ValueType")
+					return InvokeToString (cx, method, obj);
 			}
 			
 			return GetDisplayTypeName (GetValueTypeName (ctx, obj));
