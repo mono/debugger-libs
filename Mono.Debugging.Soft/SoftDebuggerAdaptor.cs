@@ -64,50 +64,50 @@ namespace Mono.Debugging.Soft
 		{
 		}
 
-//		static string GetPrettyMethodName (EvaluationContext ctx, MethodMirror method)
-//		{
-//			var name = new System.Text.StringBuilder ();
-//
-//			name.Append (ctx.Adapter.GetDisplayTypeName (method.ReturnType.FullName));
-//			name.Append (" ");
-//			name.Append (ctx.Adapter.GetDisplayTypeName (method.DeclaringType.FullName));
-//			name.Append (".");
-//			name.Append (method.Name);
-//
-//			if (method.VirtualMachine.Version.AtLeast (2, 12)) {
-//				if (method.IsGenericMethodDefinition || method.IsGenericMethod) {
-//					name.Append ("<");
-//					if (method.VirtualMachine.Version.AtLeast (2, 15)) {
-//						var argTypes = method.GetGenericArguments ();
-//						for (int i = 0; i < argTypes.Length; i++) {
-//							if (i != 0)
-//								name.Append (", ");
-//							name.Append (ctx.Adapter.GetDisplayTypeName (argTypes[i].FullName));
-//						}
-//					}
-//					name.Append (">");
-//				}
-//			}
-//
-//			name.Append (" (");
-//			var @params = method.GetParameters ();
-//			for (int i = 0; i < @params.Length; i++) {
-//				if (i != 0)
-//					name.Append (", ");
-//				if (@params[i].Attributes.HasFlag (ParameterAttributes.Out)) {
-//					if (@params[i].Attributes.HasFlag (ParameterAttributes.In))
-//						name.Append ("ref ");
-//					else
-//						name.Append ("out ");
-//				}
-//				name.Append (ctx.Adapter.GetDisplayTypeName (@params[i].ParameterType.FullName));
-//				name.Append (" ");
-//				name.Append (@params[i].Name);
-//			}
-//			name.Append (")");
-//
-//			return name.ToString ();
-//		}
+		static string GetPrettyMethodName (EvaluationContext ctx, MethodMirror method)
+		{
+			var name = new System.Text.StringBuilder ();
+
+			name.Append (ctx.Adapter.GetDisplayTypeName (method.ReturnType.FullName));
+			name.Append (" ");
+			name.Append (ctx.Adapter.GetDisplayTypeName (method.DeclaringType.FullName));
+			name.Append (".");
+			name.Append (method.Name);
+
+			if (method.VirtualMachine.Version.AtLeast (2, 12)) {
+				if (method.IsGenericMethodDefinition || method.IsGenericMethod) {
+					name.Append ("<");
+					if (method.VirtualMachine.Version.AtLeast (2, 15)) {
+						var argTypes = method.GetGenericArguments ();
+						for (int i = 0; i < argTypes.Length; i++) {
+							if (i != 0)
+								name.Append (", ");
+							name.Append (ctx.Adapter.GetDisplayTypeName (argTypes[i].FullName));
+						}
+					}
+					name.Append (">");
+				}
+			}
+
+			name.Append (" (");
+			var @params = method.GetParameters ();
+			for (int i = 0; i < @params.Length; i++) {
+				if (i != 0)
+					name.Append (", ");
+				if (@params[i].Attributes.HasFlag (ParameterAttributes.Out)) {
+					if (@params[i].Attributes.HasFlag (ParameterAttributes.In))
+						name.Append ("ref ");
+					else
+						name.Append ("out ");
+				}
+				name.Append (ctx.Adapter.GetDisplayTypeName (@params[i].ParameterType.FullName));
+				name.Append (" ");
+				name.Append (@params[i].Name);
+			}
+			name.Append (")");
+
+			return name.ToString ();
+		}
 
 		string InvokeToString (SoftEvaluationContext ctx, MethodMirror method, object obj)
 		{
@@ -1574,6 +1574,34 @@ namespace Mono.Debugging.Soft
 			return soft.RuntimeInvoke (method, target ?? targetType, values);
 		}
 
+		static TypeMirror[] ResolveGenericTypeArguments (MethodMirror method, TypeMirror[] argTypes)
+		{
+			var genericArgs = method.GetGenericArguments ();
+			var types = new TypeMirror[genericArgs.Length];
+			var parameters = method.GetParameters ();
+			var names = new List<string> ();
+
+			// map the generic argument type names
+			foreach (var arg in genericArgs)
+				names.Add (arg.Name);
+
+			// map parameter types to generic argument types...
+			for (int i = 0; i < argTypes.Length && i < parameters.Length; i++) {
+				int index = names.IndexOf (parameters[i].ParameterType.Name);
+
+				if (index != -1 && types[index] == null)
+					types[index] = argTypes[index];
+			}
+
+			// make sure we have all the generic argument types...
+			for (int i = 0; i < types.Length; i++) {
+				if (types[i] == null)
+					return null;
+			}
+
+			return types;
+		}
+
 		public static MethodMirror OverloadResolve (SoftEvaluationContext ctx, TypeMirror type, string methodName, TypeMirror[] genericTypeArgs, TypeMirror[] argTypes, bool allowInstance, bool allowStatic, bool throwIfNotFound)
 		{
 			const BindingFlags methodByNameFlags = BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
@@ -1604,8 +1632,24 @@ namespace Mono.Debugging.Soft
 					if (method.Name == methodName || (!ctx.CaseSensitive && method.Name.Equals (methodName, StringComparison.CurrentCultureIgnoreCase))) {
 						MethodMirror actualMethod;
 
-						if (genericTypeArgs != null && genericTypeArgs.Length > 0 && method.VirtualMachine.Version.AtLeast (2, 24) && method.IsGenericMethod) {
-							actualMethod = method.GetGenericMethodDefinition ().MakeGenericMethod (genericTypeArgs);
+						if (argTypes != null && method.VirtualMachine.Version.AtLeast (2, 24) && method.IsGenericMethod) {
+							var generic = method.GetGenericMethodDefinition ();
+							TypeMirror[] typeArgs;
+
+							//Console.WriteLine ("Attempting to resolve generic type args for: {0}", GetPrettyMethodName (ctx, generic));
+
+							if ((genericTypeArgs == null || genericTypeArgs.Length == 0))
+								typeArgs = ResolveGenericTypeArguments (generic, argTypes);
+							else
+								typeArgs = genericTypeArgs;
+
+							if (typeArgs == null || typeArgs.Length != generic.GetGenericArguments ().Length) {
+								//Console.WriteLine ("Failed to resolve generic method argument types...");
+								continue;
+							}
+
+							actualMethod = generic.MakeGenericMethod (typeArgs);
+							//Console.WriteLine ("Resolve generic method to: {0}", GetPrettyMethodName (ctx, actualMethod));
 						} else {
 							actualMethod = method;
 						}
@@ -1617,7 +1661,7 @@ namespace Mono.Debugging.Soft
 				}
 
 				if (argTypes == null && candidates.Count > 0)
-					break; // when argtypes is null, we are just looking for *any* match (not a specific match)
+					break; // when argTypes is null, we are just looking for *any* match (not a specific match)
 				
 				if (methodName == ".ctor")
 					break; // Can't create objects using constructor from base classes

@@ -749,7 +749,7 @@ namespace Mono.Debugging.Evaluation
 
 				methodName = ResolveMethodName (method, out typeArgs);
 
-				if (vref != null && ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, BindingFlags.Instance)) {
+				if (vref != null && ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, null, BindingFlags.Instance)) {
 					// There is an instance method for 'this', although it may not have an exact signature match. Check it now.
 					if (ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, types, BindingFlags.Instance)) {
 						target = vref;
