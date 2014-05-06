@@ -209,14 +209,19 @@ namespace Mono.Debugging.Evaluation
 			string method = negate ? "op_Inequality" : "op_Equality";
 			object v1type = ctx.Adapter.GetValueType (ctx, targetVal1);
 			object v2type = ctx.Adapter.GetValueType (ctx, targetVal2);
-			object[] argTypes = { v2type };
+			object[] argTypes = { v1type, v2type };
 			object target, targetType;
 			object[] args;
 
-			if (ctx.Adapter.HasMethod (ctx, v1type, method, argTypes, BindingFlags.Instance | BindingFlags.Public)) {
-				args = new [] { targetVal2 };
+			if (ctx.Adapter.HasMethod (ctx, v1type, method, argTypes, BindingFlags.Public | BindingFlags.Static)) {
+				args = new [] { targetVal1, targetVal2 };
 				targetType = v1type;
-				target = targetVal1;
+				target = null;
+				negate = false;
+			} else if (ctx.Adapter.HasMethod (ctx, v2type, method, argTypes, BindingFlags.Public | BindingFlags.Static)) {
+				args = new [] { targetVal1, targetVal2 };
+				targetType = v2type;
+				target = null;
 				negate = false;
 			} else {
 				method = ctx.Adapter.IsValueType (v1type) ? "Equals" : "ReferenceEquals";
