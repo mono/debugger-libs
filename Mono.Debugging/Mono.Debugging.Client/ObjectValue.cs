@@ -750,7 +750,8 @@ namespace Mono.Debugging.Client
 			Dictionary<IObjectValueUpdater, List<UpdateCallback>> callbacks = null;
 			var valueList = new List<ObjectValue> (values);
 
-			foreach (var val in valueList) {
+			for (int n = 0; n < valueList.Count; n++) {
+				var val = valueList [n];
 				val.source = parentFrame.DebuggerSession.WrapDebuggerObject (val.source);
 				val.updater = parentFrame.DebuggerSession.WrapDebuggerObject (val.updater);
 				val.parentFrame = parentFrame;
