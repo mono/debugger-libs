@@ -147,26 +147,6 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		static object EvaluateStringOperation (BinaryOperatorType op, object v1, object v2)
-		{
-			switch (op) {
-			case BinaryOperatorType.Equality:
-				if (!(v1 == null || v1 is string) || !(v2 == null || v2 is string))
-					throw ParseError ("Invalid operands in binary operator.");
-				return ((string) v1) == ((string) v2);
-			case BinaryOperatorType.InEquality:
-				if (!(v1 == null || v1 is string) || !(v2 == null || v2 is string))
-					throw ParseError ("Invalid operands in binary operator.");
-				return ((string) v1) != ((string) v2);
-			case BinaryOperatorType.Add:
-				if (v1 == null) return v2.ToString ();
-				if (v2 == null) return v1.ToString ();
-				return v1.ToString () + v2.ToString ();
-			default:
-				throw ParseError ("Invalid operands in binary operator.");
-			}
-		}
-
 		static void ConvertValues<T> (EvaluationContext ctx, object actualV1, object actualV2, object toType, out T v1, out T v2)
 		{
 			try {
@@ -240,9 +220,6 @@ namespace Mono.Debugging.Evaluation
 
 		static ValueReference EvaluateOverloadedOperator (EvaluationContext ctx, string expression, BinaryOperatorType op, object targetVal1, object targetVal2, object val1, object val2)
 		{
-			if (val1 == null || val2 == null)
-				throw ParseError ("Invalid operands in binary operator.");
-
 			object v1type = ctx.Adapter.GetValueType (ctx, targetVal1);
 			object v2type = ctx.Adapter.GetValueType (ctx, targetVal2);
 			object[] args = new [] { targetVal1, targetVal2 };
@@ -322,53 +299,69 @@ namespace Mono.Debugging.Evaluation
 			var targetVal2 = right.Value;
 			var val1 = left.ObjectValue;
 			var val2 = right.ObjectValue;
+			object res = null;
 
-			if (val1 == null || !ctx.Adapter.IsPrimitive (ctx, targetVal1)) {
+			if (val1 is string || val2 is string) {
+				switch (op) {
+				case BinaryOperatorType.Add:
+					if (val1 != null && val2 != null) {
+						if (!(val1 is string))
+							val1 = ctx.Adapter.CallToString (ctx, targetVal1);
+
+						if (!(val2 is string))
+							val2 = ctx.Adapter.CallToString (ctx, targetVal2);
+
+						res = (string) val1 + (string) val2;
+					} else if (val1 != null) {
+						res = val1.ToString ();
+					} else if (val2 != null) {
+						res = val2.ToString ();
+					}
+
+					return LiteralValueReference.CreateObjectLiteral (ctx, expression, res);
+				case BinaryOperatorType.Equality:
+					if ((val1 == null || val1 is string) && (val2 == null || val2 is string))
+						return LiteralValueReference.CreateObjectLiteral (ctx, expression, ((string) val1) == ((string) val2));
+					break;
+				case BinaryOperatorType.InEquality:
+					if ((val1 == null || val1 is string) && (val2 == null || val2 is string))
+						return LiteralValueReference.CreateObjectLiteral (ctx, expression, ((string) val1) != ((string) val2));
+					break;
+				}
+			}
+
+			if (val1 == null || (!ctx.Adapter.IsPrimitive (ctx, targetVal1) && !ctx.Adapter.IsEnum (ctx, targetVal1))) {
 				switch (op) {
 				case BinaryOperatorType.Equality:
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, false, targetVal1, targetVal2, val1, val2));
 				case BinaryOperatorType.InEquality:
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, true, targetVal1, targetVal2, val1, val2));
 				default:
-					return EvaluateOverloadedOperator (ctx, expression, op, targetVal1, targetVal2, val1, val2);
-				}
-			}
-
-			if (op == BinaryOperatorType.Add) {
-				if (val1 is string || val2 is string) {
-					if (!(val1 is string) && val1 != null)
-						val1 = ctx.Adapter.CallToString (ctx, targetVal1);
-					if (!(val2 is string) && val2 != null)
-						val2 = ctx.Adapter.CallToString (ctx, targetVal2);
-					return LiteralValueReference.CreateObjectLiteral (ctx, expression, (string) val1 + (string) val2);
+					if (val1 != null && val2 != null)
+						return EvaluateOverloadedOperator (ctx, expression, op, targetVal1, targetVal2, val1, val2);
+					break;
 				}
 			}
 
 			if ((op == BinaryOperatorType.ExclusiveOr) && (val1 is bool) && (val2 is bool))
 				return LiteralValueReference.CreateObjectLiteral (ctx, expression, (bool) val1 ^ (bool) val2);
 
-			object res;
+			if (val1 == null || val2 == null || (val1 is bool) || (val2 is bool))
+				throw ParseError ("Invalid operands in binary operator.");
 
-			if (val1 is string || val2 is string) {
-				res = EvaluateStringOperation (op, val1, val2);
+			string opTypeName = GetCommonOperationType (val1, val2);
+			object opType = ctx.Adapter.GetType (ctx, opTypeName);
+
+			if (opTypeName == "System.Double") {
+				double v1, v2;
+
+				ConvertValues<double> (ctx, targetVal1, targetVal2, opType, out v1, out v2);
+				res = EvaluateOperation (op, v1, v2);
 			} else {
-				if (val1 == null || val2 == null || (val1 is bool) || (val2 is bool))
-					throw ParseError ("Invalid operands in binary operator.");
+				long v1, v2;
 
-				string opTypeName = GetCommonOperationType (val1, val2);
-				object opType = ctx.Adapter.GetType (ctx, opTypeName);
-
-				if (opTypeName == "System.Double") {
-					double v1, v2;
-
-					ConvertValues<double> (ctx, targetVal1, targetVal2, opType, out v1, out v2);
-					res = EvaluateOperation (op, v1, v2);
-				} else {
-					long v1, v2;
-
-					ConvertValues<long> (ctx, targetVal1, targetVal2, opType, out v1, out v2);
-					res = EvaluateOperation (op, v1, v2);
-				}
+				ConvertValues<long> (ctx, targetVal1, targetVal2, opType, out v1, out v2);
+				res = EvaluateOperation (op, v1, v2);
 			}
 
 			if (!(res is bool) && !(res is string)) {
