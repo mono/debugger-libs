@@ -238,6 +238,53 @@ namespace Mono.Debugging.Evaluation
 			return negate ? !retval : retval;
 		}
 
+		static ValueReference EvaluateOverloadedOperator (EvaluationContext ctx, string expression, BinaryOperatorType op, object targetVal1, object targetVal2, object val1, object val2)
+		{
+			if (val1 == null || val2 == null)
+				throw ParseError ("Invalid operands in binary operator.");
+
+			object v1type = ctx.Adapter.GetValueType (ctx, targetVal1);
+			object v2type = ctx.Adapter.GetValueType (ctx, targetVal2);
+			object[] args = new [] { targetVal1, targetVal2 };
+			object[] argTypes = { v1type, v2type };
+			object targetType = null;
+			string methodName = null;
+
+			switch (op) {
+			case BinaryOperatorType.BitwiseAnd:         methodName = "op_BitwiseAnd"; break;
+			case BinaryOperatorType.BitwiseOr:          methodName = "op_BitwiseOr"; break;
+			case BinaryOperatorType.ExclusiveOr:        methodName = "op_ExclusiveOr"; break;
+			case BinaryOperatorType.GreaterThan:        methodName = "op_GreaterThan"; break;
+			case BinaryOperatorType.GreaterThanOrEqual: methodName = "op_GreaterThanOrEqual"; break;
+			case BinaryOperatorType.Equality:           methodName = "op_Equality"; break;
+			case BinaryOperatorType.InEquality:         methodName = "op_Inequality"; break;
+			case BinaryOperatorType.LessThan:           methodName = "op_LessThan"; break;
+			case BinaryOperatorType.LessThanOrEqual:    methodName = "op_LessThanOrEqual"; break;
+			case BinaryOperatorType.Add:                methodName = "op_Addition"; break;
+			case BinaryOperatorType.Subtract:           methodName = "op_Subtraction"; break;
+			case BinaryOperatorType.Multiply:           methodName = "op_Multiply"; break;
+			case BinaryOperatorType.Divide:             methodName = "op_Division"; break;
+			case BinaryOperatorType.Modulus:            methodName = "op_Modulus"; break;
+			case BinaryOperatorType.ShiftLeft:          methodName = "op_LeftShift"; break;
+			case BinaryOperatorType.ShiftRight:         methodName = "op_RightShift"; break;
+			}
+
+			if (methodName == null)
+				throw ParseError ("Invalid operands in binary operator.");
+
+			if (ctx.Adapter.HasMethod (ctx, v1type, methodName, argTypes, BindingFlags.Public | BindingFlags.Static)) {
+				targetType = v1type;
+			} else if (ctx.Adapter.HasMethod (ctx, v2type, methodName, argTypes, BindingFlags.Public | BindingFlags.Static)) {
+				targetType = v2type;
+			} else {
+				throw ParseError ("Invalid operands in binary operator.");
+			}
+
+			object result = ctx.Adapter.RuntimeInvoke (ctx, targetType, null, methodName, argTypes, args);
+
+			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, result);
+		}
+
 		ValueReference EvaluateBinaryOperatorExpression (BinaryOperatorType op, ValueReference left, Expression rightExp)
 		{
 			if (op == BinaryOperatorType.ConditionalAnd) {
@@ -276,6 +323,17 @@ namespace Mono.Debugging.Evaluation
 			var val1 = left.ObjectValue;
 			var val2 = right.ObjectValue;
 
+			if (val1 == null || !ctx.Adapter.IsPrimitive (ctx, targetVal1)) {
+				switch (op) {
+				case BinaryOperatorType.Equality:
+					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, false, targetVal1, targetVal2, val1, val2));
+				case BinaryOperatorType.InEquality:
+					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, true, targetVal1, targetVal2, val1, val2));
+				default:
+					return EvaluateOverloadedOperator (ctx, expression, op, targetVal1, targetVal2, val1, val2);
+				}
+			}
+
 			if (op == BinaryOperatorType.Add) {
 				if (val1 is string || val2 is string) {
 					if (!(val1 is string) && val1 != null)
@@ -288,15 +346,6 @@ namespace Mono.Debugging.Evaluation
 
 			if ((op == BinaryOperatorType.ExclusiveOr) && (val1 is bool) && (val2 is bool))
 				return LiteralValueReference.CreateObjectLiteral (ctx, expression, (bool) val1 ^ (bool) val2);
-
-			if ((val1 == null || !ctx.Adapter.IsPrimitive (ctx, targetVal1)) && (val2 == null || !ctx.Adapter.IsPrimitive (ctx, targetVal2))) {
-				switch (op) {
-				case BinaryOperatorType.Equality:
-					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, false, targetVal1, targetVal2, val1, val2));
-				case BinaryOperatorType.InEquality:
-					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, true, targetVal1, targetVal2, val1, val2));
-				}
-			}
 
 			object res;
 
