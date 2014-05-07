@@ -1270,30 +1270,23 @@ namespace Mono.Debugging.Soft
 		public override bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] genericTypeArgs, object[] argTypes, BindingFlags flags)
 		{
 			var soft = (SoftEvaluationContext) ctx;
+			var tm = ToTypeMirror (ctx, targetType);
 			TypeMirror[] typeArgs = null;
 			TypeMirror[] types = null;
 
 			if (genericTypeArgs != null) {
 				typeArgs = new TypeMirror [genericTypeArgs.Length];
-				for (int n = 0; n < genericTypeArgs.Length; n++) {
-					if (genericTypeArgs[n] is TypeMirror)
-						typeArgs[n] = (TypeMirror) genericTypeArgs[n];
-					else
-						typeArgs[n] = (TypeMirror) GetType (soft, ((Type) genericTypeArgs[n]).FullName);
-				}
+				for (int n = 0; n < genericTypeArgs.Length; n++)
+					typeArgs[n] = ToTypeMirror (ctx, genericTypeArgs[n]);
 			}
 
 			if (argTypes != null) {
 				types = new TypeMirror [argTypes.Length];
-				for (int n = 0; n < argTypes.Length; n++) {
-					if (argTypes[n] is TypeMirror)
-						types[n] = (TypeMirror) argTypes[n];
-					else
-						types[n] = (TypeMirror) GetType (soft, ((Type) argTypes[n]).FullName);
-				}
+				for (int n = 0; n < argTypes.Length; n++)
+					types[n] = ToTypeMirror (ctx, argTypes[n]);
 			}
 			
-			var method = OverloadResolve (soft, (TypeMirror) targetType, methodName, typeArgs, types, (flags & BindingFlags.Instance) != 0, (flags & BindingFlags.Static) != 0, false);
+			var method = OverloadResolve (soft, tm, methodName, typeArgs, types, (flags & BindingFlags.Instance) != 0, (flags & BindingFlags.Static) != 0, false);
 
 			return method != null;
 		}
