@@ -99,6 +99,10 @@ namespace Mono.Debugging.Soft
 			return new SoftDebuggerAdaptor ();
 		}
 
+		public Version ProtocolVersion {
+			get { return new Version (vm.Version.MajorVersion, vm.Version.MinorVersion); }
+		}
+
 		protected override void OnRun (DebuggerStartInfo startInfo)
 		{
 			if (HasExited)
