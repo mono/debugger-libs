@@ -1156,9 +1156,9 @@ namespace Mono.Debugging.Soft
 					if (atm == null) {
 						var att = (Type) argType;
 
-						tn = att.FullName + "," + att.Assembly.GetName ();
+						tn = att.FullName + ", " + att.Assembly.GetName ();
 					} else {
-						tn = atm.FullName + "," + atm.Assembly.GetName ();
+						tn = atm.FullName + ", " + atm.Assembly.GetName ();
 					}
 
 					if (tn.IndexOf (',') != -1)

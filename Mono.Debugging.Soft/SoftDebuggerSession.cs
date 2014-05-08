@@ -55,6 +55,7 @@ namespace Mono.Debugging.Soft
 		readonly Dictionary<EventRequest, BreakInfo> breakpoints = new Dictionary<EventRequest, BreakInfo> ();
 		readonly Dictionary<string, MonoSymbolFile> symbolFiles = new Dictionary<string, MonoSymbolFile> ();
 		readonly Dictionary<TypeMirror, string[]> type_to_source = new Dictionary<TypeMirror, string[]> ();
+		readonly Dictionary<string, TypeMirror> aliases = new Dictionary<string, TypeMirror> ();
 		readonly Dictionary<string, TypeMirror> types = new Dictionary<string, TypeMirror> ();
 		readonly LinkedList<List<Event>> queuedEventSets = new LinkedList<List<Event>> ();
 		readonly Dictionary<long,long> localThreadIds = new Dictionary<long, long> ();
@@ -521,7 +522,10 @@ namespace Mono.Debugging.Soft
 		public TypeMirror GetType (string fullName)
 		{
 			TypeMirror tm;
-			types.TryGetValue (fullName, out tm);
+
+			if (!types.TryGetValue (fullName, out tm))
+				aliases.TryGetValue (fullName, out tm);
+
 			return tm;
 		}
 		
@@ -1657,13 +1661,23 @@ namespace Mono.Debugging.Soft
 					breakpoints.Remove (breakpoint.Key);
 					pending_bes.Add (breakpoint.Value);
 				}
+
 				// Remove affected types from the loaded types list
 				var affectedTypes = new List<string> (from pair in types
 					 where PathComparer.Equals (pair.Value.Assembly.Location, asm.Location)
 					 select pair.Key);
-				foreach (string typename in affectedTypes) {
-					types.Remove (typename);
+
+				foreach (string typeName in affectedTypes) {
+					TypeMirror tm;
+
+					if (types.TryGetValue (typeName, out tm)) {
+						if (tm.IsNested)
+							aliases.Remove (NestedTypeNameToAlias (typeName));
+
+						types.Remove (typeName);
+					}
 				}
+
 				foreach (var pair in source_to_type) {
 					pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, asm.Location));
 				}
@@ -1994,6 +2008,19 @@ namespace Mono.Debugging.Soft
 				return string.Empty;
 			}
 		}
+
+		static string NestedTypeNameToAlias (string typeName)
+		{
+			int index = typeName.IndexOfAny (new [] { '[', ',' });
+
+			if (index == -1)
+				return typeName.Replace ('+', '.');
+
+			var prefix = typeName.Substring (0, index).Replace ('+', '.');
+			var suffix = typeName.Substring (index);
+
+			return prefix + suffix;
+		}
 		
 		void ProcessType (TypeMirror t)
 		{
@@ -2001,7 +2028,11 @@ namespace Mono.Debugging.Soft
 
 			if (types.ContainsKey (typeName))
 				return;
-			types [typeName] = t;
+
+			if (t.IsNested)
+				aliases[NestedTypeNameToAlias (typeName)] = t;
+
+			types[typeName] = t;
 
 			//get the source file paths
 			//full paths, from GetSourceFiles (true), are only supported by sdb protocol 2.2 and later
