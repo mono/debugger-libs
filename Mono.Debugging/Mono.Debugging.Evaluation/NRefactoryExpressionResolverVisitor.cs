@@ -41,6 +41,7 @@ namespace Mono.Debugging.Evaluation
 		readonly SourceLocation location;
 		readonly DebuggerSession session;
 		readonly string expression;
+		string parentType;
 
 		class Replacement
 		{
@@ -71,18 +72,39 @@ namespace Mono.Debugging.Evaluation
 				i = replacement.Offset + replacement.Length;
 			}
 
-			var last = replacements[replacements.Count - 1];
+			var last = replacements [replacements.Count - 1];
 			resolved.Append (expression, last.Offset + last.Length, expression.Length - (last.Offset + last.Length));
 
 			return resolved.ToString ();
 		}
 
-		void ReplaceType (string name, int offset, int length)
+		string GenerateGenericArgs (int genericArgs)
 		{
-			var type = session.ResolveIdentifierAsType (name, location);
+			if (genericArgs == 0)
+				return "";
+			string result = "<";
+			for (int i = 0; i < genericArgs; i++)
+				result += "int,";
+			return result.Remove (result.Length - 1) + ">";
+		}
 
-			if (!string.IsNullOrEmpty (type)) {
-				type = "global::" + type;
+		void ReplaceType (string name, int genericArgs, int offset, int length, bool memberyType = false)
+		{
+			string type = null;
+			if (genericArgs == 0)
+				type = session.ResolveIdentifierAsType (name, location);
+			else
+				type = session.ResolveIdentifierAsType (name + "`" + genericArgs, location);
+
+			if (string.IsNullOrEmpty (type)) {
+				parentType = null;
+			} else {
+				if (memberyType) {
+					type = type.Substring (type.LastIndexOf ('.') + 1);
+				} else {
+					type = "global::" + type;
+				}
+				parentType = type + GenerateGenericArgs (genericArgs);
 				var replacement = new Replacement { Offset = offset, Length = length, NewText = type };
 				replacements.Add (replacement);
 			}
@@ -93,7 +115,7 @@ namespace Mono.Debugging.Evaluation
 			int length = type.EndLocation.Column - type.StartLocation.Column;
 			int offset = type.StartLocation.Column - 1;
 
-			ReplaceType(type.ToString(), offset, length);
+			ReplaceType (type.ToString (), 0, offset, length);
 		}
 
 		public override void VisitIdentifierExpression (IdentifierExpression identifierExpression)
@@ -103,10 +125,7 @@ namespace Mono.Debugging.Evaluation
 			int length = identifierExpression.IdentifierToken.EndLocation.Column - identifierExpression.IdentifierToken.StartLocation.Column;
 			int offset = identifierExpression.IdentifierToken.StartLocation.Column - 1;
 
-			if (identifierExpression.TypeArguments.Count > 0)
-				ReplaceType (identifierExpression.Identifier + "`" + identifierExpression.TypeArguments.Count, offset, length);
-			else
-				ReplaceType (identifierExpression.Identifier, offset, length);
+			ReplaceType (identifierExpression.Identifier, identifierExpression.TypeArguments.Count, offset, length);
 		}
 
 		public override void VisitTypeReferenceExpression (TypeReferenceExpression typeReferenceExpression)
@@ -124,13 +143,12 @@ namespace Mono.Debugging.Evaluation
 
 		public override void VisitMemberType (MemberType memberType)
 		{
+			base.VisitMemberType (memberType);
+			if (parentType == null)
+				return;
 			int length = memberType.MemberNameToken.EndLocation.Column - memberType.MemberNameToken.StartLocation.Column;
 			int offset = memberType.MemberNameToken.StartLocation.Column - 1;
-
-			if (memberType.TypeArguments.Count > 0)
-				ReplaceType (memberType.MemberName + "`" + memberType.TypeArguments.Count, offset, length);
-			else
-				ReplaceType (memberType.MemberName, offset, length);
+			ReplaceType (parentType + "." + memberType.MemberName, memberType.TypeArguments.Count, offset, length, true);
 		}
 
 		public override void VisitSimpleType (SimpleType simpleType)
@@ -140,10 +158,7 @@ namespace Mono.Debugging.Evaluation
 			int length = simpleType.IdentifierToken.EndLocation.Column - simpleType.IdentifierToken.StartLocation.Column;
 			int offset = simpleType.IdentifierToken.StartLocation.Column - 1;
 
-			if (simpleType.TypeArguments.Count > 0)
-				ReplaceType (simpleType.Identifier + "`" + simpleType.TypeArguments.Count, offset, length);
-			else
-				ReplaceType (simpleType.Identifier, offset, length);
+			ReplaceType (simpleType.Identifier, simpleType.TypeArguments.Count, offset, length);
 		}
 	}
 }
