@@ -73,6 +73,7 @@ namespace Mono.Debugging.Soft
 		List<string> userAssemblyNames;
 		IAsyncResult connectionHandle;
 		ThreadInfo[] current_threads;
+		IList<ThreadMirror> mirror_threads;
 		string remoteProcessName;
 		bool useFullPaths = true;
 		long currentAddress = -1;
@@ -509,6 +510,7 @@ namespace Mono.Debugging.Soft
 
 		protected virtual void OnResumed ()
 		{
+			mirror_threads = null;
 			current_threads = null;
 			current_thread = null;
 			procs = null;
@@ -722,10 +724,17 @@ namespace Mono.Debugging.Soft
 			return name;
 		}
 
+		IList<ThreadMirror> GetThreads()
+		{
+			if (mirror_threads == null)
+				mirror_threads = vm.GetThreads ();
+			return mirror_threads;
+		}
+
 		protected override ThreadInfo[] OnGetThreads (long processId)
 		{
 			if (current_threads == null) {
-				IList<ThreadMirror> mirrors = vm.GetThreads ();
+				var mirrors = GetThreads ();
 				var threads = new ThreadInfo[mirrors.Count];
 				for (int i = 0; i < mirrors.Count; i++) {
 					ThreadMirror t = mirrors [i];
@@ -738,7 +747,7 @@ namespace Mono.Debugging.Soft
 		
 		ThreadMirror GetThread (long threadId)
 		{
-			foreach (var thread in vm.GetThreads ()) {
+			foreach (var thread in GetThreads ()) {
 				if (GetId (thread) == threadId)
 					return thread;
 			}
@@ -2548,7 +2557,7 @@ namespace Mono.Debugging.Soft
 			if (ThreadIsAlive (recent_thread) && HasUserFrame (GetId (recent_thread), infos))
 				return;
 
-			var threads = vm.GetThreads ();
+			var threads = GetThreads ();
 			foreach (var thread in threads) {
 				if (ThreadIsAlive (thread) && HasUserFrame (GetId (thread), infos)) {
 					recent_thread = thread;
