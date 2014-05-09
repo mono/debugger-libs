@@ -65,18 +65,18 @@ namespace Mono.Debugging.Soft
 		Dictionary<string, string> assemblyPathMap;
 		ThreadMirror current_thread, recent_thread;
 		List<AssemblyMirror> assemblyFilters;
+		IList<ThreadMirror> thread_mirrors;
 		StepEventRequest currentStepRequest;
 		IConnectionDialog connectionDialog;
 		Thread outputReader, errorReader;
 		bool loggedSymlinkedRuntimesBug;
 		SoftDebuggerStartArgs startArgs;
 		List<string> userAssemblyNames;
-		IAsyncResult connectionHandle;
 		ThreadInfo[] current_threads;
-		IList<ThreadMirror> mirror_threads;
 		string remoteProcessName;
 		bool useFullPaths = true;
 		long currentAddress = -1;
+		IAsyncResult connection;
 		ProcessInfo[] procs;
 		Thread eventHandler;
 		VirtualMachine vm;
@@ -309,7 +309,7 @@ namespace Mono.Debugging.Soft
 		AsyncCallback HandleConnectionCallbackErrors (AsyncCallback callback)
 		{
 			return delegate (IAsyncResult ar) {
-				connectionHandle = null;
+				connection = null;
 				try {
 					callback (ar);
 				} catch (Exception ex) {
@@ -338,10 +338,10 @@ namespace Mono.Debugging.Soft
 		
 		void ConnectionStarting (IAsyncResult connectionHandle, DebuggerStartInfo dsi, bool listening, int attemptNumber) 
 		{
-			if (this.connectionHandle != null && (attemptNumber == 0 || !this.connectionHandle.IsCompleted))
+			if (connection != null && (attemptNumber == 0 || !connection.IsCompleted))
 				throw new InvalidOperationException ("Already connecting");
 			
-			this.connectionHandle = connectionHandle;
+			connection = connectionHandle;
 			
 			if (ConnectionDialogCreator != null && attemptNumber == 0) {
 				connectionDialog = ConnectionDialogCreator ();
@@ -349,6 +349,7 @@ namespace Mono.Debugging.Soft
 					EndSession ();
 				};
 			}
+
 			if (connectionDialog != null)
 				connectionDialog.SetMessage (dsi, GetConnectingMessage (dsi), listening, attemptNumber);
 		}
@@ -361,14 +362,14 @@ namespace Mono.Debugging.Soft
 		void EndLaunch ()
 		{
 			HideConnectionDialog ();
-			if (connectionHandle != null) {
+			if (connection != null) {
 				if (startArgs != null && startArgs.ConnectionProvider != null) {
-					startArgs.ConnectionProvider.CancelConnect (connectionHandle);
+					startArgs.ConnectionProvider.CancelConnect (connection);
 					startArgs = null;
 				} else {
-					VirtualMachineManager.CancelConnection (connectionHandle);
+					VirtualMachineManager.CancelConnection (connection);
 				}
-				connectionHandle = null;
+				connection = null;
 			}
 		}
 		
@@ -408,7 +409,7 @@ namespace Mono.Debugging.Soft
 				return;
 			}
 			
-			connectionHandle = null;
+			connection = null;
 			
 			vm = machine;
 			
@@ -510,7 +511,7 @@ namespace Mono.Debugging.Soft
 
 		protected virtual void OnResumed ()
 		{
-			mirror_threads = null;
+			thread_mirrors = null;
 			current_threads = null;
 			current_thread = null;
 			procs = null;
@@ -724,11 +725,12 @@ namespace Mono.Debugging.Soft
 			return name;
 		}
 
-		IList<ThreadMirror> GetThreads()
+		IList<ThreadMirror> GetThreads ()
 		{
-			if (mirror_threads == null)
-				mirror_threads = vm.GetThreads ();
-			return mirror_threads;
+			if (thread_mirrors == null)
+				thread_mirrors = vm.GetThreads ();
+
+			return thread_mirrors;
 		}
 
 		protected override ThreadInfo[] OnGetThreads (long processId)
@@ -736,12 +738,16 @@ namespace Mono.Debugging.Soft
 			if (current_threads == null) {
 				var mirrors = GetThreads ();
 				var threads = new ThreadInfo[mirrors.Count];
+
 				for (int i = 0; i < mirrors.Count; i++) {
-					ThreadMirror t = mirrors [i];
-					threads[i] = new ThreadInfo (processId, GetId (t), GetThreadName (t), null);
+					var thread = mirrors[i];
+
+					threads[i] = new ThreadInfo (processId, GetId (thread), GetThreadName (thread), null);
 				}
+
 				current_threads = threads;
 			}
+
 			return current_threads;
 		}
 		
@@ -757,10 +763,13 @@ namespace Mono.Debugging.Soft
 		
 		ThreadInfo GetThread (ProcessInfo process, ThreadMirror thread)
 		{
-			long tid = GetId (thread);
-			foreach (var t in OnGetThreads (process.Id))
-				if (t.Id == tid)
-					return t;
+			long id = GetId (thread);
+
+			foreach (var threadInfo in OnGetThreads (process.Id)) {
+				if (threadInfo.Id == id)
+					return threadInfo;
+			}
+
 			return null;
 		}
 

@@ -69,7 +69,7 @@ namespace Mono.Debugging.Evaluation
 
 		public EvaluationContext Clone ()
 		{
-			EvaluationContext clone = (EvaluationContext) MemberwiseClone ();
+			var clone = (EvaluationContext) MemberwiseClone ();
 			clone.CopyFrom (this);
 			return clone;
 		}
