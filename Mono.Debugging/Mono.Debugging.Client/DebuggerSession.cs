@@ -1148,8 +1148,11 @@ namespace Mono.Debugging.Client
 		{
 			var writer = DebugWriter;
 
-			if (writer != null)
+			if (writer != null) {
 				writer (level, category, message);
+			} else {
+				OnDebuggerOutput (false, string.Format ("[{0}:{1}] {2}", level, category, message));
+			}
 		}
 		
 		internal protected void SetBusyState (BusyStateEventArgs args)
