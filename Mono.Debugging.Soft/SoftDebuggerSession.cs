@@ -131,7 +131,7 @@ namespace Mono.Debugging.Soft
 			RegisterUserAssemblies (dsi);
 			
 			if (!String.IsNullOrEmpty (dsi.LogMessage))
-				LogWriter (false, dsi.LogMessage + "\n");
+				OnDebuggerOutput (false, dsi.LogMessage + Environment.NewLine);
 			
 			AsyncCallback callback = null;
 			int attemptNumber = 0;
@@ -204,7 +204,7 @@ namespace Mono.Debugging.Soft
 				psi.EnvironmentVariables[env.Key] = env.Value;
 			
 			if (!String.IsNullOrEmpty (dsi.LogMessage))
-				OnDebuggerOutput (false, dsi.LogMessage + "\n");
+				OnDebuggerOutput (false, dsi.LogMessage + Environment.NewLine);
 			
 			var callback = HandleConnectionCallbackErrors (ar => ConnectionStarted (VirtualMachineManager.EndLaunch (ar)));
 			ConnectionStarting (VirtualMachineManager.BeginLaunch (psi, callback, options), dsi, true, 0);
@@ -302,7 +302,7 @@ namespace Mono.Debugging.Soft
 			conEP = args.RedirectOutput? new IPEndPoint (args.Address, args.OutputPort) : null;
 			
 			if (!String.IsNullOrEmpty (dsi.LogMessage))
-				LogWriter (false, dsi.LogMessage + "\n");
+				OnDebuggerOutput (false, dsi.LogMessage + Environment.NewLine);
 		}
 		
 		///<summary>Catches errors in async callbacks and hands off to OnConnectionError</summary>
@@ -1762,7 +1762,7 @@ namespace Mono.Debugging.Soft
 		void HandleUserLogEvents (UserLogEvent[] events)
 		{
 			foreach (var ul in events)
-				OnDebuggerOutput (false, string.Format ("[{0}:{1}] {2}", ul.Level, ul.Category, ul.Message));
+				OnTargetDebug (ul.Level, ul.Category, ul.Message);
 		}
 
 		public ObjectMirror GetExceptionObject (ThreadMirror thread)

@@ -835,6 +835,17 @@ namespace Mono.Debugging.Client
 		public OutputWriterDelegate LogWriter {
 			get; set;
 		}
+
+		/// <summary>
+		/// Gets or sets the debug writer.
+		/// </summary>
+		/// <remarks>
+		/// This callback is invoked to print debugge messages
+		/// called via System.Diagnostics.Debugger.Log
+		/// </remarks>
+		public DebugWriterDelegate DebugWriter {
+			get; set;
+		}
 		
 		/// <summary>
 		/// Gets the disassembly of a source code file
@@ -1131,6 +1142,14 @@ namespace Mono.Debugging.Client
 
 			if (writer != null)
 				writer (isStderr, text);
+		}
+
+		internal protected void OnTargetDebug (int level, string category, string message)
+		{
+			var writer = DebugWriter;
+
+			if (writer != null)
+				writer (level, category, message);
 		}
 		
 		internal protected void SetBusyState (BusyStateEventArgs args)
@@ -1603,6 +1622,7 @@ namespace Mono.Debugging.Client
 	}
 
 	public delegate void OutputWriterDelegate (bool isStderr, string text);
+	public delegate void DebugWriterDelegate (int level, string category, string message);
 
 	public class BusyStateEventArgs: EventArgs
 	{
