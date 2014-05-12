@@ -25,7 +25,7 @@
 // THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
+
 using Mono.Debugging.Evaluation;
 using Mono.Debugging.Client;
 using Mono.Debugger.Soft;
@@ -34,13 +34,21 @@ namespace Mono.Debugging.Soft
 {
 	public class VariableValueReference : ValueReference
 	{
+		readonly LocalVariable variable;
+		Value value;
 		string name;
-		LocalVariable variable;
+
+		public VariableValueReference (EvaluationContext ctx, string name, LocalVariable variable, Value value): base (ctx)
+		{
+			this.variable = variable;
+			this.value = value;
+			this.name = name;
+		}
 		
 		public VariableValueReference (EvaluationContext ctx, string name, LocalVariable variable): base (ctx)
 		{
-			this.name = name;
 			this.variable = variable;
+			this.name = name;
 		}
 		
 		public override ObjectValueFlags Flags {
@@ -61,22 +69,26 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
+		Value NormalizeValue (EvaluationContext ctx, Value value)
+		{
+			if (variable.Type.IsPointer) {
+				long addr = (long) ((PrimitiveValue) value).Value;
+
+				return new PointerValue (value.VirtualMachine, variable.Type, addr);
+			}
+
+			return ctx.Adapter.IsNull (ctx, value) ? null : value;
+		}
+
 		public override object Value {
 			get {
 				var ctx = (SoftEvaluationContext) Context;
 
 				try {
-					var value = ctx.Frame.GetValue (variable);
+					if (value == null)
+						value = ctx.Frame.GetValue (variable);
 
-					if (variable.Type.IsPointer) {
-						long addr = (long) ((PrimitiveValue) value).Value;
-						value = new PointerValue (value.VirtualMachine, variable.Type, addr);
-					}
-
-					if (ctx.Adapter.IsNull (ctx, value))
-						return null;
-
-					return value;
+					return NormalizeValue (ctx, value);
 				} catch (AbsentInformationException) {
 					throw new EvaluatorException ("Value not available");
 				} catch (ArgumentException ex) {
@@ -84,8 +96,8 @@ namespace Mono.Debugging.Soft
 				}
 			}
 			set {
-				SoftEvaluationContext ctx = (SoftEvaluationContext) Context;
-				ctx.Frame.SetValue (variable, (Value) value);
+				((SoftEvaluationContext) Context).Frame.SetValue (variable, (Value) value);
+				this.value = (Value) value;
 			}
 		}
 	}

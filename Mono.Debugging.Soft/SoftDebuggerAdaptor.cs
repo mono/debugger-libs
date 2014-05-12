@@ -454,7 +454,10 @@ namespace Mono.Debugging.Soft
 			var cx = (SoftEvaluationContext) ctx;
 			var str = value as string;
 
-			return str != null ? cx.Domain.CreateString (str) : cx.Session.VirtualMachine.CreateValue (value);
+			if (str != null)
+				return cx.Domain.CreateString (str);
+
+			return cx.Session.VirtualMachine.CreateValue (value);
 		}
 
 		public override object GetBaseValue (EvaluationContext ctx, object val)
@@ -746,21 +749,23 @@ namespace Mono.Debugging.Soft
 		
 		IEnumerable<ValueReference> GetLocalVariables (SoftEvaluationContext cx)
 		{
-			IList<LocalVariable> locals;
+			LocalVariable[] locals;
+			Value[] values;
+
 			try {
-				locals = cx.Frame.GetVisibleVariables ();
+				locals = cx.Frame.GetVisibleVariables ().Where (x => !x.IsArg && ((IsClosureReferenceLocal (x) && IsGeneratedType (x.Type)) || !IsGeneratedTemporaryLocal (x))).ToArray ();
+				values = cx.Frame.GetValues (locals.ToArray ());
 			} catch (AbsentInformationException) {
 				yield break;
 			}
-			foreach (LocalVariable local in locals) {
-				if (local.IsArg)
-					continue;
-				if (IsClosureReferenceLocal (local) && IsGeneratedType (local.Type)) {
-					foreach (var gv in GetHoistedLocalVariables (cx, new VariableValueReference (cx, local.Name, local))) {
+
+			for (int i = 0; i < locals.Length; i++) {
+				if (IsClosureReferenceLocal (locals[i]) && IsGeneratedType (locals[i].Type)) {
+					foreach (var gv in GetHoistedLocalVariables (cx, new VariableValueReference (cx, locals[i].Name, locals[i], values[i]))) {
 						yield return gv;
 					}
-				} else if (!IsGeneratedTemporaryLocal (local)) {
-					yield return new VariableValueReference (cx, GetLocalName (cx, local), local);
+				} else if (!IsGeneratedTemporaryLocal (locals[i])) {
+					yield return new VariableValueReference (cx, GetLocalName (cx, locals[i]), locals[i], values[i]);
 				}
 			}
 		}
@@ -1051,20 +1056,20 @@ namespace Mono.Debugging.Soft
 
 		protected override IEnumerable<ValueReference> OnGetParameters (EvaluationContext ctx)
 		{
-			SoftEvaluationContext soft = (SoftEvaluationContext) ctx;
+			var soft = (SoftEvaluationContext) ctx;
 			LocalVariable[] locals;
+			Value[] values;
 
 			try {
-				locals = soft.Frame.Method.GetLocals ();
+				locals = soft.Frame.Method.GetLocals ().Where (x => x.IsArg).ToArray ();
+				values = soft.Frame.GetValues (locals);
 			} catch (AbsentInformationException) {
 				yield break;
 			}
 				
-			foreach (LocalVariable var in locals) {
-				if (var.IsArg) {
-					string name = !string.IsNullOrEmpty (var.Name) ? var.Name : "arg" + var.Index;
-					yield return new VariableValueReference (ctx, name, var);
-				}
+			for (int i = 0; i < locals.Length; i++) {
+				string name = !string.IsNullOrEmpty (locals[i].Name) ? locals[i].Name : "arg" + locals[i].Index;
+				yield return new VariableValueReference (ctx, name, locals[i], values[i]);
 			}
 		}
 
