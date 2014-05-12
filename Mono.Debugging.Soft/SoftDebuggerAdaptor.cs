@@ -321,9 +321,8 @@ namespace Mono.Debugging.Soft
 				if (toType != null) {
 					if (toType.IsEnum) {
 						var casted = TryCast (ctx, val, toType.EnumUnderlyingType) as PrimitiveValue;
-						if (casted == null)
-							return null;
-						return cx.Session.VirtualMachine.CreateEnumMirror (toType, casted);
+
+						return casted != null ? cx.Session.VirtualMachine.CreateEnumMirror (toType, casted) : null;
 					}
 
 					type = Type.GetType (toType.FullName, false);
@@ -455,10 +454,7 @@ namespace Mono.Debugging.Soft
 			var cx = (SoftEvaluationContext) ctx;
 			var str = value as string;
 
-			if (str != null)
-				return cx.Domain.CreateString (str);
-
-			return cx.Session.VirtualMachine.CreateValue (value);
+			return str != null ? cx.Domain.CreateString (str) : cx.Session.VirtualMachine.CreateValue (value);
 		}
 
 		public override object GetBaseValue (EvaluationContext ctx, object val)
@@ -624,6 +620,7 @@ namespace Mono.Debugging.Soft
 					return field.Name.Substring (1, i - 1);
 				}
 			}
+
 			return null;
 		}
 
@@ -636,29 +633,33 @@ namespace Mono.Debugging.Soft
 			if (IsNull (cx, val))
 				return new ValueReference [0];
 			
-			TypeMirror tm = (TypeMirror) vthis.Type;
-			bool isIterator = IsGeneratedType (tm);
+			var tm = (TypeMirror) vthis.Type;
+			var isIterator = IsGeneratedType (tm);
 			
 			var list = new List<ValueReference> ();
-			TypeMirror type = (TypeMirror) vthis.Type;
+			var type = (TypeMirror) vthis.Type;
+
 			foreach (FieldInfoMirror field in type.GetFields ()) {
 				if (IsHoistedThisReference (field))
 					continue;
+
 				if (IsClosureReferenceField (field)) {
 					list.AddRange (GetHoistedLocalVariables (cx, new FieldValueReference (cx, field, val, type)));
 					continue;
 				}
+
 				if (field.Name[0] == '<') {
 					if (isIterator) {
 						var name = GetHoistedIteratorLocalName (field);
-						if (!string.IsNullOrEmpty (name)) {
+
+						if (!string.IsNullOrEmpty (name))
 							list.Add (new FieldValueReference (cx, field, val, type, name, ObjectValueFlags.Variable));
-						}
 					}
 				} else if (!field.Name.Contains ("$")) {
 					list.Add (new FieldValueReference (cx, field, val, type, field.Name, ObjectValueFlags.Variable));
 				}
 			}
+
 			return list;
 		}
 		
@@ -695,6 +696,7 @@ namespace Mono.Debugging.Soft
 		{
 			if (!string.IsNullOrEmpty (local.Name) || cx.SourceCodeAvailable)
 				return local.Name;
+
 			return "loc" + local.Index;
 		}
 		
@@ -707,9 +709,11 @@ namespace Mono.Debugging.Soft
 			
 			try {
 				LocalVariable local = null;
+
 				if (!cx.SourceCodeAvailable) {
 					if (name.StartsWith ("loc", StringComparison.Ordinal)) {
 						int idx;
+
 						if (int.TryParse (name.Substring (3), out idx))
 							local = cx.Frame.Method.GetLocals ().FirstOrDefault (loc => loc.Index == idx);
 					}
@@ -718,9 +722,10 @@ namespace Mono.Debugging.Soft
 						? cx.Frame.GetVisibleVariableByName (name)
 						: FindByName (cx.Frame.GetVisibleVariables(), v => v.Name, name, false);
 				}
-				if (local != null) {
+
+				if (local != null)
 					return new VariableValueReference (ctx, GetLocalName (cx, local), local);
-				}
+
 				return FindByName (OnGetLocalVariables (ctx), v => v.Name, name, ctx.CaseSensitive);
 			} catch (AbsentInformationException) {
 				return null;
@@ -762,16 +767,18 @@ namespace Mono.Debugging.Soft
 
 		public override bool HasMember (EvaluationContext ctx, object type, string memberName, BindingFlags bindingFlags)
 		{
-			TypeMirror tm = (TypeMirror) type;
+			var tm = (TypeMirror) type;
 
 			while (tm != null) {
-				FieldInfoMirror field = FindByName (tm.GetFields (), f => f.Name, memberName, ctx.CaseSensitive);
+				var field = FindByName (tm.GetFields (), f => f.Name, memberName, ctx.CaseSensitive);
+
 				if (field != null)
 					return true;
 
-				PropertyInfoMirror prop = FindByName (tm.GetProperties (), p => p.Name, memberName, ctx.CaseSensitive);
+				var prop = FindByName (tm.GetProperties (), p => p.Name, memberName, ctx.CaseSensitive);
+
 				if (prop != null) {
-					MethodMirror getter = prop.GetGetMethod (bindingFlags.HasFlag (BindingFlags.NonPublic));
+					var getter = prop.GetGetMethod (bindingFlags.HasFlag (BindingFlags.NonPublic));
 					if (getter != null)
 						return true;
 				}
@@ -792,14 +799,16 @@ namespace Mono.Debugging.Soft
 
 		protected override ValueReference GetMember (EvaluationContext ctx, object t, object co, string name)
 		{
-			TypeMirror type = t as TypeMirror;
+			var type = t as TypeMirror;
 
 			while (type != null) {
-				FieldInfoMirror field = FindByName (type.GetFields (), f => f.Name, name, ctx.CaseSensitive);
+				var field = FindByName (type.GetFields (), f => f.Name, name, ctx.CaseSensitive);
+
 				if (field != null && (field.IsStatic || co != null))
 					return new FieldValueReference (ctx, field, co, type);
 
-				PropertyInfoMirror prop = FindByName (type.GetProperties (), p => p.Name, name, ctx.CaseSensitive);
+				var prop = FindByName (type.GetProperties (), p => p.Name, name, ctx.CaseSensitive);
+
 				if (prop != null && (IsStatic (prop) || co != null)) {
 					// Optimization: if the property has a CompilerGenerated backing field, use that instead.
 					// This way we avoid overhead of invoking methods on the debugee when the value is requested.
@@ -808,11 +817,9 @@ namespace Mono.Debugging.Soft
 						return new FieldValueReference (ctx, field, co, type, prop.Name, ObjectValueFlags.Property);
 
 					// Backing field not available, so do things the old fashioned way.
-					MethodMirror getter = prop.GetGetMethod (true);
-					if (getter == null)
-						return null;
+					var getter = prop.GetGetMethod (true);
 					
-					return new PropertyValueReference (ctx, prop, co, type, getter, null);
+					return getter != null ? new PropertyValueReference (ctx, prop, co, type, getter, null) : null;
 				}
 
 				type = type.BaseType;
@@ -831,68 +838,89 @@ namespace Mono.Debugging.Soft
 		
 		static bool IsStatic (PropertyInfoMirror prop)
 		{
-			MethodMirror met = prop.GetGetMethod (true) ?? prop.GetSetMethod (true);
+			var met = prop.GetGetMethod (true) ?? prop.GetSetMethod (true);
+
 			return met.IsStatic;
 		}
 		
-		static T FindByName<T> (IEnumerable<T> elems, Func<T,string> getName, string name, bool caseSensitive)
+		static T FindByName<T> (IEnumerable<T> items, Func<T,string> getName, string name, bool caseSensitive)
 		{
 			T best = default(T);
-			foreach (T t in elems) {
-				string n = getName (t);
-				if (n == name) 
-					return t;
-				if (!caseSensitive && n.Equals (name, StringComparison.CurrentCultureIgnoreCase))
-					best = t;
+
+			foreach (T item in items) {
+				string itemName = getName (item);
+
+				if (itemName == name)
+					return item;
+
+				if (!caseSensitive && itemName.Equals (name, StringComparison.CurrentCultureIgnoreCase))
+					best = item;
 			}
+
 			return best;
 		}
 		
 		protected override IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, object t, object co, BindingFlags bindingFlags)
 		{
-			Dictionary<string, PropertyInfoMirror> subProps = new Dictionary<string, PropertyInfoMirror> ();
-			TypeMirror type = t as TypeMirror;
+			var subProps = new Dictionary<string, PropertyInfoMirror> ();
+			var type = t as TypeMirror;
 			TypeMirror realType = null;
+
 			if (co != null && (bindingFlags & BindingFlags.Instance) != 0)
 				realType = GetValueType (ctx, co) as TypeMirror;
 
 			// First of all, get a list of properties overriden in sub-types
 			while (realType != null && realType != type) {
-				foreach (PropertyInfoMirror prop in realType.GetProperties (bindingFlags | BindingFlags.DeclaredOnly)) {
-					MethodMirror met = prop.GetGetMethod (true);
+				foreach (var prop in realType.GetProperties (bindingFlags | BindingFlags.DeclaredOnly)) {
+					var met = prop.GetGetMethod (true);
+
 					if (met == null || met.GetParameters ().Length != 0 || met.IsAbstract || !met.IsVirtual || met.IsStatic)
 						continue;
+
 					if (met.IsPublic && ((bindingFlags & BindingFlags.Public) == 0))
 						continue;
+
 					if (!met.IsPublic && ((bindingFlags & BindingFlags.NonPublic) == 0))
 						continue;
+
 					subProps [prop.Name] = prop;
 				}
+
 				realType = realType.BaseType;
 			}
-			
+
 			while (type != null) {
-				foreach (FieldInfoMirror field in type.GetFields ()) {
+				foreach (var field in type.GetFields ()) {
 					if (field.IsStatic && ((bindingFlags & BindingFlags.Static) == 0))
 						continue;
+
 					if (!field.IsStatic && ((bindingFlags & BindingFlags.Instance) == 0))
 						continue;
+
 					if (field.IsPublic && ((bindingFlags & BindingFlags.Public) == 0))
 						continue;
+
 					if (!field.IsPublic && ((bindingFlags & BindingFlags.NonPublic) == 0))
 						continue;
+
 					yield return new FieldValueReference (ctx, field, co, type);
 				}
+
 				foreach (PropertyInfoMirror prop in type.GetProperties (bindingFlags)) {
-					MethodMirror getter = prop.GetGetMethod (true);
+					var getter = prop.GetGetMethod (true);
+
 					if (getter == null || getter.GetParameters ().Length != 0 || getter.IsAbstract)
 						continue;
+
 					if (getter.IsStatic && ((bindingFlags & BindingFlags.Static) == 0))
 						continue;
+
 					if (!getter.IsStatic && ((bindingFlags & BindingFlags.Instance) == 0))
 						continue;
+
 					if (getter.IsPublic && ((bindingFlags & BindingFlags.Public) == 0))
 						continue;
+
 					if (!getter.IsPublic && ((bindingFlags & BindingFlags.NonPublic) == 0))
 						continue;
 					
@@ -908,8 +936,10 @@ namespace Mono.Debugging.Soft
 						yield return new PropertyValueReference (ctx, prop, co, type, getter, null);
 					}
 				}
+
 				if ((bindingFlags & BindingFlags.DeclaredOnly) != 0)
 					break;
+
 				type = type.BaseType;
 			}
 		}
@@ -1040,19 +1070,22 @@ namespace Mono.Debugging.Soft
 
 		protected override ValueReference OnGetThisReference (EvaluationContext ctx)
 		{
-			SoftEvaluationContext cx = (SoftEvaluationContext) ctx;
+			var cx = (SoftEvaluationContext) ctx;
+
 			if (InGeneratedClosureOrIteratorType (cx))
 				return GetHoistedThisReference (cx);
 
 			return GetThisReference (cx);
 		}
 		
-		ValueReference GetThisReference (SoftEvaluationContext cx)
+		static ValueReference GetThisReference (SoftEvaluationContext cx)
 		{
 			try {
 				if (cx.Frame.Method.IsStatic)
 					return null;
-				Value val = cx.Frame.GetThis ();
+
+				var val = cx.Frame.GetThis ();
+
 				return LiteralValueReference.CreateTargetObjectLiteral (cx, "this", val);
 			} catch (AbsentInformationException) {
 				return null;
@@ -1062,12 +1095,10 @@ namespace Mono.Debugging.Soft
 		public override ValueReference GetCurrentException (EvaluationContext ctx)
 		{
 			try {
-				SoftEvaluationContext cx = (SoftEvaluationContext) ctx;
-				ObjectMirror exc = cx.Session.GetExceptionObject (cx.Thread);
-				if (exc != null)
-					return LiteralValueReference.CreateTargetObjectLiteral (ctx, ctx.Options.CurrentExceptionTag, exc);
+				var cx = (SoftEvaluationContext) ctx;
+				var exc = cx.Session.GetExceptionObject (cx.Thread);
 
-				return null;
+				return exc != null ? LiteralValueReference.CreateTargetObjectLiteral (ctx, ctx.Options.CurrentExceptionTag, exc) : null;
 			} catch (AbsentInformationException) {
 				return null;
 			}
@@ -1080,7 +1111,7 @@ namespace Mono.Debugging.Soft
 
 		public override object[] GetTypeArgs (EvaluationContext ctx, object type)
 		{
-			TypeMirror tm = (TypeMirror) type;
+			var tm = (TypeMirror) type;
 
 			if (tm.VirtualMachine.Version.AtLeast (2, 15))
 				return tm.GetGenericArguments ();
