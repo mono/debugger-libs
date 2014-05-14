@@ -35,17 +35,25 @@ namespace Mono.Debugging.Soft
 	public class VariableValueReference : ValueReference
 	{
 		readonly LocalVariable variable;
+		LocalVariableBatch batch;
 		Value value;
 		string name;
 
-		public VariableValueReference (EvaluationContext ctx, string name, LocalVariable variable, Value value): base (ctx)
+		public VariableValueReference (EvaluationContext ctx, string name, LocalVariable variable, LocalVariableBatch batch) : base (ctx)
+		{
+			this.variable = variable;
+			this.batch = batch;
+			this.name = name;
+		}
+
+		public VariableValueReference (EvaluationContext ctx, string name, LocalVariable variable, Value value) : base (ctx)
 		{
 			this.variable = variable;
 			this.value = value;
 			this.name = name;
 		}
 		
-		public VariableValueReference (EvaluationContext ctx, string name, LocalVariable variable): base (ctx)
+		public VariableValueReference (EvaluationContext ctx, string name, LocalVariable variable) : base (ctx)
 		{
 			this.variable = variable;
 			this.name = name;
@@ -86,7 +94,7 @@ namespace Mono.Debugging.Soft
 
 				try {
 					if (value == null)
-						value = ctx.Frame.GetValue (variable);
+						value = batch != null ? batch.GetValue (variable) : ctx.Frame.GetValue (variable);
 
 					return NormalizeValue (ctx, value);
 				} catch (AbsentInformationException) {

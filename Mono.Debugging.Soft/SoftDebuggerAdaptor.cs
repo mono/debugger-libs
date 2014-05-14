@@ -642,7 +642,7 @@ namespace Mono.Debugging.Soft
 			var list = new List<ValueReference> ();
 			var type = (TypeMirror) vthis.Type;
 
-			foreach (FieldInfoMirror field in type.GetFields ()) {
+			foreach (var field in type.GetFields ()) {
 				if (IsHoistedThisReference (field))
 					continue;
 
@@ -750,22 +750,25 @@ namespace Mono.Debugging.Soft
 		IEnumerable<ValueReference> GetLocalVariables (SoftEvaluationContext cx)
 		{
 			LocalVariable[] locals;
-			Value[] values;
 
 			try {
 				locals = cx.Frame.GetVisibleVariables ().Where (x => !x.IsArg && ((IsClosureReferenceLocal (x) && IsGeneratedType (x.Type)) || !IsGeneratedTemporaryLocal (x))).ToArray ();
-				values = cx.Frame.GetValues (locals.ToArray ());
 			} catch (AbsentInformationException) {
 				yield break;
 			}
 
+			if (locals.Length == 0)
+				yield break;
+
+			var batch = new LocalVariableBatch (cx.Frame, locals);
+
 			for (int i = 0; i < locals.Length; i++) {
 				if (IsClosureReferenceLocal (locals[i]) && IsGeneratedType (locals[i].Type)) {
-					foreach (var gv in GetHoistedLocalVariables (cx, new VariableValueReference (cx, locals[i].Name, locals[i], values[i]))) {
+					foreach (var gv in GetHoistedLocalVariables (cx, new VariableValueReference (cx, locals[i].Name, locals[i], batch))) {
 						yield return gv;
 					}
 				} else if (!IsGeneratedTemporaryLocal (locals[i])) {
-					yield return new VariableValueReference (cx, GetLocalName (cx, locals[i]), locals[i], values[i]);
+					yield return new VariableValueReference (cx, GetLocalName (cx, locals[i]), locals[i], batch);
 				}
 			}
 		}
@@ -1058,18 +1061,21 @@ namespace Mono.Debugging.Soft
 		{
 			var soft = (SoftEvaluationContext) ctx;
 			LocalVariable[] locals;
-			Value[] values;
 
 			try {
 				locals = soft.Frame.Method.GetLocals ().Where (x => x.IsArg).ToArray ();
-				values = soft.Frame.GetValues (locals);
 			} catch (AbsentInformationException) {
 				yield break;
 			}
+
+			if (locals.Length == 0)
+				yield break;
+
+			var batch = new LocalVariableBatch (soft.Frame, locals);
 				
 			for (int i = 0; i < locals.Length; i++) {
 				string name = !string.IsNullOrEmpty (locals[i].Name) ? locals[i].Name : "arg" + locals[i].Index;
-				yield return new VariableValueReference (ctx, name, locals[i], values[i]);
+				yield return new VariableValueReference (ctx, name, locals[i], batch);
 			}
 		}
 
