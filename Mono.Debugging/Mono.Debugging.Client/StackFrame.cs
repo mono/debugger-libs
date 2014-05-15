@@ -1,6 +1,5 @@
 using System;
 using Mono.Debugging.Backend;
-using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
@@ -39,19 +38,21 @@ namespace Mono.Debugging.Client
 			: this (address, addressSpace, location, language, isExternalCode, hasDebugInfo, false, fullModuleName, fullTypeName)
 		{
 		}
-		
+
+		[Obsolete]
 		public StackFrame (long address, string addressSpace, SourceLocation location, string language)
 			: this (address, addressSpace, location, language, string.IsNullOrEmpty (location.FileName), true, "", "")
 		{
 		}
 
+		[Obsolete]
 		public StackFrame (long address, string addressSpace, string module, string method, string filename, int line, string language)
 			: this (address, addressSpace, new SourceLocation (method, filename, line), language)
 		{
 		}
 
 		public StackFrame (long address, SourceLocation location, string language, bool isExternalCode, bool hasDebugInfo)
-			: this (address, "", location, language, string.IsNullOrEmpty (location.FileName), true, "", "")
+			: this (address, "", location, language, string.IsNullOrEmpty (location.FileName) || isExternalCode, hasDebugInfo, "", "")
 		{
 		}
 		
@@ -60,9 +61,9 @@ namespace Mono.Debugging.Client
 		{
 		}
 
-		internal void Attach (DebuggerSession session)
+		internal void Attach (DebuggerSession debugSession)
 		{
-			this.session = session;
+			session = debugSession;
 		}
 		
 		public DebuggerSession DebuggerSession {
@@ -151,10 +152,8 @@ namespace Mono.Debugging.Client
 				return new ObjectValue [0];
 
 			var evaluator = session.FindExpressionEvaluator (this);
-			if (evaluator != null)
-				return evaluator.GetLocals (this);
 
-			return GetAllLocals (session.EvaluationOptions);
+			return evaluator != null ? evaluator.GetLocals (this) : GetAllLocals (session.EvaluationOptions);
 		}
 		
 		public ObjectValue[] GetAllLocals (EvaluationOptions options)
@@ -251,7 +250,7 @@ namespace Mono.Debugging.Client
 			if (options.UseExternalTypeResolver)
 				expression = ResolveExpression (expression);
 
-			var values = sourceBacktrace.GetExpressionValues (index, new string[] { expression }, options);
+			var values = sourceBacktrace.GetExpressionValues (index, new [] { expression }, options);
 			ObjectValue.ConnectCallbacks (this, values);
 			return values [0];
 		}
@@ -277,10 +276,7 @@ namespace Mono.Debugging.Client
 		
 		public CompletionData GetExpressionCompletionData (string exp)
 		{
-			if (!hasDebugInfo)
-				return null;
-
-			return sourceBacktrace.GetExpressionCompletionData (index, exp);
+			return hasDebugInfo ? sourceBacktrace.GetExpressionCompletionData (index, exp) : null;
 		}
 		
 		// Returns disassembled code for this stack frame.
