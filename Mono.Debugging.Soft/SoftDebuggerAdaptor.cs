@@ -1089,18 +1089,9 @@ namespace Mono.Debugging.Soft
 			return GetThisReference (cx);
 		}
 		
-		static ValueReference GetThisReference (SoftEvaluationContext cx)
+		static ValueReference GetThisReference (SoftEvaluationContext ctx)
 		{
-			try {
-				if (cx.Frame.Method.IsStatic)
-					return null;
-
-				var val = cx.Frame.GetThis ();
-
-				return LiteralValueReference.CreateTargetObjectLiteral (cx, "this", val);
-			} catch (AbsentInformationException) {
-				return null;
-			}
+			return ctx.Frame.Method.IsStatic ? null : new ThisValueReference (ctx, ctx.Frame);
 		}
 		
 		public override ValueReference GetCurrentException (EvaluationContext ctx)
@@ -1280,15 +1271,15 @@ namespace Mono.Debugging.Soft
 		public override object GetValueType (EvaluationContext ctx, object val)
 		{
 			if (val == null)
-				return typeof (Object);
+				return typeof (object);
 			if (val is ArrayMirror)
-				return ((ArrayMirror)val).Type;
+				return ((ArrayMirror) val).Type;
 			if (val is ObjectMirror)
-				return ((ObjectMirror)val).Type;
+				return ((ObjectMirror) val).Type;
 			if (val is EnumMirror)
-				return ((EnumMirror)val).Type;
+				return ((EnumMirror) val).Type;
 			if (val is StructMirror)
-				return ((StructMirror)val).Type;
+				return ((StructMirror) val).Type;
 			if (val is PointerValue)
 				return ((PointerValue) val).Type;
 			if (val is PrimitiveValue) {

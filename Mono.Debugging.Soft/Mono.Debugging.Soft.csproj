@@ -69,6 +69,7 @@
     <Compile Include="StringAdaptor.cs" />
     <Compile Include="SoftValueReference.cs" />
     <Compile Include="LocalVariableBatch.cs" />
+    <Compile Include="ThisValueReference.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
