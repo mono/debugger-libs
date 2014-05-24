@@ -70,6 +70,7 @@
     <Compile Include="SoftValueReference.cs" />
     <Compile Include="LocalVariableBatch.cs" />
     <Compile Include="ThisValueReference.cs" />
+    <Compile Include="FieldReferenceBatch.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
