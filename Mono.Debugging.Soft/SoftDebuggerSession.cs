@@ -449,7 +449,7 @@ namespace Mono.Debugging.Soft
 		
 		void RegisterUserAssemblies (SoftDebuggerStartInfo dsi)
 		{
-			if (dsi.UserAssemblyNames != null) {
+			if (Options.ProjectAssembliesOnly && dsi.UserAssemblyNames != null) {
 				assemblyFilters = new List<AssemblyMirror> ();
 				userAssemblyNames = dsi.UserAssemblyNames.Select (x => x.ToString ()).ToList ();
 			}
