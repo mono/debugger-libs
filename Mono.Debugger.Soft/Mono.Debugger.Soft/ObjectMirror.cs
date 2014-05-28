@@ -262,7 +262,7 @@ namespace Mono.Debugger.Soft
 				f |= InvokeFlags.SINGLE_THREADED;
 
 			InvokeAsyncResult r = new InvokeAsyncResult { AsyncState = state, AsyncWaitHandle = new ManualResetEvent (false), VM = vm, Thread = thread, Callback = callback };
-
+			thread.InvalidateFrames ();
 			r.ID = vm.conn.VM_BeginInvokeMethod (thread.Id, method.Id, this_obj != null ? vm.EncodeValue (this_obj) : vm.EncodeValue (vm.CreateValue (null)), vm.EncodeValues (arguments), f, InvokeCB, r);
 
 			return r;
@@ -301,15 +301,15 @@ namespace Mono.Debugger.Soft
 				} catch (CommandException ex) {
 					if (ex.ErrorCode == ErrorCode.INVALID_ARGUMENT)
 						throw new ArgumentException ("Incorrect number or types of arguments", "arguments");
-					else
-						throw;
+
+					throw;
 				}
 				throw new NotImplementedException ();
 			} else {
 				if (r.Exception != null)
 					throw new InvocationException ((ObjectMirror)r.VM.DecodeValue (r.Exception));
-				else
-					return r.VM.DecodeValue (r.Value);
+
+				return r.VM.DecodeValue (r.Value);
 			}
 		}
 
@@ -370,6 +370,7 @@ namespace Mono.Debugger.Soft
 			var args = new List<ValueImpl[]> ();
 			for (int i = 0; i < methods.Length; ++i)
 				args.Add (vm.EncodeValues (arguments [i]));
+			thread.InvalidateFrames ();
 			r.ID = vm.conn.VM_BeginInvokeMethods (thread.Id, mids, this_obj != null ? vm.EncodeValue (this_obj) : vm.EncodeValue (vm.CreateValue (null)), args, f, InvokeMultipleCB, r);
 
 			return r;
