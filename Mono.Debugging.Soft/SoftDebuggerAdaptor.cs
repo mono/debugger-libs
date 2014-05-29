@@ -898,6 +898,7 @@ namespace Mono.Debugging.Soft
 			}
 
 			while (type != null) {
+				var fieldsBatch = new FieldReferenceBatch (co);
 				foreach (var field in type.GetFields ()) {
 					if (field.IsStatic && ((bindingFlags & BindingFlags.Static) == 0))
 						continue;
@@ -910,8 +911,12 @@ namespace Mono.Debugging.Soft
 
 					if (!field.IsPublic && ((bindingFlags & BindingFlags.NonPublic) == 0))
 						continue;
-
-					yield return new FieldValueReference (ctx, field, co, type);
+					if (field.IsStatic) {
+						yield return new FieldValueReference (ctx, field, co, type);
+					} else {
+						fieldsBatch.Add (field);
+						yield return new FieldValueReference (ctx, field, co, type, fieldsBatch);
+					}
 				}
 
 				foreach (PropertyInfoMirror prop in type.GetProperties (bindingFlags)) {

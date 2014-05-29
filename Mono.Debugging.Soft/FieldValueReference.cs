@@ -40,18 +40,20 @@ namespace Mono.Debugging.Soft
 		TypeMirror declaringType;
 		ObjectValueFlags flags;
 		string vname;
+		FieldReferenceBatch batch;
 		
-		public FieldValueReference (EvaluationContext ctx, FieldInfoMirror field, object obj, TypeMirror declaringType)
-			: this (ctx, field, obj, declaringType, null, ObjectValueFlags.Field)
+		public FieldValueReference (EvaluationContext ctx, FieldInfoMirror field, object obj, TypeMirror declaringType, FieldReferenceBatch batch = null)
+			: this (ctx, field, obj, declaringType, null, ObjectValueFlags.Field, batch)
 		{
 		}
 		
-		public FieldValueReference (EvaluationContext ctx, FieldInfoMirror field, object obj, TypeMirror declaringType, string vname, ObjectValueFlags vflags): base (ctx)
+		public FieldValueReference (EvaluationContext ctx, FieldInfoMirror field, object obj, TypeMirror declaringType, string vname, ObjectValueFlags vflags, FieldReferenceBatch batch = null): base (ctx)
 		{
 			this.field = field;
 			this.obj = obj;
 			this.declaringType = declaringType;
 			this.vname = vname;
+			this.batch = batch;
 			flags = vflags;
 
 			if (field.IsStatic)
@@ -120,6 +122,8 @@ namespace Mono.Debugging.Soft
 
 					return declaringType.GetValue (field);
 				} else if (obj is ObjectMirror) {
+					if (batch != null)
+						return batch.GetValue (field);
 					return ((ObjectMirror)obj).GetValue (field);
 				} else if (obj is StructMirror) {
 					StructMirror sm = (StructMirror)obj;
@@ -148,8 +152,11 @@ namespace Mono.Debugging.Soft
 			set {
 				if (obj == null)
 					declaringType.SetValue (field, (Value)value);
-				else if (obj is ObjectMirror)
+				else if (obj is ObjectMirror) {
+					if (batch != null)
+						batch.Invalidate ();
 					((ObjectMirror)obj).SetValue (field, (Value)value);
+				}
 				else if (obj is StructMirror) {
 					StructMirror sm = (StructMirror)obj;
 					int idx = 0;
