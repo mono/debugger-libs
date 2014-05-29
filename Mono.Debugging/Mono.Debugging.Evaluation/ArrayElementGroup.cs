@@ -154,23 +154,25 @@ namespace Mono.Debugging.Evaluation
 				int[] curIndex = new int [baseIndices.Length + 1];
 				Array.Copy (baseIndices, curIndex, baseIndices.Length);
 				string curIndexStr = IndicesToString (baseIndices);
-				if (baseIndices.Length > 0) curIndexStr += ",";
-				
-				for (int n=0; n < values.Length; n++) {
+				if (baseIndices.Length > 0)
+					curIndexStr += ",";
+				curIndex [curIndex.Length - 1] = initalIndex + firstItemIndex;
+				var elems = array.GetElements (curIndex, System.Math.Min (values.Length, upperBound + 1));
+
+				for (int n = 0; n < values.Length; n++) {
 					int index = n + initalIndex + firstItemIndex;
 					string sidx = curIndexStr + index.ToString ();
 					ObjectValue val;
-					string ename = "[" + sidx.Replace (",",", ") + "]";
+					string ename = "[" + sidx.Replace (",", ", ") + "]";
 					if (index > upperBound)
 						val = ObjectValue.CreateUnknown (sidx);
 					else {
 						curIndex [curIndex.Length - 1] = index;
-						object elem = array.GetElement (curIndex);
-						val = cctx.Adapter.CreateObjectValue (cctx, this, newPath.Append (sidx), elem, ObjectValueFlags.ArrayElement);
-						if (elem != null && !cctx.Adapter.IsNull (cctx, elem)) {
-							TypeDisplayData tdata = cctx.Adapter.GetTypeDisplayData (cctx, cctx.Adapter.GetValueType (cctx, elem));
+						val = cctx.Adapter.CreateObjectValue (cctx, this, newPath.Append (sidx), elems.GetValue (n), ObjectValueFlags.ArrayElement);
+						if (elems.GetValue (n) != null && !cctx.Adapter.IsNull (cctx, elems.GetValue (n))) {
+							TypeDisplayData tdata = cctx.Adapter.GetTypeDisplayData (cctx, cctx.Adapter.GetValueType (cctx, elems.GetValue (n)));
 							if (!string.IsNullOrEmpty (tdata.NameDisplayString))
-								ename = cctx.Adapter.EvaluateDisplayString (cctx, elem, tdata.NameDisplayString);
+								ename = cctx.Adapter.EvaluateDisplayString (cctx, elems.GetValue (n), tdata.NameDisplayString);
 						}
 					}
 					val.Name = ename;
