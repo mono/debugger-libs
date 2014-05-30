@@ -64,6 +64,10 @@ namespace Mono.Debugging.Soft
 		{
 		}
 
+		public SoftDebuggerSession Session {
+			get; set;
+		}
+
 		static string GetPrettyMethodName (EvaluationContext ctx, MethodMirror method)
 		{
 			var name = new System.Text.StringBuilder ();
@@ -971,12 +975,33 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 
+		static ObjectValueFlags GetFlags (MethodMirror method)
+		{
+			var flags = ObjectValueFlags.Method;
+
+			if (method.IsStatic)
+				flags |= ObjectValueFlags.Global;
+
+			if (method.IsPublic)
+				flags |= ObjectValueFlags.Public;
+			else if (method.IsPrivate)
+				flags |= ObjectValueFlags.Private;
+			else if (method.IsFamily)
+				flags |= ObjectValueFlags.Protected;
+			else if (method.IsFamilyAndAssembly)
+				flags |= ObjectValueFlags.Internal;
+			else if (method.IsFamilyOrAssembly)
+				flags |= ObjectValueFlags.InternalProtected;
+
+			return flags;
+		}
+
 		protected override CompletionData GetMemberCompletionData (EvaluationContext ctx, ValueReference vr)
 		{
-			HashSet<string> properties = new HashSet<string> ();
-			HashSet<string> methods = new HashSet<string> ();
-			HashSet<string> fields = new HashSet<string> ();
-			CompletionData data = new CompletionData ();
+			var properties = new HashSet<string> ();
+			var methods = new HashSet<string> ();
+			var fields = new HashSet<string> ();
+			var data = new CompletionData ();
 			var type = vr.Type as TypeMirror;
 			bool isEnumerable = false;
 
@@ -984,8 +1009,10 @@ namespace Mono.Debugging.Soft
 				if (!isEnumerable && IsIEnumerable (type))
 					isEnumerable = true;
 
+				bool isExternal = Session.IsExternalCode (type);
+
 				foreach (var field in type.GetFields ()) {
-					if (field.IsStatic || field.IsSpecialName || !field.IsPublic)
+					if (field.IsStatic || field.IsSpecialName || (isExternal && !field.IsPublic))
 						continue;
 
 					if (fields.Add (field.Name))
@@ -995,7 +1022,7 @@ namespace Mono.Debugging.Soft
 				foreach (var property in type.GetProperties ()) {
 					var getter = property.GetGetMethod (true);
 
-					if (getter == null || getter.IsStatic || !getter.IsPublic)
+					if (getter == null || getter.IsStatic || (isExternal && !getter.IsPublic))
 						continue;
 
 					if (properties.Add (property.Name))
@@ -1003,11 +1030,11 @@ namespace Mono.Debugging.Soft
 				}
 
 				foreach (var method in type.GetMethods ()) {
-					if (method.IsStatic || method.IsConstructor || method.IsSpecialName || !method.IsPublic)
+					if (method.IsStatic || method.IsConstructor || method.IsSpecialName || (isExternal && !method.IsPublic))
 						continue;
 
 					if (methods.Add (method.Name))
-						data.Items.Add (new CompletionItem (method.Name, ObjectValueFlags.Method | ObjectValueFlags.Public));
+						data.Items.Add (new CompletionItem (method.Name, GetFlags (method)));
 				}
 
 				if (type.BaseType == null && type.FullName != "System.Object")

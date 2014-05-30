@@ -93,6 +93,7 @@ namespace Mono.Debugging.Soft
 		{
 			Adaptor = CreateSoftDebuggerAdaptor ();
 			Adaptor.BusyStateChanged += (sender, e) => SetBusyState (e);
+			Adaptor.Session = this;
 		}
 
 		protected virtual SoftDebuggerAdaptor CreateSoftDebuggerAdaptor ()
