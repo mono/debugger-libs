@@ -1577,6 +1577,20 @@ namespace Mono.Debugging.Client
 				return frontend;
 			}
 		}
+
+		protected virtual void OnFetchFrames (ThreadInfo[] threads)
+		{
+		}
+
+		/// <summary>
+		/// Calling this method is optional.
+		/// It's usefull to call this method so underlying debugger can optimize speed of fetching multiple frames on <paramref name="threads"/>.
+		/// </summary>
+		/// <param name="threads">Array of threads to fetch frames.</param>
+		public void FetchFrames (ThreadInfo[] threads)
+		{
+			OnFetchFrames (threads);
+		}
 	}
 	
 	class InternalDebuggerSession: IDebuggerSessionFrontend

@@ -65,7 +65,6 @@ namespace Mono.Debugging.Soft
 		Dictionary<string, string> assemblyPathMap;
 		ThreadMirror current_thread, recent_thread;
 		List<AssemblyMirror> assemblyFilters;
-		IList<ThreadMirror> thread_mirrors;
 		StepEventRequest currentStepRequest;
 		IConnectionDialog connectionDialog;
 		Thread outputReader, errorReader;
@@ -511,7 +510,6 @@ namespace Mono.Debugging.Soft
 
 		protected virtual void OnResumed ()
 		{
-			thread_mirrors = null;
 			current_threads = null;
 			current_thread = null;
 			procs = null;
@@ -725,18 +723,18 @@ namespace Mono.Debugging.Soft
 			return name;
 		}
 
-		IList<ThreadMirror> GetThreads ()
+		protected override void OnFetchFrames (ThreadInfo[] threads)
 		{
-			if (thread_mirrors == null)
-				thread_mirrors = vm.GetThreads ();
-
-			return thread_mirrors;
+			var mirrorThreads = new ThreadMirror[threads.Length];
+			for (int i = 0; i < threads.Length; i++)
+				mirrorThreads [i] = GetThread (threads [i].Id);
+			ThreadMirror.FetchFrames (mirrorThreads);
 		}
 
 		protected override ThreadInfo[] OnGetThreads (long processId)
 		{
 			if (current_threads == null) {
-				var mirrors = GetThreads ();
+				var mirrors = vm.GetThreads ();
 				var threads = new ThreadInfo[mirrors.Count];
 
 				for (int i = 0; i < mirrors.Count; i++) {
@@ -753,7 +751,7 @@ namespace Mono.Debugging.Soft
 		
 		ThreadMirror GetThread (long threadId)
 		{
-			foreach (var thread in GetThreads ()) {
+			foreach (var thread in vm.GetThreads ()) {
 				if (GetId (thread) == threadId)
 					return thread;
 			}
@@ -2566,7 +2564,7 @@ namespace Mono.Debugging.Soft
 			if (ThreadIsAlive (recent_thread) && HasUserFrame (GetId (recent_thread), infos))
 				return;
 
-			var threads = GetThreads ();
+			var threads = vm.GetThreads ();
 			foreach (var thread in threads) {
 				if (ThreadIsAlive (thread) && HasUserFrame (GetId (thread), infos)) {
 					recent_thread = thread;
