@@ -599,6 +599,10 @@ namespace Mono.Debugging.Client
 			}
 		}
 
+		public bool IsNull {
+			get { return isNull; }
+		}
+
 		public bool IsReadOnly {
 			get { return HasFlag (ObjectValueFlags.ReadOnly); }
 		}
