@@ -33,10 +33,10 @@ namespace Mono.Debugging.Soft
 	public class PropertyValueReference: SoftValueReference
 	{
 		PropertyInfoMirror property;
-		object obj;
 		TypeMirror declaringType;
-		Value[] indexerArgs;
 		ObjectValueFlags flags;
+		Value[] indexerArgs;
+		object obj;
 		
 		public PropertyValueReference (EvaluationContext ctx, PropertyInfoMirror property, object obj, TypeMirror declaringType, MethodMirror getter, Value[] indexerArgs): base (ctx)
 		{
@@ -104,8 +104,12 @@ namespace Mono.Debugging.Soft
 		}
 
 		public override object Value {
-			get { return GetValue (Context); }
-			set { SetValue (Context, value); }
+			get {
+				return GetValue (Context);
+			}
+			set {
+				SetValue (Context, value);
+			}
 		}
 
 		public override object GetValue (EvaluationContext ctx)

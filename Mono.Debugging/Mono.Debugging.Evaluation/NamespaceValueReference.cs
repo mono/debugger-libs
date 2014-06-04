@@ -39,7 +39,8 @@ namespace Mono.Debugging.Evaluation
 
 		public NamespaceValueReference (EvaluationContext ctx, string name) : base (ctx)
 		{
-			this.namspace = name;
+			namspace = name;
+
 			int i = namspace.LastIndexOf ('.');
 			if (i != -1)
 				this.name = namspace.Substring (i+1);
@@ -49,17 +50,16 @@ namespace Mono.Debugging.Evaluation
 
 		public override object Value {
 			get {
-				throw new NotSupportedException();
+				throw new NotSupportedException ();
 			}
 			set {
-				throw new NotSupportedException();
+				throw new NotSupportedException ();
 			}
 		}
-
 		
 		public override object Type {
 			get {
-				throw new NotSupportedException();
+				throw new NotSupportedException ();
 			}
 		}
 
@@ -69,14 +69,12 @@ namespace Mono.Debugging.Evaluation
 				throw new NotSupportedException ();
 			}
 		}
-
 		
 		public override string Name {
 			get {
 				return name;
 			}
 		}
-
 		
 		public override ObjectValueFlags Flags {
 			get {
@@ -87,57 +85,57 @@ namespace Mono.Debugging.Evaluation
 		public override ValueReference GetChild (string name, EvaluationOptions options)
 		{
 			string newNs = namspace + "." + name;
-			
-			EvaluationContext ctx = GetContext (options);
-			object t = ctx.Adapter.GetType (ctx, newNs);
-			if (t != null)
-				return new TypeValueReference (ctx, t);
+
+			var ctx = GetContext (options);
+			var type = ctx.Adapter.GetType (ctx, newNs);
+
+			if (type != null)
+				return new TypeValueReference (ctx, type);
 			
 			return new NamespaceValueReference (ctx, newNs);
 		}
 
 		public override ObjectValue[] GetChildren (ObjectPath path, int index, int count, EvaluationOptions options)
 		{
-			List<ObjectValue> obs = new List<ObjectValue> ();
-			foreach (ValueReference val in GetChildReferences (options)) {
-				obs.Add (val.CreateObjectValue (options));
-			}
-			return obs.ToArray ();
+			var children = new List<ObjectValue> ();
+
+			foreach (var val in GetChildReferences (options))
+				children.Add (val.CreateObjectValue (options));
+
+			return children.ToArray ();
 		}
 
 		public override IEnumerable<ValueReference> GetChildReferences (EvaluationOptions options)
 		{
 			// Child types
-
 			string[] childNamespaces;
 			string[] childTypes;
 
-			EvaluationContext ctx = GetContext (options);
+			var ctx = GetContext (options);
 			ctx.Adapter.GetNamespaceContents (ctx, namspace, out childNamespaces, out childTypes);
 
-			List<ValueReference> list = new List<ValueReference> ();
+			var list = new List<ValueReference> ();
 			foreach (string typeName in childTypes) {
 				object tt = ctx.Adapter.GetType (ctx, typeName);
 				if (tt != null)
 					list.Add (new TypeValueReference (ctx, tt));
 			}
-			list.Sort (delegate (ValueReference v1, ValueReference v2) {
-				return v1.Name.CompareTo (v2.Name);
-			});
+
+			list.Sort ((v1, v2) => string.Compare (v1.Name, v2.Name, StringComparison.CurrentCulture));
 			
 			// Child namespaces
-			
-			List<ValueReference> listNs = new List<ValueReference> ();
+			var listNs = new List<ValueReference> ();
 			foreach (string ns in childNamespaces)
 				listNs.Add (new NamespaceValueReference (ctx, ns));
-			listNs.Sort (delegate (ValueReference v1, ValueReference v2) {
-				return v1.Name.CompareTo (v2.Name);
-			});
+
+			listNs.Sort ((v1, v2) => string.Compare (v1.Name, v2.Name, StringComparison.CurrentCulture));
+
 			list.AddRange (listNs);
+
 			return list;
 		}
 
-		protected override Mono.Debugging.Client.ObjectValue OnCreateObjectValue (EvaluationOptions options)
+		protected override ObjectValue OnCreateObjectValue (EvaluationOptions options)
 		{
 			return Mono.Debugging.Client.ObjectValue.CreateObject (this, new ObjectPath (Name), "<namespace>", namspace, Flags, null);
 		}

@@ -24,7 +24,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System;
 using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Evaluation
@@ -49,8 +48,8 @@ namespace Mono.Debugging.Evaluation
 			get {
 				if (currentValue != null)
 					return currentValue;
-				else
-					throw new EvaluatorException ("Value undefined.");
+
+				throw new EvaluatorException ("Value undefined.");
 			}
 			set {
 				currentValue = value;
@@ -68,6 +67,5 @@ namespace Mono.Debugging.Evaluation
 				return ObjectValueFlags.Variable;
 			}
 		}
-
 	}
 }
