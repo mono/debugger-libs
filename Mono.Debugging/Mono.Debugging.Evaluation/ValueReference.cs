@@ -178,7 +178,7 @@ namespace Mono.Debugging.Evaluation
 		
 		object IObjectValueSource.GetRawValue (ObjectPath path, EvaluationOptions options)
 		{
-			return ctx.Adapter.ToRawValue (GetContext (options), this, Value);
+			return ctx.Adapter.ToRawValue (GetContext (options), this, options.AllowTargetInvoke ? GetValueExplicitly () : Value);
 		}
 
 		void IObjectValueSource.SetRawValue (ObjectPath path, object value, EvaluationOptions options)
