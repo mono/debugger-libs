@@ -104,29 +104,32 @@ namespace Mono.Debugging.Soft
 		}
 
 		public override object Value {
-			get {
-				Context.AssertTargetInvokeAllowed ();
-				return GetValueExplicitly ();
-			}
-			set {
-				Context.AssertTargetInvokeAllowed ();
-				var ctx = (SoftEvaluationContext) Context;
-				var args = new Value [indexerArgs != null ? indexerArgs.Length + 1 : 1];
-				if (indexerArgs != null)
-					indexerArgs.CopyTo (args, 0);
-				args [args.Length - 1] = (Value) value;
-				var setter = property.GetSetMethod (true);
-				if (setter == null)
-					throw new EvaluatorException ("Property is read-only");
-				ctx.RuntimeInvoke (setter, obj ?? declaringType, args);
-			}
+			get { return GetValue (Context); }
+			set { SetValue (Context, value); }
 		}
 
-		protected override object GetValueExplicitly ()
+		public override object GetValue (EvaluationContext ctx)
 		{
-			var ctx = (SoftEvaluationContext) Context;
+			ctx.AssertTargetInvokeAllowed ();
 
-			return ctx.RuntimeInvoke (property.GetGetMethod (true), obj ?? declaringType, indexerArgs);
+			return ((SoftEvaluationContext) ctx).RuntimeInvoke (property.GetGetMethod (true), obj ?? declaringType, indexerArgs);
+		}
+
+		public override void SetValue (EvaluationContext ctx, object value)
+		{
+			ctx.AssertTargetInvokeAllowed ();
+
+			var args = new Value [indexerArgs != null ? indexerArgs.Length + 1 : 1];
+			if (indexerArgs != null)
+				indexerArgs.CopyTo (args, 0);
+
+			args [args.Length - 1] = (Value) value;
+
+			var setter = property.GetSetMethod (true);
+			if (setter == null)
+				throw new EvaluatorException ("Property is read-only");
+
+			((SoftEvaluationContext) ctx).RuntimeInvoke (setter, obj ?? declaringType, args);
 		}
 
 		protected override bool CanEvaluate (EvaluationOptions options)
