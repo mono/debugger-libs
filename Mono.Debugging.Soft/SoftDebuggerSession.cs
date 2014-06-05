@@ -1486,7 +1486,7 @@ namespace Mono.Debugging.Soft
 					var attrName = attr.Constructor.DeclaringType.FullName;
 
 					if (attrName == "System.Diagnostics.DebuggerNonUserCodeAttribute")
-						return true;
+						return Options.ProjectAssembliesOnly;
 				}
 			}
 
@@ -1501,6 +1501,36 @@ namespace Mono.Debugging.Soft
 
 					if (attrName == "System.Diagnostics.DebuggerStepperBoundaryAttribute")
 						return true;
+				}
+			}
+
+			return false;
+		}
+
+		bool IgnoreBreakpoint (MethodMirror method)
+		{
+			if (Options.ProjectAssembliesOnly && !IsUserAssembly (method.DeclaringType.Assembly))
+				return true;
+
+			if (vm.Version.AtLeast (2, 21)) {
+				foreach (var attr in method.GetCustomAttributes (false)) {
+					var attrName = attr.Constructor.DeclaringType.FullName;
+
+					switch (attrName) {
+					case "System.Diagnostics.DebuggerHiddenAttribute":      return true;
+					case "System.Diagnostics.DebuggerStepThroughAttribute": return true;
+					case "System.Diagnostics.DebuggerNonUserCodeAttribute": return Options.ProjectAssembliesOnly;
+					case "System.Diagnostics.DebuggerStepperBoundaryAttribute": return true;
+					}
+				}
+			}
+
+			if (Options.ProjectAssembliesOnly) {
+				foreach (var attr in method.DeclaringType.GetCustomAttributes (false)) {
+					var attrName = attr.Constructor.DeclaringType.FullName;
+
+					if (attrName == "System.Diagnostics.DebuggerNonUserCodeAttribute")
+						return Options.ProjectAssembliesOnly;
 				}
 			}
 
@@ -1579,7 +1609,7 @@ namespace Mono.Debugging.Soft
 				
 				Step (depth, size);
 			} else if (resume) {
-				//all breakpoints were conditional and evaluated as false
+				// all breakpoints were conditional and evaluated as false
 				vm.Resume ();
 				DequeueEventsForFirstThread ();
 			} else {
@@ -1600,6 +1630,7 @@ namespace Mono.Debugging.Soft
 				if (backtrace.FrameCount > 0) {
 					var frame = backtrace.GetFrame (0) as SoftDebuggerStackFrame;
 					currentAddress = frame != null ? frame.Address : -1;
+
 					if (frame != null && steppedInto) {
 						if (ContinueOnStepInto (frame.StackFrame.Method)) {
 							vm.Resume ();
@@ -1620,6 +1651,10 @@ namespace Mono.Debugging.Soft
 							autoStepInto = true;
 							stepOut = true;
 						}
+					} else if (breakEvent != null && IgnoreBreakpoint (frame.StackFrame.Method)) {
+						vm.Resume ();
+						DequeueEventsForFirstThread ();
+						return;
 					}
 				}
 
