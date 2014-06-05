@@ -62,7 +62,7 @@ namespace Mono.Debugging.Evaluation
 					return ObjectValue.CreateArray (null, new ObjectPath ("Local Variables"), "", list.Count, ObjectValueFlags.EvaluatingGroup, list.ToArray ());
 				});
 
-				return new ObjectValue [] { val };
+				return new [] { val };
 			}
 			
 			foreach (ValueReference local in frame.LocalVariables)
@@ -85,7 +85,7 @@ namespace Mono.Debugging.Evaluation
 					return ObjectValue.CreateArray (null, new ObjectPath ("Parameters"), "", values.Count, ObjectValueFlags.EvaluatingGroup, values.ToArray ());
 				});
 
-				return new ObjectValue [] { value };
+				return new [] { value };
 			}
 			
 			foreach (var param in frame.Parameters)
@@ -104,7 +104,7 @@ namespace Mono.Debugging.Evaluation
 					ObjectValue[] values;
 
 					if (frame.This != null)
-						values = new ObjectValue[] { frame.This.CreateObjectValue (false, options) };
+						values = new [] { frame.This.CreateObjectValue (false, options) };
 					else
 						values = new ObjectValue [0];
 
@@ -112,10 +112,7 @@ namespace Mono.Debugging.Evaluation
 				});
 			}
 
-			if (frame.This != null)
-				return frame.This.CreateObjectValue (true, options);
-
-			return null;
+			return frame.This != null ? frame.This.CreateObjectValue (true, options) : null;
 		}
 		
 		public virtual ExceptionInfo GetException (int frameIndex, EvaluationOptions options)
@@ -129,7 +126,7 @@ namespace Mono.Debugging.Evaluation
 					ObjectValue[] values;
 
 					if (frame.Exception != null)
-						values = new ObjectValue[] { frame.Exception.CreateObjectValue (false, options) };
+						values = new [] { frame.Exception.CreateObjectValue (false, options) };
 					else
 						values = new ObjectValue [0];
 
@@ -154,7 +151,7 @@ namespace Mono.Debugging.Evaluation
 					ObjectValue[] values;
 
 					if (frame.Exception != null)
-						values = new ObjectValue[] { frame.Exception.Exception.CreateObjectValue (false, options) };
+						values = new [] { frame.Exception.Exception.CreateObjectValue (false, options) };
 					else
 						values = new ObjectValue [0];
 
@@ -162,10 +159,7 @@ namespace Mono.Debugging.Evaluation
 				});
 			}
 
-			if (frame.Exception != null)
-				return frame.Exception.Exception.CreateObjectValue (true, options);
-
-			return null;
+			return frame.Exception != null ? frame.Exception.Exception.CreateObjectValue (true, options) : null;
 		}
 		
 		public virtual ObjectValue[] GetAllLocals (int frameIndex, EvaluationOptions options)

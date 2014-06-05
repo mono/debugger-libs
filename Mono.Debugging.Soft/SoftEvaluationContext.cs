@@ -54,11 +54,7 @@ namespace Mono.Debugging.Soft
 			string language;
 
 			if (frame.Method != null) {
-				if (frame.IsNativeTransition) {
-					language = "Transition";
-				} else {
-					language = "Managed";
-				}
+				language = frame.IsNativeTransition ? "Transition" : "Managed";
 			} else {
 				language = "Native";
 			}
@@ -66,7 +62,7 @@ namespace Mono.Debugging.Soft
 			Evaluator = session.GetEvaluator (new DC.StackFrame (frame.ILOffset, location, language, session.IsExternalCode (frame), true));
 			Adapter = session.Adaptor;
 			this.session = session;
-			this.stackVersion = session.StackVersion;
+			stackVersion = session.StackVersion;
 			sourceAvailable = !string.IsNullOrEmpty (frame.FileName) && System.IO.File.Exists (frame.FileName);
 		}
 		
