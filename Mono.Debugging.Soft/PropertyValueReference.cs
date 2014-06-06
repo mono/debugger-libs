@@ -114,8 +114,6 @@ namespace Mono.Debugging.Soft
 
 		public override object GetValue (EvaluationContext ctx)
 		{
-			ctx.AssertTargetInvokeAllowed ();
-
 			return ((SoftEvaluationContext) ctx).RuntimeInvoke (property.GetGetMethod (true), obj ?? declaringType, indexerArgs);
 		}
 

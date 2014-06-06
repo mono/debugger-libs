@@ -170,8 +170,11 @@ namespace Mono.Debugging.Soft
 			try {
 				return method.Evaluate (target is TypeMirror ? null : (Value) target, values);
 			} catch (NotSupportedException) {
+				AssertTargetInvokeAllowed ();
+
 				var mc = new MethodCall (this, method, target, values);
 				Adapter.AsyncExecute (mc, Options.EvaluationTimeout);
+
 				return mc.ReturnValue;
 			}
 		}
