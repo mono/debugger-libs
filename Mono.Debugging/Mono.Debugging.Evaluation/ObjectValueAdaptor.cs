@@ -378,30 +378,24 @@ namespace Mono.Debugging.Evaluation
 
 		public virtual bool IsTypeLoaded (EvaluationContext ctx, string typeName)
 		{
-			object t = GetType (ctx, typeName);
+			var type = GetType (ctx, typeName);
 
-			if (t == null)
-				return false;
-
-			return IsTypeLoaded (ctx, t);
+			return type != null && IsTypeLoaded (ctx, type);
 		}
 
 		public virtual bool IsTypeLoaded (EvaluationContext ctx, object type)
 		{
 			return true;
 		}
-		
+
 		public virtual object ForceLoadType (EvaluationContext ctx, string typeName)
 		{
-			object t = GetType (ctx, typeName);
+			var type = GetType (ctx, typeName);
 
-			if (t == null || IsTypeLoaded (ctx, t))
-				return t;
+			if (type == null || IsTypeLoaded (ctx, type))
+				return type;
 
-			if (ForceLoadType (ctx, t))
-				return t;
-
-			return null;
+			return ForceLoadType (ctx, type) ? type : null;
 		}
 
 		public virtual bool ForceLoadType (EvaluationContext ctx, object type)
@@ -546,6 +540,7 @@ namespace Mono.Debugging.Evaluation
 						tdataType = decType;
 						tdata = GetTypeDisplayData (ctx, decType);
 					}
+
 					DebuggerBrowsableState state = tdata.GetMemberBrowsableState (val.Name);
 					if (state == DebuggerBrowsableState.Never)
 						continue;
@@ -558,15 +553,12 @@ namespace Mono.Debugging.Evaluation
 							showRawView = true;
 							break;
 						}
-					}
-					else {
+					} else {
 						ObjectValue oval = val.CreateObjectValue (true);
 						names.Disambiguate (val, oval);
 						values.Add (oval);
 					}
-
-				}
-				catch (Exception ex) {
+				} catch (Exception ex) {
 					ctx.WriteDebuggerError (ex);
 					values.Add (ObjectValue.CreateError (null, new ObjectPath (val.Name), GetDisplayTypeName (GetTypeName (ctx, val.Type)), ex.Message, val.Flags));
 				}
@@ -574,21 +566,21 @@ namespace Mono.Debugging.Evaluation
 
 			if (showRawView) {
 				values.Add (RawViewSource.CreateRawView (ctx, objectSource, obj));
-			}
-			else {
+			} else {
 				if (IsArray (ctx, proxy)) {
-					ICollectionAdaptor col = CreateArrayAdaptor (ctx, proxy);
-					ArrayElementGroup agroup = new ArrayElementGroup (ctx, col);
-					ObjectValue val = ObjectValue.CreateObject (null, new ObjectPath ("Raw View"), "", "", ObjectValueFlags.ReadOnly, values.ToArray ());
+					var col = CreateArrayAdaptor (ctx, proxy);
+					var agroup = new ArrayElementGroup (ctx, col);
+					var val = ObjectValue.CreateObject (null, new ObjectPath ("Raw View"), "", "", ObjectValueFlags.ReadOnly, values.ToArray ());
+
 					values = new List<ObjectValue> ();
 					values.Add (val);
 					values.AddRange (agroup.GetChildren (ctx.Options));
-				}
-				else {
+				} else {
 					if (ctx.Options.GroupStaticMembers && HasMembers (ctx, type, proxy, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | flattenFlag)) {
 						access = BindingFlags.Static | BindingFlags.Public | flattenFlag | nonPublicFlag;
 						values.Add (FilteredMembersSource.CreateStaticsNode (ctx, objectSource, type, proxy, access));
 					}
+
 					if (groupPrivateMembers && HasMembers (ctx, type, proxy, BindingFlags.Instance | BindingFlags.NonPublic | flattenFlag | staticFlag))
 						values.Add (FilteredMembersSource.CreateNonPublicsNode (ctx, objectSource, type, proxy, BindingFlags.Instance | BindingFlags.NonPublic | flattenFlag | staticFlag));
 					
@@ -599,6 +591,7 @@ namespace Mono.Debugging.Evaluation
 					}
 				}
 			}
+
 			return values.ToArray ();
 		}
 
@@ -761,21 +754,23 @@ namespace Mono.Debugging.Evaluation
 			if (lastWastLetter) {
 				string partialWord = expr.Substring (i+1);
 				
-				CompletionData data = new CompletionData ();
+				var data = new CompletionData ();
 				data.ExpressionLength = partialWord.Length;
 				
 				// Local variables
 				
-				foreach (ValueReference vc in GetLocalVariables (ctx))
+				foreach (ValueReference vc in GetLocalVariables (ctx)) {
 					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
 						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
-				
+				}
+
 				// Parameters
 				
-				foreach (ValueReference vc in GetParameters (ctx))
+				foreach (ValueReference vc in GetParameters (ctx)) {
 					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
 						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
-				
+				}
+
 				// Members
 				
 				ValueReference thisobj = GetThisReference (ctx);
@@ -981,16 +976,22 @@ namespace Mono.Debugging.Evaluation
 				ICollectionAdaptor adaptor = CreateArrayAdaptor (ctx, obj);
 				string ename = GetDisplayTypeName (GetTypeName (ctx, adaptor.ElementType));
 				int[] dims = adaptor.GetDimensions ();
-				StringBuilder tn = new StringBuilder ("[");
-				for (int n=0; n<dims.Length; n++) {
-					if (n>0)
+				var tn = new StringBuilder ("[");
+
+				for (int n = 0; n < dims.Length; n++) {
+					if (n > 0)
 						tn.Append (',');
 					tn.Append (dims[n]);
 				}
+
 				tn.Append ("]");
+
 				int i = ename.LastIndexOf ('>');
-				if (i == -1) i = 0;
+				if (i == -1)
+					i = 0;
+
 				i = ename.IndexOf ('[', i);
+
 				if (i != -1)
 					return new EvaluationResult ("{" + ename.Substring (0, i) + tn + ename.Substring (i) + "}");
 
@@ -1274,10 +1275,8 @@ namespace Mono.Debugging.Evaluation
 		{
 			try {
 				ValueReference var = ctx.Evaluator.Evaluate (ctx, exp);
-				if (var != null)
-					return var.CreateObjectValue (ctx.Options);
 
-				return ObjectValue.CreateUnknown (exp);
+				return var != null ? var.CreateObjectValue (ctx.Options) : ObjectValue.CreateUnknown (exp);
 			} catch (ImplicitEvaluationDisabledException) {
 				return ObjectValue.CreateImplicitNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ObjectValueFlags.None);
 			} catch (NotSupportedExpressionException ex) {
@@ -1293,8 +1292,10 @@ namespace Mono.Debugging.Evaluation
 		public bool HasMethod (EvaluationContext ctx, object targetType, string methodName)
 		{
 			BindingFlags flags = BindingFlags.Instance | BindingFlags.Static;
+
 			if (!ctx.Evaluator.CaseSensitive)
 				flags |= BindingFlags.IgnoreCase;
+
 			return HasMethod (ctx, targetType, methodName, null, null, flags);
 		}
 		
@@ -1360,10 +1361,10 @@ namespace Mono.Debugging.Evaluation
 				return DebuggerBrowsableState.Collapsed;
 
 			DebuggerBrowsableState state;
-			if (MemberData.TryGetValue (name, out state))
-				return state;
+			if (!MemberData.TryGetValue (name, out state))
+				state = DebuggerBrowsableState.Collapsed;
 
-			return DebuggerBrowsableState.Collapsed;
+			return state;
 		}
 	}
 	
