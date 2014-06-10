@@ -1026,6 +1026,8 @@ namespace Mono.Debugging.Soft
 				request.IncludeSubclasses = cp.IncludeSubclasses; // Note: need to set IncludeSubclasses *before* enabling
 			request.Enabled = cp.Enabled;
 			bi.Requests.Add (request);
+
+			breakpoints[request] = bi;
 		}
 		
 		static bool CheckTypeName (string typeName, string name)
@@ -1524,18 +1526,27 @@ namespace Mono.Debugging.Soft
 			bool steppedOut = false;
 			bool resume = true;
 			
-			if (es[0].EventType == EventType.Exception) {
+			if (es [0].EventType == EventType.Exception) {
 				var bad = es.FirstOrDefault (ee => ee.EventType != EventType.Exception);
 				if (bad != null)
 					throw new Exception ("Catchpoint eventset had unexpected event type " + bad.GetType ());
-				var ev = (ExceptionEvent)es[0];
-				if (ev.Request == unhandledExceptionRequest)
-					etype = TargetEventType.UnhandledException;
-				else
-					etype = TargetEventType.ExceptionThrown;
+				var ev = (ExceptionEvent)es [0];
 				exception = ev.Exception;
-				if (ev.Request != unhandledExceptionRequest || exception.Type.FullName != "System.Threading.ThreadAbortException")
-					resume = false;
+				if (ev.Request == unhandledExceptionRequest) {
+					etype = TargetEventType.UnhandledException;
+					if (exception.Type.FullName != "System.Threading.ThreadAbortException")
+						resume = false;
+				} else {
+					//Set exception for this thread so CatchPoint Print message(tracing) of {$exception} work
+					activeExceptionsByThread [es[0].Thread.ThreadId] = exception;
+					if (!HandleBreakpoint (es [0].Thread, ev.Request)) {
+						etype = TargetEventType.ExceptionThrown;
+						resume = false;
+					}
+					//Remove exception from thread so when program stops because stepFinished/programPause/breakPoint...
+					//we don't have outdatted exception
+					activeExceptionsByThread.Remove (es[0].Thread.ThreadId);
+				}
 			} else {
 				//always need to evaluate all breakpoints, some might be tracepoints or conditional bps with counters
 				foreach (Event e in es) {
@@ -1875,7 +1886,7 @@ namespace Mono.Debugging.Soft
 			if (!breakpoints.TryGetValue (er, out binfo))
 				return false;
 			
-			var bp = binfo.BreakEvent as Breakpoint;
+			var bp = binfo.BreakEvent;
 			if (bp == null)
 				return false;
 
@@ -1939,9 +1950,10 @@ namespace Mono.Debugging.Soft
 			return new SourceLocation (frame.Method.Name, frame.FileName, frame.LineNumber, frame.ColumnNumber);
 		}
 
-		static string FormatSourceLocation (Breakpoint bp)
+		static string FormatSourceLocation (BreakEvent breakEvent)
 		{
-			if (string.IsNullOrEmpty (bp.FileName))
+			var bp = breakEvent as Breakpoint;
+			if (bp == null || string.IsNullOrEmpty (bp.FileName))
 				return null;
 
 			var location = Path.GetFileName (bp.FileName);
@@ -1965,7 +1977,7 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 		
-		string EvaluateExpression (ThreadMirror thread, string expression, Breakpoint bp)
+		string EvaluateExpression (ThreadMirror thread, string expression, BreakEvent bp)
 		{
 			try {
 				var frames = thread.GetFrames ();
