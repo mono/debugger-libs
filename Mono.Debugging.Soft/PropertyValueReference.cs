@@ -35,15 +35,17 @@ namespace Mono.Debugging.Soft
 		PropertyInfoMirror property;
 		TypeMirror declaringType;
 		ObjectValueFlags flags;
+		MethodMirror getter;
 		Value[] indexerArgs;
 		object obj;
 		
 		public PropertyValueReference (EvaluationContext ctx, PropertyInfoMirror property, object obj, TypeMirror declaringType, MethodMirror getter, Value[] indexerArgs): base (ctx)
 		{
-			this.property = property;
-			this.obj = obj;
 			this.declaringType = declaringType;
 			this.indexerArgs = indexerArgs;
+			this.property = property;
+			this.getter = getter;
+			this.obj = obj;
 
 			var objectMirror = obj as ObjectMirror;
 			if (objectMirror != null)
@@ -114,7 +116,7 @@ namespace Mono.Debugging.Soft
 
 		public override object GetValue (EvaluationContext ctx)
 		{
-			return ((SoftEvaluationContext) ctx).RuntimeInvoke (property.GetGetMethod (true), obj ?? declaringType, indexerArgs);
+			return ((SoftEvaluationContext) ctx).RuntimeInvoke (getter, obj ?? declaringType, indexerArgs);
 		}
 
 		public override void SetValue (EvaluationContext ctx, object value)
@@ -136,7 +138,15 @@ namespace Mono.Debugging.Soft
 
 		protected override bool CanEvaluate (EvaluationOptions options)
 		{
-			return options.AllowTargetInvoke;
+			if (options.AllowTargetInvoke)
+				return true;
+
+			try {
+				GetValue (Context.WithOptions (options));
+				return true;
+			} catch (ImplicitEvaluationDisabledException) {
+				return false;
+			}
 		}
 	}
 }
