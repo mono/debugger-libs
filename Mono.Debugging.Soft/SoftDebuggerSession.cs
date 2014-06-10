@@ -1017,7 +1017,11 @@ namespace Mono.Debugging.Soft
 			ExceptionEventRequest request;
 
 			request = vm.CreateExceptionRequest (excType, true, true);
-			request.Count = cp.HitCount; // Note: need to set HitCount *before* enabling
+			//Commenting Count so we have better control of counting
+			//because VM only allows count equal to some number but we need also
+			//lower, greater, equal or greater...
+			//Plus some day we might want to put filtering before counting...
+			//request.Count = cp.HitCount; // Note: need to set HitCount *before* enabling
 			if (vm.Version.AtLeast (2, 25))
 				request.IncludeSubclasses = cp.IncludeSubclasses; // Note: need to set IncludeSubclasses *before* enabling
 			request.Enabled = cp.Enabled;
