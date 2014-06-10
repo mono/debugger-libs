@@ -33,6 +33,10 @@ namespace Mono.Debugging.Client
 	[Serializable]
 	public class BreakEvent
 	{
+		bool breakIfConditionChanges;
+		string conditionExpression;
+		string lastConditionValue;
+
 		[NonSerialized] BreakpointStore store;
 		[NonSerialized] bool enabled = true;
 		
@@ -71,6 +75,14 @@ namespace Mono.Debugging.Client
 			// this is to facilitate backward compatibility
 			if (hitCount > 0 && HitCountMode == HitCountMode.None)
 				HitCountMode = HitCountMode.GreaterThan;
+
+			s = elem.GetAttribute ("conditionExpression");
+			if (!string.IsNullOrEmpty (s))
+				conditionExpression = s;
+
+			s = elem.GetAttribute ("breakIfConditionChanges");
+			if (!string.IsNullOrEmpty (s) && !bool.TryParse (s, out breakIfConditionChanges))
+				breakIfConditionChanges = false;
 		}
 		
 		internal virtual XmlElement ToXml (XmlDocument doc)
@@ -88,6 +100,11 @@ namespace Mono.Debugging.Client
 				elem.SetAttribute ("hitCountMode", HitCountMode.ToString ());
 			if (hitCount > 0)
 				elem.SetAttribute ("hitCount", hitCount.ToString ());
+			if (!string.IsNullOrEmpty (conditionExpression)) {
+				elem.SetAttribute ("conditionExpression", conditionExpression);
+				if (breakIfConditionChanges)
+					elem.SetAttribute ("breakIfConditionChanges", "True");
+			}
 			return elem;
 		}
 		
@@ -285,6 +302,33 @@ namespace Mono.Debugging.Client
 				store = value;
 			}
 		}
+
+		public string ConditionExpression {
+			get {
+				return conditionExpression;
+			}
+			set {
+				conditionExpression = value;
+			}
+		}
+
+		public string LastConditionValue {
+			get {
+				return lastConditionValue;
+			}
+			set {
+				lastConditionValue = value;
+			}
+		}
+
+		public bool BreakIfConditionChanges {
+			get {
+				return breakIfConditionChanges;
+			}
+			set {
+				breakIfConditionChanges = value;
+			}
+		}
 		
 		/// <summary>
 		/// Commits changes done in the break event properties
@@ -309,6 +353,7 @@ namespace Mono.Debugging.Client
 			bool changed = CurrentHitCount != 0;
 
 			CurrentHitCount = 0;
+			lastConditionValue = null;
 
 			return changed;
 		}
@@ -333,6 +378,8 @@ namespace Mono.Debugging.Client
 			customActionId = ev.customActionId;
 			traceExpression = ev.traceExpression;
 			hitCount = ev.hitCount;
+			breakIfConditionChanges = ev.breakIfConditionChanges;
+			conditionExpression = ev.conditionExpression;
 		}
 	}
 }
