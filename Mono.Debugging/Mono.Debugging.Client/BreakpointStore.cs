@@ -375,12 +375,12 @@ namespace Mono.Debugging.Client
 			NotifyBreakEventChanged (bp);
 		}
 		
-		internal void ResetAdjustedBreakpoints ()
+		internal void ResetBreakpoints ()
 		{
 			if (IsReadOnly)
 				return;
 			
-			foreach (var bp in breakpoints.OfType<Breakpoint> ().ToArray ()) {
+			foreach (var bp in breakpoints.ToArray ()) {
 				if (bp.Reset ())
 					NotifyBreakEventChanged (bp);
 			}
