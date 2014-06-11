@@ -239,8 +239,6 @@ namespace Mono.Debugging.Client
 		{
 			var options = session.EvaluationOptions.Clone ();
 			options.AllowMethodEvaluation = evaluateMethods;
-			options.AllowTargetInvoke = evaluateMethods;
-
 			return GetExpressionValue (expression, options);
 		}
 		
