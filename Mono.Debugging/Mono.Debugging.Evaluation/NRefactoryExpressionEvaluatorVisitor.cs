@@ -517,7 +517,7 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitAssignmentExpression (AssignmentExpression assignmentExpression)
 		{
-			if (!options.AllowMethodEvaluation)
+			if (!options.AllowTargetInvoke)
 				throw NotSupported ();
 
 			var left = assignmentExpression.Left.AcceptVisitor<ValueReference> (this);
@@ -765,7 +765,7 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitInvocationExpression (InvocationExpression invocationExpression)
 		{
-			if (!options.AllowMethodEvaluation)
+			if (!options.AllowTargetInvoke)
 				throw NotSupported ();
 
 			bool invokeBaseMethod = false;
