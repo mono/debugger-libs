@@ -351,35 +351,35 @@ namespace Mono.Debugging.Soft
 
 							try {
 								if (tt == typeof (bool))
-									res = (bool) val;
+									res = System.Convert.ToBoolean (val);
 								else if (tt == typeof (byte))
-									res = (byte) val;
+									res = System.Convert.ToByte (val);
 								else if (tt == typeof (sbyte))
-									res = (sbyte) val;
+									res = System.Convert.ToSByte (val);
 								else if (tt == typeof (char))
-									res = (char) val;
+									res = System.Convert.ToChar (val);
 								else if (tt == typeof (short))
-									res = (short) val;
+									res = System.Convert.ToInt16 (val);
 								else if (tt == typeof (ushort))
-									res = (ushort) val;
+									res = System.Convert.ToUInt16 (val);
 								else if (tt == typeof (int))
-									res = (int) val;
+									res = System.Convert.ToInt32 (val);
 								else if (tt == typeof (uint))
-									res = (uint) val;
+									res = System.Convert.ToUInt32 (val);
 								else if (tt == typeof (long))
-									res = (long) val;
+									res = System.Convert.ToInt64 (val);
 								else if (tt == typeof (ulong))
-									res = (ulong) val;
+									res = System.Convert.ToUInt64 (val);
 								else if (tt == typeof (float))
-									res = (float) val;
+									res = System.Convert.ToSingle (val);
 								else if (tt == typeof (double))
-									res = (double) val;
+									res = System.Convert.ToDouble (val);
 								else if (tt == typeof (decimal))
-									res = (decimal) val;
+									res = System.Convert.ToDecimal (val);
 								else if (tt == typeof (string))
-									res = (string) val;
+									res = System.Convert.ToString (val);
 								else if (tt == typeof (DateTime))
-									res = (DateTime) val;
+									res = System.Convert.ToDateTime (val);
 								else
 									res = val;
 							} catch {
