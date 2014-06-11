@@ -1012,7 +1012,8 @@ namespace Mono.Debugging.Soft
 				bool isExternal = Session.IsExternalCode (type);
 
 				foreach (var field in type.GetFields ()) {
-					if (field.IsStatic || field.IsSpecialName || (isExternal && !field.IsPublic))
+					if (field.IsStatic || field.IsSpecialName || (isExternal && !field.IsPublic) ||
+						IsClosureReferenceField (field) || IsCompilerGenerated (field))
 						continue;
 
 					if (fields.Add (field.Name))
