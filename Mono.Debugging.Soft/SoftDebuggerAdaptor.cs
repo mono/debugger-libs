@@ -567,11 +567,11 @@ namespace Mono.Debugging.Soft
 			//
 			// which allow stepping into
 			//
-			return tm.Name[0] == '<' &&
-				// mcs is of the form <${NAME}>.c__{KIND}${NUMBER}
-				(tm.Name.IndexOf (">c__", StringComparison.Ordinal) > 0 ||
-				// csc is of form <${NAME}>d__${NUMBER}
-				 tm.Name.IndexOf (">d__", StringComparison.Ordinal) > 0);
+
+			// Note: mcs uses the form <${NAME}>c__${KIND}${NUMBER} where the leading '<' seems to have been dropped in 3.4.x
+			//       csc uses the form <${NAME}>d__${NUMBER}
+
+			return tm.Name.IndexOf (">c__", StringComparison.Ordinal) > 0 || tm.Name.IndexOf (">d__", StringComparison.Ordinal) > 0;
 		}
 
 		internal static string GetNameFromGeneratedType (TypeMirror tm)
