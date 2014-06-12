@@ -33,9 +33,6 @@ namespace Mono.Debugging.Client
 	[Serializable]
 	public class Breakpoint: BreakEvent
 	{
-		bool breakIfConditionChanges;
-		string conditionExpression;
-		string lastConditionValue;
 		int adjustedColumn = -1;
 		int adjustedLine = -1;
 		string fileName;
@@ -66,14 +63,6 @@ namespace Mono.Debugging.Client
 			s = elem.GetAttribute ("column");
 			if (string.IsNullOrEmpty (s) || !int.TryParse (s, out column))
 				column = 1;
-			
-			s = elem.GetAttribute ("conditionExpression");
-			if (!string.IsNullOrEmpty (s))
-				conditionExpression = s;
-			
-			s = elem.GetAttribute ("breakIfConditionChanges");
-			if (!string.IsNullOrEmpty (s) && !bool.TryParse (s, out breakIfConditionChanges))
-				breakIfConditionChanges = false;
 		}
 		
 		internal override XmlElement ToXml (XmlDocument doc)
@@ -85,12 +74,6 @@ namespace Mono.Debugging.Client
 			
 			elem.SetAttribute ("line", line.ToString ());
 			elem.SetAttribute ("column", column.ToString ());
-			
-			if (!string.IsNullOrEmpty (conditionExpression)) {
-				elem.SetAttribute ("conditionExpression", conditionExpression);
-				if (breakIfConditionChanges)
-					elem.SetAttribute ("breakIfConditionChanges", "True");
-			}
 			
 			return elem;
 		}
@@ -156,7 +139,6 @@ namespace Mono.Debugging.Client
 		{
 			bool changed = base.Reset () || HasAdjustedLine || HasAdjustedColumn;
 
-			lastConditionValue = null;
 			adjustedColumn = -1;
 			adjustedLine = -1;
 
@@ -172,42 +154,13 @@ namespace Mono.Debugging.Client
 		internal bool HasAdjustedLine {
 			get { return adjustedLine != -1; }
 		}
-
-		public string ConditionExpression {
-			get {
-				return conditionExpression;
-			}
-			set {
-				conditionExpression = value;
-			}
-		}
-		
-		public string LastConditionValue {
-			get {
-				return lastConditionValue;
-			}
-			set {
-				lastConditionValue = value;
-			}
-		}
-		
-		public bool BreakIfConditionChanges {
-			get {
-				return breakIfConditionChanges;
-			}
-			set {
-				breakIfConditionChanges = value;
-			}
-		}
 		
 		public override void CopyFrom (BreakEvent ev)
 		{
 			base.CopyFrom (ev);
 			
 			Breakpoint bp = (Breakpoint) ev;
-			
-			breakIfConditionChanges = bp.breakIfConditionChanges;
-			conditionExpression = bp.conditionExpression;
+
 			fileName = bp.fileName;
 			column = bp.column;
 			line = bp.line;
