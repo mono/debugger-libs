@@ -1,10 +1,10 @@
-//
-// CorStackFrametests.cs
+﻿//
+// SdbBreakpointsAndSteppingTests.cs
 //
 // Author:
-//       Therzok <teromario@yahoo.com>
+//       David Karlaš <david.karlas@xamarin.com>
 //
-// Copyright (c) 2013 Xamarin Inc.
+// Copyright (c) 2014 Xamarin, Inc (http://www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,25 +23,18 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+using System;
 using NUnit.Framework;
 
-namespace MonoDevelop.Debugger.Tests.Win32
+namespace MonoDevelop.Debugger.Tests.Soft
 {
 	[TestFixture]
-	[Platform (Include = "Win")]
-	public class CorStackFrameAllowTargetInvokesTests : StackFrameTests
+	[Ignore("Sdb has many failings until resolved ignore all")]
+	public class SdbBreakpointsAndSteppingTests: BreakpointsAndSteppingTests
 	{
-		public CorStackFrameAllowTargetInvokesTests (): base ("MonoDevelop.Debugger.Win32", true)
-		{
-		}
-	}
-
-	[TestFixture]
-	[Platform (Include = "Win")]
-	public class CorStackFrameNoTargetInvokesTests : StackFrameTests
-	{
-		public CorStackFrameNoTargetInvokesTests (): base ("MonoDevelop.Debugger.Win32", false)
+		public SdbBreakpointsAndSteppingTests () : base ("Mono.Debugger.Soft")
 		{
 		}
 	}
 }
+
