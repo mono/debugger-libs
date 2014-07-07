@@ -606,6 +606,17 @@ namespace Mono.Debugging.Evaluation
 						if (baseType != null)
 							values.Insert (0, BaseTypeViewSource.CreateBaseTypeView (ctx, objectSource, baseType, proxy));
 					}
+
+					if (GetImplementedInterfaces (ctx, type).Any ((interfaceType) => {
+						string interfaceName = GetTypeName (ctx, interfaceType);
+						if (interfaceName == "System.Collections.IEnumerable")
+							return true;
+						if (interfaceName == "System.Collections.Generic.IEnumerable`1")
+							return true;
+						return false;
+					})) {
+						values.Add (ObjectValue.CreatePrimitive (new EnumerableSource (proxy, ctx), new ObjectPath ("IEnumerator"), "", new EvaluationResult (""), ObjectValueFlags.ReadOnly | ObjectValueFlags.Object | ObjectValueFlags.Group));
+					}
 				}
 			}
 
@@ -880,8 +891,13 @@ namespace Mono.Debugging.Evaluation
 		/// BindingFlags.Static, BindingFlags.Instance, BindingFlags.Public, BindingFlags.NonPublic, BindingFlags.DeclareOnly
 		/// </summary>
 		protected abstract IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, object t, object co, BindingFlags bindingFlags);
-		
+
 		public virtual IEnumerable<object> GetNestedTypes (EvaluationContext ctx, object type)
+		{
+			yield break;
+		}
+
+		public virtual IEnumerable<object> GetImplementedInterfaces (EvaluationContext ctx, object type)
 		{
 			yield break;
 		}

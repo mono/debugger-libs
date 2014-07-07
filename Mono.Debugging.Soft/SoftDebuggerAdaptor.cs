@@ -1318,7 +1318,15 @@ namespace Mono.Debugging.Soft
 			foreach (var nested in tm.GetNestedTypes ())
 				yield return nested;
 		}
-		
+
+		public override IEnumerable<object> GetImplementedInterfaces (EvaluationContext ctx, object type)
+		{
+			var tm = (TypeMirror) type;
+
+			foreach (var nested in tm.GetInterfaces ())
+				yield return nested;
+		}
+
 		public override string GetTypeName (EvaluationContext ctx, object type)
 		{
 			var tm = type as TypeMirror;
