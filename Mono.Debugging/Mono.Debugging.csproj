@@ -123,6 +123,7 @@
     <Compile Include="Mono.Debugging.Backend\EvaluationResult.cs" />
     <Compile Include="Mono.Debugging.Client\DebuggerLoggingService.cs" />
     <Compile Include="Mono.Debugging.Client\RunToCursorBreakpoint.cs" />
+    <Compile Include="Mono.Debugging.Evaluation\EnumerableElementGroup.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup />
