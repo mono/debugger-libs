@@ -2004,7 +2004,7 @@ namespace Mono.Debugging.Soft
 		readonly object obj;
 		IAsyncResult handle;
 		Exception exception;
-		Value result;
+		InvokeResult result;
 		
 		public MethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args)
 		{
@@ -2028,7 +2028,7 @@ namespace Mono.Debugging.Soft
 				else if (obj is TypeMirror)
 					handle = ((TypeMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
 				else if (obj is StructMirror)
-					handle = ((StructMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
+					handle = ((StructMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options | InvokeOptions.ReturnOutThis, null, null);
 				else if (obj is PrimitiveValue)
 					handle = ((PrimitiveValue)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
 				else
@@ -2064,13 +2064,13 @@ namespace Mono.Debugging.Soft
 		{
 			try {
 				if (obj is ObjectMirror)
-					result = ((ObjectMirror)obj).EndInvokeMethod (handle);
+					result = ((ObjectMirror)obj).EndInvokeMethodWithResult (handle);
 				else if (obj is TypeMirror)
-					result = ((TypeMirror)obj).EndInvokeMethod (handle);
+					result = ((TypeMirror)obj).EndInvokeMethodWithResult (handle);
 				else if (obj is StructMirror)
-					result = ((StructMirror)obj).EndInvokeMethod (handle);
+					result = ((StructMirror)obj).EndInvokeMethodWithResult (handle);
 				else
-					result = ((PrimitiveValue)obj).EndInvokeMethod (handle);
+					result = ((PrimitiveValue)obj).EndInvokeMethodWithResult (handle);
 			} catch (InvocationException ex) {
 				if (!Aborting && ex.Exception != null) {
 					string ename = ctx.Adapter.GetValueTypeName (ctx, ex.Exception);
@@ -2124,7 +2124,7 @@ namespace Mono.Debugging.Soft
 			get {
 				if (exception != null)
 					throw new EvaluatorException (exception.Message);
-				return result;
+				return result.Result;
 			}
 		}
 	}
