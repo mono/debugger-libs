@@ -318,6 +318,11 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public object GetRawValue (EvaluationOptions options)
 		{
+			if (source == null && (IsEvaluating || IsEvaluatingGroup)) {
+				if (!WaitHandle.WaitOne (options.EvaluationTimeout)) {
+					throw new Mono.Debugging.Evaluation.TimeOutException ();
+				}
+			}
 			object res = source.GetRawValue (path, options);
 			IRawObject val = res as IRawObject;
 			if (val != null)
@@ -353,6 +358,11 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public void SetRawValue (object value, EvaluationOptions options)
 		{
+			if (source == null && (IsEvaluating || IsEvaluatingGroup)) {
+				if (!WaitHandle.WaitOne (options.EvaluationTimeout)) {
+					throw new Mono.Debugging.Evaluation.TimeOutException ();
+				}
+			}
 			source.SetRawValue (path, value, options);
 		}
 		
