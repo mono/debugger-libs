@@ -1473,6 +1473,11 @@ namespace Mono.Debugging.Evaluation
 			throw NotSupported ();
 		}
 
+		public ValueReference VisitErrorNode (AstNode errorNode)
+		{
+			throw NotSupported ();
+		}
+
 		#endregion
 	}
 }
