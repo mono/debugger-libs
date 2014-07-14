@@ -84,6 +84,15 @@ namespace Mono.Debugging.Client
 				val.options = options;
 			return res;
 		}
+
+		public object CallMethod (string methodName, out object[] outArgs, params object[] parameters)
+		{
+			object res = source.CallMethod (methodName, parameters, out outArgs, options);
+			RawValue val = res as RawValue;
+			if (val != null)
+				val.options = options;
+			return res;
+		}
 		
 		/// <summary>
 		/// Gets the value of a field or property

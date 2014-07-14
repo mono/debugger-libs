@@ -129,6 +129,18 @@ namespace Mono.Debugging.Soft
 		
 		public Value RuntimeInvoke (MethodMirror method, object target, Value[] values)
 		{
+			Value[] outArgs;
+			return RuntimeInvoke (method, target, values, false, out outArgs);
+		}
+
+		public Value RuntimeInvoke (MethodMirror method, object target, Value[] values, out Value[] outArgs)
+		{
+			return RuntimeInvoke (method, target, values, true, out outArgs);
+		}
+		
+		Value RuntimeInvoke (MethodMirror method, object target, Value[] values, bool enableOutArgs, out Value[] outArgs)
+		{
+			outArgs = null;
 			if (values != null) {
 				// Some arguments may need to be boxed
 				var mparams = method.GetParameters ();
@@ -178,9 +190,11 @@ namespace Mono.Debugging.Soft
 			} catch (NotSupportedException) {
 				AssertTargetInvokeAllowed ();
 
-				var mc = new MethodCall (this, method, target, values);
+				var mc = new MethodCall (this, method, target, values, enableOutArgs);
 				Adapter.AsyncExecute (mc, Options.EvaluationTimeout);
-
+				if (enableOutArgs) {
+					outArgs = mc.OutArgs;
+				}
 				return mc.ReturnValue;
 			}
 		}

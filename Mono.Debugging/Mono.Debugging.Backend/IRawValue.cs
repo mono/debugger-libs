@@ -33,6 +33,7 @@ namespace Mono.Debugging.Backend
 	public interface IRawValue: IDebuggerBackendObject
 	{
 		object CallMethod (string name, object[] parameters, EvaluationOptions options);
+		object CallMethod (string name, object[] parameters, out object[] outArgs, EvaluationOptions options);
 		object GetMemberValue (string name, EvaluationOptions options);
 		void SetMemberValue (string name, object value, EvaluationOptions options);
 	}

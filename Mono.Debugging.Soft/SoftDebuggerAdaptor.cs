@@ -1626,6 +1626,17 @@ namespace Mono.Debugging.Soft
 
 		public override object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] genericTypeArgs, object[] argTypes, object[] argValues)
 		{
+			object[] outArgs;
+			return RuntimeInvoke (ctx, targetType, target, methodName, genericTypeArgs, argTypes, argValues, false, out outArgs);
+		}
+
+		public override object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] genericTypeArgs, object[] argTypes, object[] argValues, out object[] outArgs)
+		{
+			return RuntimeInvoke (ctx, targetType, target, methodName, genericTypeArgs, argTypes, argValues, true, out outArgs);
+		}
+
+		private object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] genericTypeArgs, object[] argTypes, object[] argValues,bool enableOutArgs, out object[] outArgs)
+		{
 			var type = ToTypeMirror (ctx, targetType);
 			var soft = (SoftEvaluationContext) ctx;
 
@@ -1671,8 +1682,15 @@ namespace Mono.Debugging.Soft
 					values[n] = (Value) argValues[n];
 				}
 			}
-
-			return soft.RuntimeInvoke (method, target ?? targetType, values);
+			if (enableOutArgs) {
+				Value[] outArgsValue;
+				var result = soft.RuntimeInvoke (method, target ?? targetType, values, out outArgsValue);
+				outArgs = (object[])outArgsValue;
+				return result;
+			} else {
+				outArgs = null;
+				return soft.RuntimeInvoke (method, target ?? targetType, values);
+			}
 		}
 
 		static TypeMirror[] ResolveGenericTypeArguments (MethodMirror method, TypeMirror[] argTypes)
@@ -1995,7 +2013,7 @@ namespace Mono.Debugging.Soft
 
 	class MethodCall: AsyncOperation
 	{
-		const InvokeOptions options = InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded;
+		readonly InvokeOptions options = InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded;
 
 		readonly ManualResetEvent shutdownEvent = new ManualResetEvent (false);
 		readonly SoftEvaluationContext ctx;
@@ -2006,12 +2024,15 @@ namespace Mono.Debugging.Soft
 		Exception exception;
 		InvokeResult result;
 		
-		public MethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args)
+		public MethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args, bool enableOutArgs)
 		{
 			this.ctx = ctx;
 			this.function = function;
 			this.obj = obj;
 			this.args = args;
+			if (enableOutArgs) {
+				this.options |= InvokeOptions.ReturnOutArgs;
+			}
 		}
 		
 		public override string Description {
@@ -2125,6 +2146,14 @@ namespace Mono.Debugging.Soft
 				if (exception != null)
 					throw new EvaluatorException (exception.Message);
 				return result.Result;
+			}
+		}
+
+		public Value[] OutArgs {
+			get {
+				if (exception != null)
+					throw new EvaluatorException (exception.Message);
+				return result.OutArgs;
 			}
 		}
 	}

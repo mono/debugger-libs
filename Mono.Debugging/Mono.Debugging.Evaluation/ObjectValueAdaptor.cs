@@ -1372,6 +1372,11 @@ namespace Mono.Debugging.Evaluation
 			return RuntimeInvoke (ctx, targetType, target, methodName, null, argTypes, argValues);
 		}
 
+		public virtual object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] genericTypeArgs, object[] argTypes, object[] argValues, out object[] outArgs){
+			outArgs = null;
+			return RuntimeInvoke (ctx, targetType, target, methodName, genericTypeArgs, argTypes, argValues);
+		}
+
 		public abstract object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] genericTypeArgs, object[] argTypes, object[] argValues);
 		
 		public virtual ValidationResult ValidateExpression (EvaluationContext ctx, string expression)

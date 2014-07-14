@@ -54,6 +54,17 @@ namespace Mono.Debugging.Evaluation
 		#region IRawValue implementation
 		public object CallMethod (string name, object[] parameters, EvaluationOptions options)
 		{
+			object[] outArgs;
+			return CallMethod (name, parameters, false, out outArgs, options);
+		}
+
+		public object CallMethod (string name, object[] parameters, out object[] outArgs, EvaluationOptions options)
+		{
+			return CallMethod (name, parameters, true, out outArgs, options);
+		}
+
+		private object CallMethod (string name, object[] parameters, bool enableOutArgs, out object[] outArgs, EvaluationOptions options)
+		{
 			var localContext = ctx.WithOptions (options);
 			
 			var argValues = new object [parameters.Length];
@@ -65,9 +76,19 @@ namespace Mono.Debugging.Evaluation
 			}
 
 			var type = localContext.Adapter.GetValueType (localContext, targetObject);
-			var res = localContext.Adapter.RuntimeInvoke (localContext, type, targetObject, name, argTypes, argValues);
-
-			return localContext.Adapter.ToRawValue (localContext, null, res);
+			if (enableOutArgs) {
+				object[] outArgsTemp;
+				var res = localContext.Adapter.RuntimeInvoke (localContext, type, targetObject, name, null, argTypes, argValues, out outArgsTemp);
+				outArgs = new object[outArgsTemp.Length];
+				for (int i = 0; i < outArgs.Length; i++) {
+					outArgs [i] = localContext.Adapter.ToRawValue (localContext, null, outArgsTemp [i]);
+				}
+				return localContext.Adapter.ToRawValue (localContext, null, res);
+			} else {
+				outArgs = null;
+				var res = localContext.Adapter.RuntimeInvoke (localContext, type, targetObject, name, argTypes, argValues);
+				return localContext.Adapter.ToRawValue (localContext, null, res);
+			}
 		}
 		
 		public object GetMemberValue (string name, EvaluationOptions options)
