@@ -607,7 +607,7 @@ namespace Mono.Debugging.Evaluation
 							values.Insert (0, BaseTypeViewSource.CreateBaseTypeView (ctx, objectSource, baseType, proxy));
 					}
 
-					if (GetImplementedInterfaces (ctx, type).Any ((interfaceType) => {
+					if (ctx.SupportIEnumerable && GetImplementedInterfaces (ctx, type).Any ((interfaceType) => {
 						string interfaceName = GetTypeName (ctx, interfaceType);
 						if (interfaceName == "System.Collections.IEnumerable")
 							return true;

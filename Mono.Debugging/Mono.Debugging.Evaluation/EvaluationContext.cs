@@ -99,6 +99,12 @@ namespace Mono.Debugging.Evaluation
 				return expressionValueSource;
 			}
 		}
+
+		public virtual bool SupportIEnumerable {
+			get {
+				return false;
+			}
+		}
 	}
 	
 	class ExpressionValueSource: RemoteFrameObject, IObjectValueSource

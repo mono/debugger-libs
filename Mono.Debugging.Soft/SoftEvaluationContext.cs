@@ -209,5 +209,11 @@ namespace Mono.Debugging.Soft
 				}
 			}
 		}
+
+		public override bool SupportIEnumerable {
+			get {
+				return session.VirtualMachine.Version.AtLeast (2, 35);
+			}
+		}
 	}
 }

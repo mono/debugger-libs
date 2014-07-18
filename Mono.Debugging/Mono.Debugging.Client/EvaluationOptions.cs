@@ -100,6 +100,8 @@ namespace Mono.Debugging.Client
 		public IntegerDisplayFormat IntegerDisplayFormat { get; set; }
 		
 		public string CurrentExceptionTag { get; set; }
+
+		public bool IEnumerable { get; set; }
 	}
 	
 	public enum IntegerDisplayFormat
