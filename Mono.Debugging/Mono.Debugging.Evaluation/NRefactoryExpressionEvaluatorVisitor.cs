@@ -78,15 +78,23 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		static string GetCommonOperationType (object v1, object v2)
+		static long ConvertToInt64 (object val)
+		{
+			if (val is IntPtr)
+				return ((IntPtr) val).ToInt64 ();
+
+			return Convert.ToInt64 (val);
+		}
+
+		static Type GetCommonOperationType (object v1, object v2)
 		{
 			if (v1 is double || v2 is double)
-				return "System.Double";
+				return typeof (double);
 
 			if (v1 is float || v2 is float)
-				return "System.Double";
+				return typeof (double);
 
-			return "System.Int64";
+			return typeof (long);
 		}
 
 		static Type GetCommonType (object v1, object v2)
@@ -144,19 +152,6 @@ namespace Mono.Debugging.Evaluation
 			case BinaryOperatorType.Equality: return v1 == v2;
 			case BinaryOperatorType.InEquality: return v1 != v2;
 			default: throw ParseError ("Invalid binary operator.");
-			}
-		}
-
-		static void ConvertValues<T> (EvaluationContext ctx, object actualV1, object actualV2, object toType, out T v1, out T v2)
-		{
-			try {
-				object c1 = ctx.Adapter.Cast (ctx, actualV1, toType);
-				v1 = (T) ctx.Adapter.TargetObjectToObject (ctx, c1);
-
-				object c2 = ctx.Adapter.Cast (ctx, actualV2, toType);
-				v2 = (T) ctx.Adapter.TargetObjectToObject (ctx, c2);
-			} catch {
-				throw ParseError ("Invalid operands in binary operator.");
 			}
 		}
 
@@ -349,18 +344,23 @@ namespace Mono.Debugging.Evaluation
 			if (val1 == null || val2 == null || (val1 is bool) || (val2 is bool))
 				throw ParseError ("Invalid operands in binary operator.");
 
-			string opTypeName = GetCommonOperationType (val1, val2);
-			object opType = ctx.Adapter.GetType (ctx, opTypeName);
+			var commonType = GetCommonOperationType (val1, val2);
 
-			if (opTypeName == "System.Double") {
+			if (commonType == typeof (double)) {
 				double v1, v2;
 
-				ConvertValues<double> (ctx, targetVal1, targetVal2, opType, out v1, out v2);
+				try {
+					v1 = Convert.ToDouble (val1);
+					v2 = Convert.ToDouble (val2);
+				} catch {
+					throw ParseError ("Invalid operands in binary operator.");
+				}
+
 				res = EvaluateOperation (op, v1, v2);
 			} else {
-				long v1, v2;
+				var v1 = ConvertToInt64 (val1);
+				var v2 = ConvertToInt64 (val2);
 
-				ConvertValues<long> (ctx, targetVal1, targetVal2, opType, out v1, out v2);
 				res = EvaluateOperation (op, v1, v2);
 			}
 
@@ -375,7 +375,12 @@ namespace Mono.Debugging.Evaluation
 					return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, tval);
 				}
 
-				res = Convert.ChangeType (res, GetCommonType (val1, val2));
+				var targetType = GetCommonType (val1, val2);
+
+				if (targetType != typeof (IntPtr))
+					res = Convert.ChangeType (res, targetType);
+				else
+					res = new IntPtr ((long) res);
 			}
 
 			return LiteralValueReference.CreateObjectLiteral (ctx, expression, res);
