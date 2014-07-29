@@ -2311,6 +2311,42 @@ namespace Mono.Debugging.Soft
 					Marshal.FreeHGlobal (buffer);
 			}
 		}
+
+		static string ResolveSymbolicLink (string path)
+		{
+			if (path.Length == 0)
+				return path;
+
+			try {
+				var alreadyVisted = new HashSet<string> ();
+
+				while (true) {
+					if (alreadyVisted.Contains (path))
+						return string.Empty;
+
+					alreadyVisted.Add (path);
+
+					var linkInfo = new Mono.Unix.UnixSymbolicLinkInfo (path);
+					if (linkInfo.IsSymbolicLink && linkInfo.HasContents) {
+						string contentsPath = linkInfo.ContentsPath;
+
+						if (!Path.IsPathRooted (contentsPath))
+							path = Path.Combine (Path.GetDirectoryName (path), contentsPath);
+						else
+							path = contentsPath;
+
+						path = ResolveFullPath (path);
+						continue;
+					}
+
+					path = Path.Combine (ResolveSymbolicLink (Path.GetDirectoryName (path)), Path.GetFileName (path));
+
+					return ResolveFullPath (path);
+				}
+			} catch {
+				return path;
+			}
+		}
 		
 		static bool PathsAreEqual (string p1, string p2)
 		{
@@ -2320,8 +2356,8 @@ namespace Mono.Debugging.Soft
 			if (PathComparer.Compare (p1, p2) == 0)
 				return true;
 
-			var rp1 = ResolveFullPath (p1);
-			var rp2 = ResolveFullPath (p2);
+			var rp1 = ResolveSymbolicLink (p1);
+			var rp2 = ResolveSymbolicLink (p2);
 
 			return PathComparer.Compare (rp1, rp2) == 0;
 		}
@@ -2853,8 +2889,8 @@ namespace Mono.Debugging.Soft
 		static SoftDebuggerSession ()
 		{
 			IsWindows = Path.DirectorySeparatorChar == '\\';
-			IsMac = !IsWindows && IsRunningOnMac();
-			PathComparer = (IgnoreFilenameCase)? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+			IsMac = !IsWindows && IsRunningOnMac ();
+			PathComparer = IgnoreFilenameCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 			ThreadMirror.NativeTransitions = true;
 		}
 		
