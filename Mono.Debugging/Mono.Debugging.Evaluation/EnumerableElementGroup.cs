@@ -44,16 +44,41 @@ namespace Mono.Debugging.Evaluation
 			this.ctx = ctx;
 		}
 
+		bool MoveNext (object type, object enumerator)
+		{
+			try {
+				return (bool)ctx.Adapter.TargetObjectToObject (ctx, ctx.Adapter.RuntimeInvoke (ctx, type, enumerator, "MoveNext", new object[0], new object[0]));
+			} catch (EvaluatorException e) {
+				if (e.Message.StartsWith ("Method `MoveNext' not found in type")) {
+					return (bool)ctx.Adapter.TargetObjectToObject (ctx, ctx.Adapter.RuntimeInvoke (ctx, type, enumerator, "System.Collections.IEnumerator.MoveNext", new object[0], new object[0]));
+				} else {
+					throw;
+				}
+			}
+		}
+
 		void FetchElements ()
 		{
 			if (elements == null) {
 				elements = new List<ObjectValue> ();
 				values = new List<object> ();
-				var enumerator = ctx.Adapter.RuntimeInvoke (ctx, ctx.Adapter.GetValueType (ctx, obj), obj, "GetEnumerator", new object[0], new object[0]);
+				object enumerator = null;
+				try {
+					enumerator = ctx.Adapter.RuntimeInvoke (ctx, ctx.Adapter.GetValueType (ctx, obj), obj, "GetEnumerator", new object[0], new object[0]);
+				} catch (EvaluatorException e) {
+					if (e.Message.StartsWith ("Method `GetEnumerator' not found in type")) {
+						enumerator = ctx.Adapter.RuntimeInvoke (ctx, ctx.Adapter.GetValueType (ctx, obj), obj, "System.Collections.IEnumerable.GetEnumerator", new object[0], new object[0]);
+					} else {
+						throw;
+					}
+				}
 				var type = ctx.Adapter.GetValueType (ctx, enumerator);
 				int i = 0;
-				while ((bool)ctx.Adapter.TargetObjectToObject (ctx, ctx.Adapter.RuntimeInvoke (ctx, type, enumerator, "MoveNext", new object[0], new object[0]))) {
+				while (MoveNext (type, enumerator)) {
 					var valCurrent = ctx.Adapter.GetMember (ctx, null, type, enumerator, "Current");
+					if (valCurrent == null) {
+						valCurrent = ctx.Adapter.GetMember (ctx, null, type, enumerator, "System.Collections.IEnumerator.Current");
+					}
 					var val = valCurrent.Value;
 					values.Add (val);
 					if (val != null) {
