@@ -37,6 +37,8 @@ namespace Mono.Debugging.Evaluation
 		EvaluationContext ctx;
 		List<ObjectValue> elements;
 		List<object> values;
+		int currentIndex = 0;
+		object enumerator = null;
 
 		public EnumerableSource (object source, EvaluationContext ctx)
 		{
@@ -57,12 +59,11 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		void FetchElements ()
+		void Fetch (int maxIndex)
 		{
 			if (elements == null) {
 				elements = new List<ObjectValue> ();
 				values = new List<object> ();
-				object enumerator = null;
 				try {
 					enumerator = ctx.Adapter.RuntimeInvoke (ctx, ctx.Adapter.GetValueType (ctx, obj), obj, "GetEnumerator", new object[0], new object[0]);
 				} catch (EvaluatorException e) {
@@ -72,35 +73,32 @@ namespace Mono.Debugging.Evaluation
 						throw;
 					}
 				}
-				var type = ctx.Adapter.GetValueType (ctx, enumerator);
-				int i = 0;
-				while (MoveNext (type, enumerator)) {
-					var valCurrent = ctx.Adapter.GetMember (ctx, null, type, enumerator, "Current");
-					if (valCurrent == null) {
-						valCurrent = ctx.Adapter.GetMember (ctx, null, type, enumerator, "System.Collections.IEnumerator.Current");
-					}
-					var val = valCurrent.Value;
-					values.Add (val);
-					if (val != null) {
-						elements.Add (ctx.Adapter.CreateObjectValue (ctx, this, new ObjectPath ("[" + i + "]"), val, ObjectValueFlags.ReadOnly));
-					} else {
-						elements.Add (Mono.Debugging.Client.ObjectValue.CreateNullObject (this, "[" + i + "]", ctx.Adapter.GetDisplayTypeName (ctx.Adapter.GetTypeName (ctx, valCurrent.Type)), ObjectValueFlags.ReadOnly));
-					}
-					i++;
+			}
+			var type = ctx.Adapter.GetValueType (ctx, enumerator);
+			while (maxIndex > elements.Count && MoveNext (type, enumerator)) {
+				var valCurrent = ctx.Adapter.GetMember (ctx, null, type, enumerator, "Current");
+				if (valCurrent == null) {
+					valCurrent = ctx.Adapter.GetMember (ctx, null, type, enumerator, "System.Collections.IEnumerator.Current");
 				}
+				var val = valCurrent.Value;
+				values.Add (val);
+				if (val != null) {
+					elements.Add (ctx.Adapter.CreateObjectValue (ctx, this, new ObjectPath ("[" + currentIndex + "]"), val, ObjectValueFlags.ReadOnly));
+				} else {
+					elements.Add (Mono.Debugging.Client.ObjectValue.CreateNullObject (this, "[" + currentIndex + "]", ctx.Adapter.GetDisplayTypeName (ctx.Adapter.GetTypeName (ctx, valCurrent.Type)), ObjectValueFlags.ReadOnly));
+				}
+				currentIndex++;
 			}
 		}
 
 
 		public object GetElement (int idx)
 		{
-			FetchElements ();
 			return values [idx];
 		}
 
 		public ObjectValue[] GetChildren (ObjectPath path, int index, int count, EvaluationOptions options)
 		{
-			FetchElements ();
 			int idx;
 			if (int.TryParse (path.LastName.Replace ("[", "").Replace ("]", ""), out idx)) {
 				return ctx.Adapter.GetObjectValueChildren (ctx, null, values [idx], -1, -1);
@@ -109,10 +107,17 @@ namespace Mono.Debugging.Evaluation
 				index = 0;
 			if (count == 0)
 				return new ObjectValue[0];
+			if (count == -1)
+				count = int.MaxValue;
+			Fetch (index + count);
 			if (count < 0 || index + count > elements.Count) {
-				return elements.Skip (index).ToArray ();
+				return  elements.Skip (index).ToArray ();
 			} else {
-				return elements.Skip (index).Take (count).ToArray ();
+				if (index < elements.Count) {
+					return  elements.Skip (index).Take (System.Math.Min (count, elements.Count - index)).ToArray ();
+				} else {
+					return new ObjectValue[0];
+				}
 			}
 		}
 
@@ -123,7 +128,6 @@ namespace Mono.Debugging.Evaluation
 
 		public ObjectValue GetValue (ObjectPath path, EvaluationOptions options)
 		{
-			FetchElements ();
 			int idx;
 			if (int.TryParse (path.LastName.Replace ("[", "").Replace ("]", ""), out idx)) {
 				return elements [idx];

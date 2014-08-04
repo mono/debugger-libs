@@ -59,6 +59,7 @@ namespace Mono.Debugging.Client
 		EvaluatingGroup = 1 << 21, // When set, this value represents a set of values being evaluated
 		                           // When evaluation ends, the value is updated, and the children are the
 		                           // values represented by this group
+		IEnumerable = 1 << 22,
 		
 		// For field and property
 		Public = 1 << 24,

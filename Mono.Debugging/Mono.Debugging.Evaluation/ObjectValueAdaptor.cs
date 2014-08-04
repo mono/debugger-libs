@@ -615,7 +615,7 @@ namespace Mono.Debugging.Evaluation
 							return true;
 						return false;
 					})) {
-						values.Add (ObjectValue.CreatePrimitive (new EnumerableSource (proxy, ctx), new ObjectPath ("IEnumerator"), "", new EvaluationResult (""), ObjectValueFlags.ReadOnly | ObjectValueFlags.Object | ObjectValueFlags.Group));
+						values.Add (ObjectValue.CreatePrimitive (new EnumerableSource (proxy, ctx), new ObjectPath ("IEnumerator"), "", new EvaluationResult (""), ObjectValueFlags.ReadOnly | ObjectValueFlags.Object | ObjectValueFlags.Group | ObjectValueFlags.IEnumerable));
 					}
 				}
 			}
