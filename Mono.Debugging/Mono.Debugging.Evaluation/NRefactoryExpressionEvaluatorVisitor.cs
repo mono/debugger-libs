@@ -78,10 +78,17 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		static long ConvertToInt64 (object val)
+		long ConvertToInt64 (object val)
 		{
 			if (val is IntPtr)
 				return ((IntPtr) val).ToInt64 ();
+
+			if (ctx.Adapter.IsEnum (ctx, val)) {
+				var type = ctx.Adapter.GetType (ctx, "System.Int64");
+				var result = ctx.Adapter.Cast (ctx, val, type);
+
+				return (long) ctx.Adapter.TargetObjectToObject (ctx, result);
+			}
 
 			return Convert.ToInt64 (val);
 		}
