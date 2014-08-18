@@ -37,7 +37,8 @@ namespace Mono.Debugging.Soft
 		ObjectValueFlags flags;
 		MethodMirror getter;
 		Value[] indexerArgs;
-		object obj;
+		object obj, value;
+		bool haveValue;
 		
 		public PropertyValueReference (EvaluationContext ctx, PropertyInfoMirror property, object obj, TypeMirror declaringType, MethodMirror getter, Value[] indexerArgs): base (ctx)
 		{
@@ -116,7 +117,12 @@ namespace Mono.Debugging.Soft
 
 		public override object GetValue (EvaluationContext ctx)
 		{
-			return ((SoftEvaluationContext) ctx).RuntimeInvoke (getter, obj ?? declaringType, indexerArgs);
+			if (!haveValue) {
+				value = ((SoftEvaluationContext) ctx).RuntimeInvoke (getter, obj ?? declaringType, indexerArgs);
+				haveValue = true;
+			}
+
+			return value;
 		}
 
 		public override void SetValue (EvaluationContext ctx, object value)
@@ -133,7 +139,13 @@ namespace Mono.Debugging.Soft
 			if (setter == null)
 				throw new EvaluatorException ("Property is read-only");
 
+			this.value = null;
+			haveValue = false;
+
 			((SoftEvaluationContext) ctx).RuntimeInvoke (setter, obj ?? declaringType, args);
+
+			this.value = value;
+			haveValue = true;
 		}
 
 		protected override bool CanEvaluate (EvaluationOptions options)
