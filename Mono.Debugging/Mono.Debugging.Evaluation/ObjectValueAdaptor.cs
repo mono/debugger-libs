@@ -713,7 +713,7 @@ namespace Mono.Debugging.Evaluation
 		{
 			var data = new CompletionData ();
 
-			foreach (ValueReference cv in vr.GetChildReferences (ctx.Options))
+			foreach (var cv in vr.GetChildReferences (ctx.Options))
 				data.Items.Add (new CompletionItem (cv.Name, cv.Flags));
 
 			data.ExpressionLength = 0;
@@ -752,21 +752,21 @@ namespace Mono.Debugging.Evaluation
 			}
 
 			if (lastWastLetter) {
-				string partialWord = expr.Substring (i+1);
+				string partialWord = expr.Substring (i + 1);
 				
 				var data = new CompletionData ();
 				data.ExpressionLength = partialWord.Length;
-				
+
 				// Local variables
 				
-				foreach (ValueReference vc in GetLocalVariables (ctx)) {
+				foreach (var vc in GetLocalVariables (ctx)) {
 					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
 						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
 				}
 
 				// Parameters
 				
-				foreach (ValueReference vc in GetParameters (ctx)) {
+				foreach (var vc in GetParameters (ctx)) {
 					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
 						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
 				}
@@ -780,9 +780,10 @@ namespace Mono.Debugging.Evaluation
 
 				object type = GetEnclosingType (ctx);
 				
-				foreach (ValueReference vc in GetMembers (ctx, null, type, thisobj != null ? thisobj.Value : null))
+				foreach (var vc in GetMembers (ctx, null, type, thisobj != null ? thisobj.Value : null)) {
 					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
 						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
+				}
 				
 				if (data.Items.Count > 0)
 					return data;
