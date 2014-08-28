@@ -726,9 +726,11 @@ namespace Mono.Debugging.Evaluation
 			if (string.IsNullOrEmpty (expr))
 				return null;
 
-			if (expr[expr.Length - 1] == '.') {
+			int dot = expr.LastIndexOf ('.');
+
+			if (dot != -1) {
 				try {
-					var vr = ctx.Evaluator.Evaluate (ctx, expr.Substring (0, expr.Length - 1), null);
+					var vr = ctx.Evaluator.Evaluate (ctx, expr.Substring (0, dot), null);
 					if (vr != null)
 						return GetMemberCompletionData (ctx, vr);
 
