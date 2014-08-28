@@ -1678,7 +1678,11 @@ namespace Mono.Debugging.Soft
 				}
 				
 				if (methods == null) {
-					methods = currentType.GetMethodsByNameFlags (methodName, methodByNameFlags, !ctx.CaseSensitive);
+					if (currentType.VirtualMachine.Version.AtLeast (2, 7)) {
+						methods = currentType.GetMethodsByNameFlags (methodName, methodByNameFlags, !ctx.CaseSensitive);
+					} else {
+						methods = currentType.GetMethods ();
+					}
 					
 					if (ctx.CaseSensitive) {
 						lock (cache) {
