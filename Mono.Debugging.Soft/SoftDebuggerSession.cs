@@ -1720,8 +1720,11 @@ namespace Mono.Debugging.Soft
 						assemblyFilters.RemoveAt (index);
 				}
 				// Mark affected breakpoints as pending again
-				var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asm.Location)));
-				foreach (KeyValuePair<EventRequest, BreakInfo> breakpoint in affectedBreakpoints) {
+				var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => x.Value != null && x.Value.Location != null &&
+					x.Value.Location.Method != null && x.Value.Location.Method.DeclaringType != null &&  x.Value.Location.Method.DeclaringType.Assembly != null &&
+					PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asm.Location)
+				));
+				foreach (var breakpoint in affectedBreakpoints) {
 					string file = PathToFileName (breakpoint.Value.Location.SourceFile);
 					int line = breakpoint.Value.Location.LineNumber;
 					OnDebuggerOutput (false, string.Format ("Re-pending breakpoint at {0}:{1}\n", file, line));
