@@ -1246,6 +1246,39 @@ namespace Mono.Debugging.Soft
 					return tm;
 			}
 
+			if (cx.Frame.Method.IsGenericMethod) {
+				var method = cx.Frame.Method;
+
+				if (!method.IsGenericMethodDefinition) {
+					TypeMirror[] names, instantiatedTypes;
+
+					instantiatedTypes = method.GetGenericArguments ();
+					method = method.GetGenericMethodDefinition ();
+					names = method.GetGenericArguments ();
+
+					for (i = 0; i < names.Length; i++) {
+						if (names [i].FullName == name)
+							return instantiatedTypes [i];
+					}
+				}
+			}
+
+			if (cx.Frame.Method.DeclaringType.IsGenericType) {
+				var declaringType = cx.Frame.Method.DeclaringType;
+				if (!declaringType.IsGenericTypeDefinition) {
+					TypeMirror[] names, instantiatedTypes;
+
+					instantiatedTypes = declaringType.GetGenericArguments ();
+					declaringType = declaringType.GetGenericTypeDefinition ();
+					names = declaringType.GetGenericArguments ();
+
+					for (i = 0; i < names.Length; i++) {
+						if (names [i].FullName == name)
+							return instantiatedTypes [i];
+					}
+				}
+			}
+
 			return null;
 		}
 
