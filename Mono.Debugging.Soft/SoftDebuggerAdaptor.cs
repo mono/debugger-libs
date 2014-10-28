@@ -1246,36 +1246,27 @@ namespace Mono.Debugging.Soft
 					return tm;
 			}
 
-			if (cx.Frame.Method.IsGenericMethod) {
-				var method = cx.Frame.Method;
+			var method = cx.Frame.Method;
+			if (method.IsGenericMethod && !method.IsGenericMethodDefinition) {
+				var definition = method.GetGenericMethodDefinition ();
+				var names = definition.GetGenericArguments ();
+				var types = method.GetGenericArguments ();
 
-				if (!method.IsGenericMethodDefinition) {
-					TypeMirror[] names, instantiatedTypes;
-
-					instantiatedTypes = method.GetGenericArguments ();
-					method = method.GetGenericMethodDefinition ();
-					names = method.GetGenericArguments ();
-
-					for (i = 0; i < names.Length; i++) {
-						if (names [i].FullName == name)
-							return instantiatedTypes [i];
-					}
+				for (i = 0; i < names.Length; i++) {
+					if (names[i].FullName == name)
+						return types[i];
 				}
 			}
 
-			if (cx.Frame.Method.DeclaringType.IsGenericType) {
-				var declaringType = cx.Frame.Method.DeclaringType;
-				if (!declaringType.IsGenericTypeDefinition) {
-					TypeMirror[] names, instantiatedTypes;
+			var declaringType = method.DeclaringType;
+			if (declaringType.IsGenericType && !declaringType.IsGenericTypeDefinition) {
+				var definition = declaringType.GetGenericTypeDefinition ();
+				var types = declaringType.GetGenericArguments ();
+				var names = definition.GetGenericArguments ();
 
-					instantiatedTypes = declaringType.GetGenericArguments ();
-					declaringType = declaringType.GetGenericTypeDefinition ();
-					names = declaringType.GetGenericArguments ();
-
-					for (i = 0; i < names.Length; i++) {
-						if (names [i].FullName == name)
-							return instantiatedTypes [i];
-					}
+				for (i = 0; i < names.Length; i++) {
+					if (names[i].FullName == name)
+						return types[i];
 				}
 			}
 
