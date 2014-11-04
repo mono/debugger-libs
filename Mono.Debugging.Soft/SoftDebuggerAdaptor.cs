@@ -1985,9 +1985,9 @@ namespace Mono.Debugging.Soft
 		}
 	}
 
-	class MethodCall: AsyncOperation
+	class MethodCall : AsyncOperation
 	{
-		const InvokeOptions options = InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded;
+		const InvokeOptions options = InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded | InvokeOptions.Virtual;
 
 		readonly ManualResetEvent shutdownEvent = new ManualResetEvent (false);
 		readonly SoftEvaluationContext ctx;
