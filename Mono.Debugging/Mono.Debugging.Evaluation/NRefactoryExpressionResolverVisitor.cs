@@ -82,15 +82,18 @@ namespace Mono.Debugging.Evaluation
 		{
 			if (genericArgs == 0)
 				return "";
+
 			string result = "<";
 			for (int i = 0; i < genericArgs; i++)
 				result += "int,";
+
 			return result.Remove (result.Length - 1) + ">";
 		}
 
-		void ReplaceType (string name, int genericArgs, int offset, int length, bool memberyType = false)
+		void ReplaceType (string name, int genericArgs, int offset, int length, bool memberType = false)
 		{
 			string type = null;
+
 			if (genericArgs == 0)
 				type = session.ResolveIdentifierAsType (name, location);
 			else
@@ -99,11 +102,12 @@ namespace Mono.Debugging.Evaluation
 			if (string.IsNullOrEmpty (type)) {
 				parentType = null;
 			} else {
-				if (memberyType) {
+				if (memberType) {
 					type = type.Substring (type.LastIndexOf ('.') + 1);
 				} else {
 					type = "global::" + type;
 				}
+
 				parentType = type + GenerateGenericArgs (genericArgs);
 				var replacement = new Replacement { Offset = offset, Length = length, NewText = type };
 				replacements.Add (replacement);

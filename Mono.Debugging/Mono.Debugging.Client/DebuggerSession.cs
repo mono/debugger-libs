@@ -875,6 +875,7 @@ namespace Mono.Debugging.Client
 		{
 			string key = expression + " " + location;
 			string resolved;
+
 			if (!resolvedExpressionCache.TryGetValue (key, out resolved)) {
 				try {
 					resolved = OnResolveExpression (expression, location);
@@ -883,6 +884,7 @@ namespace Mono.Debugging.Client
 				}
 				resolvedExpressionCache [key] = resolved;
 			}
+
 			return resolved ?? expression;
 		}
 		
