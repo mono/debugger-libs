@@ -460,7 +460,7 @@ namespace Mono.Debugging.Soft
 
 			string typeName = ctx.Adapter.GetDisplayTypeName (ctx, type);
 
-			throw new EvaluatorException ("Constructor not found for type `{1}'.", typeName);
+			throw new EvaluatorException ("Constructor not found for type `{0}'.", typeName);
 		}
 
 		public override object CreateValue (EvaluationContext ctx, object value)
