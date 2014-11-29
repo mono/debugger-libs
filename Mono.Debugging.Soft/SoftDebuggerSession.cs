@@ -2317,6 +2317,9 @@ namespace Mono.Debugging.Soft
 
 		static string ResolveSymbolicLink (string path)
 		{
+			if (IsWindows)
+				return Path.GetFullPath (path);
+
 			if (path.Length == 0)
 				return path;
 
