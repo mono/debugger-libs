@@ -2320,6 +2320,9 @@ namespace Mono.Debugging.Soft
 			if (path.Length == 0)
 				return path;
 
+			if (IsWindows)
+				return Path.GetFullPath (path);
+
 			try {
 				var alreadyVisted = new HashSet<string> ();
 
