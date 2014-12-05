@@ -227,7 +227,6 @@ namespace Mono.Debugging.Soft
 		/// <summary>Starts the debugger listening for a connection over TCP/IP</summary>
 		protected void StartListening (SoftDebuggerStartInfo dsi, out int assignedDebugPort, out int assignedConsolePort)
 		{
-		
 			IPEndPoint dbgEP, conEP;
 			InitForRemoteSession (dsi, out dbgEP, out conEP);
 			
@@ -1555,6 +1554,7 @@ namespace Mono.Debugging.Soft
 			bool steppedInto = false;
 			bool steppedOut = false;
 			bool resume = true;
+			BreakInfo binfo;
 			
 			if (es [0].EventType == EventType.Exception) {
 				var bad = es.FirstOrDefault (ee => ee.EventType != EventType.Exception);
@@ -1567,22 +1567,26 @@ namespace Mono.Debugging.Soft
 					if (exception.Type.FullName != "System.Threading.ThreadAbortException")
 						resume = false;
 				} else {
-					//Set exception for this thread so CatchPoint Print message(tracing) of {$exception} work
+					// Set the exception for this thread so that CatchPoint Print message(tracing) of {$exception} works
 					activeExceptionsByThread [es[0].Thread.ThreadId] = exception;
 					if (!HandleBreakpoint (es [0].Thread, ev.Request)) {
 						etype = TargetEventType.ExceptionThrown;
 						resume = false;
 					}
-					//Remove exception from thread so when program stops because stepFinished/programPause/breakPoint...
-					//we don't have outdatted exception
+
+					// Remove exception from the thread so that when the program stops due to stepFinished/programPause/breakPoint...
+					// we don't have on out-dated exception
 					activeExceptionsByThread.Remove (es[0].Thread.ThreadId);
+
+					// Get the breakEvent so that we can check if we should ignore it later
+					if (breakpoints.TryGetValue (ev.Request, out binfo))
+						breakEvent = binfo.BreakEvent;
 				}
 			} else {
 				//always need to evaluate all breakpoints, some might be tracepoints or conditional bps with counters
 				foreach (Event e in es) {
 					if (e.EventType == EventType.Breakpoint) {
 						var be = (BreakpointEvent) e;
-						BreakInfo binfo;
 
 						if (!HandleBreakpoint (e.Thread, be.Request)) {
 							etype = TargetEventType.TargetHitBreakpoint;
