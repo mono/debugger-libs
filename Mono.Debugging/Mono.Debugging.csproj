@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -125,9 +125,7 @@
     <Compile Include="Mono.Debugging.Client\RunToCursorBreakpoint.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <Folder Include="Mono.Debugging.Evaluation\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\..\nrefactory\ICSharpCode.NRefactory\ICSharpCode.NRefactory.csproj">
       <Project>{3B2A5653-EC97-4001-BB9B-D90F1AF2C371}</Project>

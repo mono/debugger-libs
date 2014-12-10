@@ -154,7 +154,7 @@ namespace Mono.Debugging.Client
 		internal bool HasAdjustedLine {
 			get { return adjustedLine != -1; }
 		}
-		
+
 		public override void CopyFrom (BreakEvent ev)
 		{
 			base.CopyFrom (ev);
