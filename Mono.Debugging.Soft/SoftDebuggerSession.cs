@@ -863,6 +863,35 @@ namespace Mono.Debugging.Soft
 						bi.SetStatus (BreakEventStatus.NotBound, null);
 						pending_bes.Add (bi);
 					}
+				} else if (breakEvent is InstructionBreakpoint) {
+					var bp = (InstructionBreakpoint) breakEvent;
+
+					var insideTypeRange = true;
+					var resolved = false;
+					bool generic;
+
+					bi.FileName = bp.FileName;
+
+					Location location;
+					if ((location = FindLocationByILOffset (bp, bp.FileName, out generic, out insideTypeRange)) != null) {
+						bi.Location = location;
+						InsertBreakpoint (bp, bi);
+						bi.SetStatus (BreakEventStatus.Bound, null);
+						resolved = true;
+					}
+
+					if (resolved) {
+						// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
+						if (generic)
+							pending_bes.Add (bi);
+					} else {
+						pending_bes.Add (bi);
+						if (insideTypeRange)
+							bi.SetStatus (BreakEventStatus.Invalid, null);
+						else
+							bi.SetStatus (BreakEventStatus.NotBound, null);
+					}
+
 				} else if (breakEvent is Breakpoint) {
 					var bp = (Breakpoint) breakEvent;
 					bool insideLoadedRange;
@@ -956,6 +985,35 @@ namespace Mono.Debugging.Soft
 
 				return bi;
 			}
+		}
+
+		private Location FindLocationByILOffset (InstructionBreakpoint bp, string filename, out bool isGeneric, out bool insideTypeRange)
+		{
+			var locations = new List<Location> ();
+			var fuzzy = true;
+
+			var typesInFile = new List<TypeMirror> ();
+
+			AddFileToSourceMapping (filename);
+
+			insideTypeRange = true;
+			isGeneric = false;
+
+			if (source_to_type.TryGetValue (filename, out typesInFile)) {
+				foreach (var type in typesInFile) {
+					var method = type.GetMethod(bp.MethodName);
+					if (method != null && FindLocationByMethod (method, filename, bp.Line, ref fuzzy, ref insideTypeRange, out locations) != null) {
+						foreach (var location in locations) {
+							if (location.ILOffset == bp.ILOffset) {
+								isGeneric = type.IsGenericType;
+								return location;
+							}
+						}
+					}
+				}
+			}
+
+			return null;
 		}
 
 		protected override void OnRemoveBreakEvent (BreakEventInfo eventInfo)
@@ -1201,6 +1259,34 @@ namespace Mono.Debugging.Soft
 
 			string filename = PathToFileName (file);
 
+			AddFileToSourceMapping (filename);
+
+			// Try already loaded types in the current source file
+			List<TypeMirror> mirrors;
+
+			if (source_to_type.TryGetValue (filename, out mirrors)) {
+				foreach (TypeMirror type in mirrors) {
+					bool genericMethod;
+					bool insideRange;
+
+					var loc = FindLocationByType (type, filename, line, column, out genericMethod, out insideRange);
+					if (insideRange)
+						insideLoadedRange = true;
+
+					if (loc != null) {
+						if (genericMethod || type.IsGenericType)
+							genericTypeOrMethod = true;
+
+						locations.Add (loc);
+					}
+				}
+			}
+
+			return locations;
+		}
+
+		private void AddFileToSourceMapping (string filename)
+		{
 			//
 			// Fetch types matching the source file from the debuggee, and add them
 			// to the source file->type mapping tables.
@@ -1225,33 +1311,12 @@ namespace Mono.Debugging.Soft
 				foreach (TypeMirror t in typesInFile)
 					ProcessType (t);
 			}
-
-			// Try already loaded types in the current source file
-			List<TypeMirror> mirrors;
-
-			if (source_to_type.TryGetValue (filename, out mirrors)) {
-				foreach (TypeMirror type in mirrors) {
-					bool genericMethod;
-					bool insideRange;
-					
-					var loc = FindLocationByType (type, filename, line, column, out genericMethod, out insideRange);
-					if (insideRange)
-						insideLoadedRange = true;
-					
-					if (loc != null) {
-						if (genericMethod || type.IsGenericType)
-							genericTypeOrMethod = true;
-
-						locations.Add (loc);
-					}
-				}
-			}
-			
-			return locations;
 		}
-		
-		public override bool CanCancelAsyncEvaluations {
-			get {
+
+		public override bool CanCancelAsyncEvaluations
+		{
+			get
+			{
 				return Adaptor.IsEvaluating;
 			}
 		}
@@ -2249,8 +2314,12 @@ namespace Mono.Debugging.Soft
 					if (PathsAreEqual (PathToFileName (bp.FileName), s)) {
 						bool insideLoadedRange;
 						bool genericMethod;
-						
-						loc = FindLocationByType (type, s, bp.Line, bp.Column, out genericMethod, out insideLoadedRange);
+
+						if (bi.BreakEvent is InstructionBreakpoint) {
+							loc = FindLocationByILOffset ((InstructionBreakpoint)bi.BreakEvent, bp.FileName, out genericMethod, out insideLoadedRange);
+                        } else {
+							loc = FindLocationByType (type, s, bp.Line, bp.Column, out genericMethod, out insideLoadedRange);
+						}
 						if (loc != null) {
 							OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
 							                                        s, bp.Line, bp.Column, GetPrettyMethodName (loc.Method), loc.ILOffset));

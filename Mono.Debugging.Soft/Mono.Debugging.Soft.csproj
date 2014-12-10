@@ -58,6 +58,7 @@
   <ItemGroup>
     <Compile Include="ArrayAdaptor.cs" />
     <Compile Include="FieldValueReference.cs" />
+    <Compile Include="InstructionBreakpoint.cs" />
     <Compile Include="PropertyValueReference.cs" />
     <Compile Include="SoftDebuggerSession.cs" />
     <Compile Include="VariableValueReference.cs" />
