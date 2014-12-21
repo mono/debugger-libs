@@ -1503,6 +1503,15 @@ namespace Mono.Debugging.Soft
 				 name.StartsWith ("op_", StringComparison.Ordinal));
 		}
 
+		static bool IsCompilerGenerated (MethodMirror method)
+		{
+			foreach (var attr in method.GetCustomAttributes(false)) {
+				if (attr.Constructor.DeclaringType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute")
+					return true;
+			}
+			return false;
+		}
+
 		bool IsUserAssembly (AssemblyMirror assembly)
 		{
 			if (userAssemblyNames == null)
@@ -1726,7 +1735,14 @@ namespace Mono.Debugging.Soft
 							// The method has a Debugger[Hidden,StepThrough,NonUserCode]Attribute on it
 							// Keep calling StepInto until we land somewhere without one of these attributes
 							stepInto = true;
-						} else if (Options.StepOverPropertiesAndOperators && IsPropertyOrOperatorMethod (frame.StackFrame.Method)) {
+						} else if (frame.StackFrame.ILOffset == 0 && IsPropertyOrOperatorMethod (frame.StackFrame.Method) &&
+						           (Options.StepOverPropertiesAndOperators || IsCompilerGenerated (frame.StackFrame.Method))) {
+							//We want to skip property only when we just stepped into property(ILOffset==0)
+							//so if user puts breakpoint inside property we don't want to StepOut for him when he steps after breakpoint is hit
+
+							//mcs.exe and Roslyn are also emmiting Sequence point inside auto-properties so breakpoint can be placed
+							//we want to always skip auto-properties also when StepOverProperties is disabled hence "|| IsCompilerGenerated"
+
 							// We will want to call StepInto once StepOut returns...
 							autoStepInto = true;
 							stepOut = true;
