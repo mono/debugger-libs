@@ -1221,18 +1221,24 @@ namespace Mono.Debugging.Evaluation
 				}
 				
 				var props = memberExpr.Split (new [] { '.' });
-				ValueReference member = null;
 				object val = obj;
 				
 				for (int k = 0; k < props.Length; k++) {
-					member = GetMember (ctx, null, GetValueType (ctx, val), val, props[k]);
-					if (member == null)
-						break;
-					
-					val = member.Value;
+					var member = GetMember (ctx, null, GetValueType (ctx, val), val, props [k]);
+					if (member != null) {
+						val = member.Value;
+					} else {
+						var methodName = props [k].TrimEnd ('(', ')', ' ');
+						if (HasMethod (ctx, GetValueType (ctx, val), methodName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)) {
+							val = RuntimeInvoke (ctx, GetValueType (ctx, val), val, methodName, new object[0], new object[0]);
+						} else {
+							val = null;
+							break;
+						}
+					}
 				}
 				
-				if (member != null) {
+				if (val != null) {
 					var str = ctx.Evaluator.TargetObjectToString (ctx, val);
 					if (str == null)
 						display.Append ("null");
