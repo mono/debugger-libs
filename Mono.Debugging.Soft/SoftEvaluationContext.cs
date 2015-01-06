@@ -46,7 +46,8 @@ namespace Mono.Debugging.Soft
 			Frame = frame;
 			Thread = frame.Thread;
 
-			if (frame.VirtualMachine.Version.AtLeast (2, 38)) {
+			//Runtime return ABSENT_INFORMATION when accessing frame.Domain on NativeTransition
+			if (frame.VirtualMachine.Version.AtLeast (2, 38) && !frame.IsNativeTransition) {
 				Domain = frame.Domain;
 			} else {
 				Domain = frame.Method.DeclaringType.GetTypeObject ().Domain;
