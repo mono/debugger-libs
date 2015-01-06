@@ -45,7 +45,12 @@ namespace Mono.Debugging.Soft
 		{
 			Frame = frame;
 			Thread = frame.Thread;
-			Domain = Thread.Domain;
+
+			if (frame.VirtualMachine.Version.AtLeast (2, 38)) {
+				Domain = frame.Domain;
+			} else {
+				Domain = frame.Method.DeclaringType.GetTypeObject ().Domain;
+			}
 
 			string method = frame.Method.Name;
 			if (frame.Method.DeclaringType != null)
