@@ -457,22 +457,39 @@ namespace Mono.Debugging.Evaluation
 			} else {
 				tdata = GetTypeDisplayData (ctx, type);
 
-				if (!string.IsNullOrEmpty (tdata.TypeDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
-					tname = EvaluateDisplayString (ctx, obj, tdata.TypeDisplayString);
-				else
+				if (!string.IsNullOrEmpty (tdata.TypeDisplayString) && ctx.Options.AllowDisplayStringEvaluation) {
+					try {
+						tname = EvaluateDisplayString (ctx, obj, tdata.TypeDisplayString);
+					} catch (MissingMemberException) {
+						// missing property or otherwise malformed DebuggerDisplay string
+						tname = GetDisplayTypeName (typeName);
+					}
+				} else {
 					tname = GetDisplayTypeName (typeName);
+				}
 			}
 
 			if (tvalue == null) {
-				if (!string.IsNullOrEmpty (tdata.ValueDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
-					tvalue = new EvaluationResult (EvaluateDisplayString (ctx, obj, tdata.ValueDisplayString));
-				else
+				if (!string.IsNullOrEmpty (tdata.ValueDisplayString) && ctx.Options.AllowDisplayStringEvaluation) {
+					try {
+						tvalue = new EvaluationResult (EvaluateDisplayString (ctx, obj, tdata.ValueDisplayString));
+					} catch (MissingMemberException) {
+						// missing property or otherwise malformed DebuggerDisplay string
+						tvalue = ctx.Evaluator.TargetObjectToExpression (ctx, obj);
+					}
+				} else {
 					tvalue = ctx.Evaluator.TargetObjectToExpression (ctx, obj);
+				}
 			}
 
 			ObjectValue oval = ObjectValue.CreateObject (source, path, tname, tvalue, flags, null);
-			if (!string.IsNullOrEmpty (tdata.NameDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
-				oval.Name = EvaluateDisplayString (ctx, obj, tdata.NameDisplayString);
+			if (!string.IsNullOrEmpty (tdata.NameDisplayString) && ctx.Options.AllowDisplayStringEvaluation) {
+				try {
+					oval.Name = EvaluateDisplayString (ctx, obj, tdata.NameDisplayString);
+				} catch (MissingMemberException) {
+					// missing property or otherwise malformed DebuggerDisplay string
+				}
+			}
 
 			return oval;
 		}
@@ -1042,8 +1059,13 @@ namespace Mono.Debugging.Evaluation
 
 			if (IsClassInstance (ctx, obj)) {
 				TypeDisplayData tdata = GetTypeDisplayData (ctx, GetValueType (ctx, obj));
-				if (!string.IsNullOrEmpty (tdata.ValueDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
-					return new EvaluationResult (EvaluateDisplayString (ctx, obj, tdata.ValueDisplayString));
+				if (!string.IsNullOrEmpty (tdata.ValueDisplayString) && ctx.Options.AllowDisplayStringEvaluation) {
+					try {
+						return new EvaluationResult (EvaluateDisplayString (ctx, obj, tdata.ValueDisplayString));
+					} catch (MissingMemberException) {
+						// missing property or otherwise malformed DebuggerDisplay string
+					}
+				}
 
 				// Return the type name
 				if (ctx.Options.AllowToStringCalls) {
@@ -1054,8 +1076,13 @@ namespace Mono.Debugging.Evaluation
 					}
 				}
 				
-				if (!string.IsNullOrEmpty (tdata.TypeDisplayString) && ctx.Options.AllowDisplayStringEvaluation)
-					return new EvaluationResult ("{" + EvaluateDisplayString (ctx, obj, tdata.TypeDisplayString) + "}");
+				if (!string.IsNullOrEmpty (tdata.TypeDisplayString) && ctx.Options.AllowDisplayStringEvaluation) {
+					try {
+						return new EvaluationResult ("{" + EvaluateDisplayString (ctx, obj, tdata.TypeDisplayString) + "}");
+					} catch (MissingMemberException) {
+						// missing property or otherwise malformed DebuggerDisplay string
+					}
+				}
 				
 				return new EvaluationResult ("{" + GetDisplayTypeName (GetValueTypeName (ctx, obj)) + "}");
 			}
@@ -1247,7 +1274,7 @@ namespace Mono.Debugging.Evaluation
 					else
 						display.Append (str);
 				} else {
-					display.Append ("{Unknown member '" + memberExpr + "'}");
+					throw new MissingMemberException (GetValueTypeName (ctx, obj), memberExpr);
 				}
 
 				last = j + 1;

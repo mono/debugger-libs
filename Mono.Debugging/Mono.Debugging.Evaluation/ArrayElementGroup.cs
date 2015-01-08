@@ -171,8 +171,13 @@ namespace Mono.Debugging.Evaluation
 						val = cctx.Adapter.CreateObjectValue (cctx, this, newPath.Append (sidx), elems.GetValue (n), ObjectValueFlags.ArrayElement);
 						if (elems.GetValue (n) != null && !cctx.Adapter.IsNull (cctx, elems.GetValue (n))) {
 							TypeDisplayData tdata = cctx.Adapter.GetTypeDisplayData (cctx, cctx.Adapter.GetValueType (cctx, elems.GetValue (n)));
-							if (!string.IsNullOrEmpty (tdata.NameDisplayString))
-								ename = cctx.Adapter.EvaluateDisplayString (cctx, elems.GetValue (n), tdata.NameDisplayString);
+							if (!string.IsNullOrEmpty (tdata.NameDisplayString)) {
+								try {
+									ename = cctx.Adapter.EvaluateDisplayString (cctx, elems.GetValue (n), tdata.NameDisplayString);
+								} catch (MissingMemberException) {
+									// missing property or otherwise malformed DebuggerDisplay string
+								}
+							}
 						}
 					}
 					val.Name = ename;
@@ -302,8 +307,13 @@ namespace Mono.Debugging.Evaluation
 			ObjectValue val = cctx.Adapter.CreateObjectValue (cctx, this, path, elem, ObjectValueFlags.ArrayElement);
 			if (elem != null && !cctx.Adapter.IsNull (cctx, elem)) {
 				TypeDisplayData tdata = cctx.Adapter.GetTypeDisplayData (cctx, cctx.Adapter.GetValueType (cctx, elem));
-				if (!string.IsNullOrEmpty (tdata.NameDisplayString))
-					val.Name = cctx.Adapter.EvaluateDisplayString (cctx, elem, tdata.NameDisplayString);
+				if (!string.IsNullOrEmpty (tdata.NameDisplayString)) {
+					try {
+						val.Name = cctx.Adapter.EvaluateDisplayString (cctx, elem, tdata.NameDisplayString);
+					} catch (MissingMemberException) {
+						// missing property or otherwise malformed DebuggerDisplay string
+					}
+				}
 			}
 			return val;
 		}
