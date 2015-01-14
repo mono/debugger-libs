@@ -44,6 +44,7 @@ using Mono.Debugging.Client;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Evaluation;
 using MDB = Mono.Debugger.Soft;
+using System.Security.Cryptography;
 
 namespace Mono.Debugging.Soft
 {
@@ -73,7 +74,6 @@ namespace Mono.Debugging.Soft
 		List<string> userAssemblyNames;
 		ThreadInfo[] current_threads;
 		string remoteProcessName;
-		bool useFullPaths = true;
 		long currentAddress = -1;
 		IAsyncResult connection;
 		ProcessInfo[] procs;
@@ -411,10 +411,7 @@ namespace Mono.Debugging.Soft
 			connection = null;
 			
 			vm = machine;
-			
-			//full paths, from GetSourceFiles (true), are only supported by sdb protocol 2.2 and later
-			useFullPaths = machine.Version.AtLeast (2, 2);
-			
+
 			ConnectOutput (machine.StandardOutput, false);
 			ConnectOutput (machine.StandardError, true);
 			
@@ -949,7 +946,7 @@ namespace Mono.Debugging.Soft
 				 * filter them using the file names used by pending breakpoints.
 				 */
 				if (vm.Version.AtLeast (2, 9)) {
-					var sourceFileList = pending_bes.Where (b => b.FileName != null).Select (b => b.FileName).ToArray ();
+					var sourceFileList = pending_bes.Where (b => b.FileName != null).Select (b => Path.GetFileName (b.FileName)).Distinct ().ToArray ();
 					if (sourceFileList.Length > 0) {
 						//HACK: with older versions of sdb that don't support case-insenitive compares,
 						//explicitly try lowercased drivename on windows, since csc (when not hosted in VS) lowercases
@@ -1257,7 +1254,7 @@ namespace Mono.Debugging.Soft
 			if (!started)
 				return locations;
 
-			string filename = PathToFileName (file);
+			string filename = Path.GetFileName (file);
 
 			AddFileToSourceMapping (filename);
 
@@ -1269,7 +1266,7 @@ namespace Mono.Debugging.Soft
 					bool genericMethod;
 					bool insideRange;
 
-					var loc = FindLocationByType (type, filename, line, column, out genericMethod, out insideRange);
+					var loc = FindLocationByType (type, file, line, column, out genericMethod, out insideRange);
 					if (insideRange)
 						insideLoadedRange = true;
 
@@ -1810,7 +1807,7 @@ namespace Mono.Debugging.Soft
 					PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asm.Location)
 				));
 				foreach (var breakpoint in affectedBreakpoints) {
-					string file = PathToFileName (breakpoint.Value.Location.SourceFile);
+					string file = breakpoint.Value.Location.SourceFile;
 					int line = breakpoint.Value.Location.LineNumber;
 					OnDebuggerOutput (false, string.Format ("Re-pending breakpoint at {0}:{1}\n", file, line));
 					breakpoints.Remove (breakpoint.Key);
@@ -2193,8 +2190,8 @@ namespace Mono.Debugging.Soft
 			//get the source file paths
 			//full paths, from GetSourceFiles (true), are only supported by sdb protocol 2.2 and later
 			string[] sourceFiles;
-			if (useFullPaths) {
-				sourceFiles = t.GetSourceFiles (true);
+			if (vm.Version.AtLeast (2, 2)) {
+				sourceFiles = t.GetSourceFiles ();
 			} else {
 				sourceFiles = t.GetSourceFiles ();
 				
@@ -2327,14 +2324,14 @@ namespace Mono.Debugging.Soft
 			foreach (string s in type_to_source [type]) {
 				foreach (var bi in pending_bes.Where (b => (b.BreakEvent is Breakpoint) && !(b.BreakEvent is FunctionBreakpoint))) {
 					var bp = (Breakpoint) bi.BreakEvent;
-					if (PathsAreEqual (PathToFileName (bp.FileName), s)) {
+					if (PathComparer.Compare (Path.GetFileName (bp.FileName), s) == 0) {
 						bool insideLoadedRange;
 						bool genericMethod;
 
 						if (bi.BreakEvent is InstructionBreakpoint) {
 							loc = FindLocationByILOffset ((InstructionBreakpoint)bi.BreakEvent, bp.FileName, out genericMethod, out insideLoadedRange);
-                        } else {
-							loc = FindLocationByType (type, s, bp.Line, bp.Column, out genericMethod, out insideLoadedRange);
+						} else {
+							loc = FindLocationByType (type, bp.FileName, bp.Line, bp.Column, out genericMethod, out insideLoadedRange);
 						}
 						if (loc != null) {
 							OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
@@ -2376,11 +2373,6 @@ namespace Mono.Debugging.Soft
 				return path.Replace ('\\', '/');
 
 			return path;
-		}
-		
-		string PathToFileName (string path)
-		{
-			return useFullPaths ? path : Path.GetFileName (path);
 		}
 
 		[DllImport ("libc")]
@@ -2516,6 +2508,20 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 
+		bool CheckFileMd5 (string file, byte[] hash)
+		{
+			if (File.Exists (file)) {
+				using (var fs = File.OpenRead (file)) {
+					using (var md5 = MD5.Create ()) {
+						if (md5.ComputeHash (fs).SequenceEqual (hash)) {
+							return true;
+						}
+					}
+				}
+			}
+			return false;
+		}
+
 		Location FindLocationByMethod (MethodMirror method, string file, int line, ref bool fuzzy, ref bool insideTypeRange, out List<Location> locations)
 		{
 			int rangeFirstLine = int.MaxValue;
@@ -2529,7 +2535,14 @@ namespace Mono.Debugging.Soft
 
 				//Console.WriteLine ("\tExamining {0}:{1}...", srcFile, location.LineNumber);
 
-				if (srcFile != null && PathsAreEqual (PathToFileName (NormalizePath (srcFile)), file)) {
+				//Check if file names match
+				if (srcFile != null && PathComparer.Compare (Path.GetFileName (srcFile), Path.GetFileName (file)) == 0) {
+					//Check if full path match(we don't care about md5 if full path match):
+					//1. For backward compatibility
+					//2. If full path matches user himself probably modified code and is aware of modifications
+					//OR if md5 match, useful for alternative location files with breakpoints
+					if (!PathsAreEqual (NormalizePath (srcFile), file) && !CheckFileMd5 (file, location.SourceFileHash))
+						continue;
 					if (location.LineNumber < rangeFirstLine)
 						rangeFirstLine = location.LineNumber;
 

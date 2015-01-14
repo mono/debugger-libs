@@ -176,7 +176,7 @@ namespace Mono.Debugging.Soft
 				hidden = method.GetCustomAttributes (hiddenAttr, true).Any ();
 			}
 
-			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber);
+			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber, frame.Location.SourceFileHash);
 			var external = session.IsExternalCode (frame);
 			string addressSpace = string.Empty;
 			bool hasDebugInfo = false;
