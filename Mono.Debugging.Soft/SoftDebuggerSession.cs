@@ -785,7 +785,8 @@ namespace Mono.Debugging.Soft
 			if (frames.Length == 0)
 				throw new NotSupportedException ();
 
-			var location = FindLocationByMethod (frames[0].Method, fileName, line, column);
+			bool dummy = false;
+			var location = FindLocationByMethod (frames[0].Method, fileName, line, column, ref dummy);
 			if (location == null)
 				throw new NotSupportedException ();
 
@@ -991,7 +992,6 @@ namespace Mono.Debugging.Soft
 		private Location FindLocationByILOffset (InstructionBreakpoint bp, string filename, out bool isGeneric, out bool insideTypeRange)
 		{
 			var locations = new List<Location> ();
-			var fuzzy = true;
 
 			var typesInFile = new List<TypeMirror> ();
 
@@ -1003,8 +1003,8 @@ namespace Mono.Debugging.Soft
 			if (source_to_type.TryGetValue (filename, out typesInFile)) {
 				foreach (var type in typesInFile) {
 					var method = type.GetMethod(bp.MethodName);
-					if (method != null && FindLocationByMethod (method, filename, bp.Line, ref fuzzy, ref insideTypeRange, out locations) != null) {
-						foreach (var location in locations) {
+					if (method != null) {
+						foreach (var location in method.Locations) {
 							if (location.ILOffset == bp.ILOffset) {
 								isGeneric = type.IsGenericType;
 								return location;
@@ -2465,7 +2465,7 @@ namespace Mono.Debugging.Soft
 			return method.Locations.Count > 0 ? method.Locations[0] : null;
 		}
 		
-		bool CheckBetterMatch (TypeMirror type, string file, int line, Location found)
+		bool CheckBetterMatch (TypeMirror type, string file, int line, int column, Location found)
 		{
 			if (type.Assembly == null)
 				return false;
@@ -2494,10 +2494,18 @@ namespace Mono.Debugging.Soft
 				return false;
 			}
 
-			foreach (var src in mdb.Sources) {
-				if (src.FileName == file) {
-					fileId = src.Index;
-					break;
+			if (File.Exists (file)) {
+				using (var fs = File.OpenRead (file)) {
+					using (var md5 = MD5.Create ()) {
+						var hash = md5.ComputeHash (fs);
+						foreach (var src in mdb.Sources) {
+							if (PathsAreEqual (src.FileName, file) ||
+								(PathComparer.Compare (Path.GetFileName (src.FileName), Path.GetFileName (file)) == 0 && hash.SequenceEqual (src.Checksum))) {
+								fileId = src.Index;
+								break;
+							}
+						}
+					}
 				}
 			}
 
@@ -2510,7 +2518,9 @@ namespace Mono.Debugging.Soft
 					if (entry.File != fileId)
 						continue;
 
-					if (entry.Row >= line && (entry.Row - line) < foundDelta)
+					if ((entry.Row >= line && (entry.Row - line) < foundDelta))
+						return true;
+					if (entry.Row == line && column >= entry.Column && entry.Column > found.ColumnNumber)
 						return true;
 				}
 			}
@@ -2532,13 +2542,11 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 
-		Location FindLocationByMethod (MethodMirror method, string file, int line, ref bool fuzzy, ref bool insideTypeRange, out List<Location> locations)
+		Location FindLocationByMethod (MethodMirror method, string file, int line, int column, ref bool insideTypeRange)
 		{
 			int rangeFirstLine = int.MaxValue;
 			int rangeLastLine = -1;
 			Location target = null;
-
-			locations = new List<Location> ();
 
 			foreach (var location in method.Locations) {
 				string srcFile = location.SourceFile;
@@ -2568,29 +2576,25 @@ namespace Mono.Debugging.Soft
 								if (target.LineNumber - line > location.LineNumber - line) {
 									// Grab the location closest to the requested line
 									//Console.WriteLine ("\t\tLocation is closest match. (ILOffset = 0x{0:x5})", location.ILOffset);
-									locations.Clear ();
-									locations.Add (location);
 									target = location;
 								}
 							} else if (target.LineNumber != line) {
 								// Previous match was a fuzzy match, but now we've found an exact line match
 								//Console.WriteLine ("\t\tLocation is exact line match. (ILOffset = 0x{0:x5})", location.ILOffset);
-								locations.Clear ();
-								locations.Add (location);
 								target = location;
-								fuzzy = false;
 							} else {
-								// Line number matches exactly, use the location with the lowest ILOffset
-								if (location.ILOffset < target.ILOffset)
-									target = location;
-
-								locations.Add (location);
-								fuzzy = false;
+								if (target.ColumnNumber == location.ColumnNumber) {
+									// Line number matches exactly, use the location with the lowest ILOffset
+									if (location.ILOffset < target.ILOffset)
+										target = location;
+								} else {
+									// Line number matches exactly and columns are different, use the location with most right + closest column
+									if (column >= location.ColumnNumber && location.ColumnNumber > target.ColumnNumber)
+										target = location;
+								}
 							}
 						} else {
 							//Console.WriteLine ("\t\tLocation is first possible match. (ILOffset = 0x{0:x5})", location.ILOffset);
-							fuzzy = location.LineNumber != line;
-							locations.Add (location);
 							target = location;
 						}
 					}
@@ -2599,89 +2603,50 @@ namespace Mono.Debugging.Soft
 					rangeLastLine = -1;
 				}
 			}
-
-			return target;
-		}
-
-		Location FindLocationByMethod (MethodMirror method, string file, int line, int column)
-		{
-			bool insideTypeRange = false;
-			List<Location> locations;
-			bool fuzzy = true;
-			Location target;
-
-			if ((target = FindLocationByMethod (method, file, line, ref fuzzy, ref insideTypeRange, out locations)) != null) {
-				// If we got a fuzzy match, then we need to make sure that there isn't a better
-				// match in another method (e.g. code might have been extracted out into another
-				// method by the compiler.
-				if (!fuzzy) {
-					// Exact line match... now find the best column match.
-					locations.Sort (new LocationComparer ());
-
-					// Find the closest-matching location based on column.
-					target = locations[0];
-					for (int i = 1; i < locations.Count; i++) {
-						if (locations[i].ColumnNumber > column)
-							break;
-
-						// if the column numbers match, then target_loc should have the lower ILOffset (which we want)
-						if (target.ColumnNumber == locations[i].ColumnNumber)
-							continue;
-
-						target = locations[i];
-					}
-
-					return target;
-				}
-			}
-
-			if (target != null && fuzzy && CheckBetterMatch (method.DeclaringType, file, line, target))
+			if (target != null && CheckBetterMatch (method.DeclaringType, file, line, column, target)) {
+				insideTypeRange = false;
 				return null;
-
+			}
 			return target;
 		}
 
 		Location FindLocationByType (TypeMirror type, string file, int line, int column, out bool genericMethod, out bool insideTypeRange)
 		{
 			Location target = null;
-			bool fuzzy = true;
+			Location methodTarget = null;
 
 			insideTypeRange = false;
+			bool methodInsideTypeRange = false;
 			genericMethod = false;
 
 			//Console.WriteLine ("Trying to resolve {0}:{1},{2} in type {3}", file, line, column, type.Name);
 			foreach (var method in type.GetMethods ()) {
-				List<Location> locations;
+				if ((methodTarget = FindLocationByMethod (method, file, line, column, ref methodInsideTypeRange)) != null) {
+					insideTypeRange |= methodInsideTypeRange;//If any method returns true return true
 
-				if ((target = FindLocationByMethod (method, file, line, ref fuzzy, ref insideTypeRange, out locations)) != null) {
-					genericMethod = IsGenericMethod (method);
-					
-					// If we got a fuzzy match, then we need to make sure that there isn't a better
-					// match in another method (e.g. code might have been extracted out into another
-					// method by the compiler.
-					if (!fuzzy) {
-						// Exact line match... now find the best column match.
-						locations.Sort (new LocationComparer ());
-
-						// Find the closest-matching location based on column.
-						target = locations[0];
-						for (int i = 1; i < locations.Count; i++) {
-							if (locations[i].ColumnNumber > column)
-								break;
-
-							// if the column numbers match, then target_loc should have the lower ILOffset (which we want)
-							if (target.ColumnNumber == locations[i].ColumnNumber)
-								continue;
-
-							target = locations[i];
+					if (target == null) {
+						target = methodTarget;
+						genericMethod = IsGenericMethod (method);
+					} else {
+						if (line == methodTarget.LineNumber) {
+							if (target.LineNumber != line || (column >= methodTarget.ColumnNumber && methodTarget.ColumnNumber > target.ColumnNumber)) {
+								target = methodTarget;
+								genericMethod = IsGenericMethod (method);
+							}
+						} else {
+							if (line != target.LineNumber) {
+								//None of targets has exact line match decide which is closest
+								if (Math.Abs (line - target.LineNumber) > Math.Abs (line - methodTarget.LineNumber)) {
+									target = methodTarget;
+									genericMethod = IsGenericMethod (method);
+								}
+							}
 						}
-
-						return target;
 					}
 				}
 			}
 			
-			if (target != null && fuzzy && CheckBetterMatch (type, file, line, target)) {
+			if (target != null && CheckBetterMatch (type, file, line, column, target)) {
 				insideTypeRange = false;
 				return null;
 			}
