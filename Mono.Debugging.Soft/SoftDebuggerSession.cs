@@ -791,6 +791,7 @@ namespace Mono.Debugging.Soft
 
 			try {
 				thread.SetIP (location);
+				currentAddress = location.ILOffset;
 			} catch (ArgumentException) {
 				throw new NotSupportedException ();
 			}
