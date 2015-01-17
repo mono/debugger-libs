@@ -417,7 +417,7 @@ namespace Mono.Debugger.Soft
 		 * with newer runtimes, and vice versa.
 		 */
 		internal const int MAJOR_VERSION = 2;
-		internal const int MINOR_VERSION = 38;
+		internal const int MINOR_VERSION = 39;
 
 		enum WPSuspendPolicy {
 			NONE = 0,
@@ -1216,6 +1216,8 @@ namespace Mono.Debugger.Soft
 
 		bool disconnected;
 
+		internal ManualResetEvent DisconnectedEvent = new ManualResetEvent (false);
+
 		void receiver_thread_main () {
 			while (!closed) {
 				try {
@@ -1232,6 +1234,7 @@ namespace Mono.Debugger.Soft
 
 			lock (reply_packets_monitor) {
 				disconnected = true;
+				DisconnectedEvent.Set ();
 				Monitor.PulseAll (reply_packets_monitor);
 				TransportClose ();
 			}
@@ -2475,6 +2478,7 @@ namespace Mono.Debugger.Soft
 		{
 			closed = true;
 			disconnected = true;
+			DisconnectedEvent.Set ();
 			TransportClose ();
 		}
 	}
