@@ -167,17 +167,26 @@ namespace Mono.Debugging.Soft
 				typeFQN = type.Module.FullyQualifiedName;
 				typeFullName = type.FullName;
 			}
-
+			bool external = false;
 			bool hidden = false;
 			if (session.VirtualMachine.Version.AtLeast (2, 21)) {
 				var ctx = GetEvaluationContext (frameIndex, session.EvaluationOptions);
 				var hiddenAttr = session.Adaptor.GetType (ctx, "System.Diagnostics.DebuggerHiddenAttribute") as MDB.TypeMirror;
-			
 				hidden = method.GetCustomAttributes (hiddenAttr, true).Any ();
+			}
+			if (hidden) {
+				external = true;
+			} else {
+				external = session.IsExternalCode (frame);
+				if (!external && session.Options.ProjectAssembliesOnly && session.VirtualMachine.Version.AtLeast (2, 21)) {
+					var ctx = GetEvaluationContext (frameIndex, session.EvaluationOptions);
+					var nonUserCodeAttr = session.Adaptor.GetType (ctx, "System.Diagnostics.DebuggerNonUserCodeAttribute") as MDB.TypeMirror;
+					external = method.GetCustomAttributes (nonUserCodeAttr, true).Any ();
+				}
 			}
 
 			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber, frame.Location.SourceFileHash);
-			var external = session.IsExternalCode (frame);
+
 			string addressSpace = string.Empty;
 			bool hasDebugInfo = false;
 			string language;
