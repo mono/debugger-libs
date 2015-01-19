@@ -1546,24 +1546,30 @@ namespace Mono.Debugging.Soft
 			if (Options.ProjectAssembliesOnly && !IsUserAssembly (method.DeclaringType.Assembly))
 				return true;
 
-			if (vm.Version.AtLeast (2, 21)) {
-				foreach (var attr in method.GetCustomAttributes (false)) {
-					var attrName = attr.Constructor.DeclaringType.FullName;
+			//With Sdb 2.30 this logic was moved to Runtime no need to spend time on checking this
+			if (!vm.Version.AtLeast (2, 30)) {
+				if (vm.Version.AtLeast (2, 21)) {
+					foreach (var attr in method.GetCustomAttributes (false)) {
+						var attrName = attr.Constructor.DeclaringType.FullName;
 
-					switch (attrName) {
-					case "System.Diagnostics.DebuggerHiddenAttribute":      return true;
-					case "System.Diagnostics.DebuggerStepThroughAttribute": return true;
-					case "System.Diagnostics.DebuggerNonUserCodeAttribute": return Options.ProjectAssembliesOnly;
+						switch (attrName) {
+						case "System.Diagnostics.DebuggerHiddenAttribute":
+							return true;
+						case "System.Diagnostics.DebuggerStepThroughAttribute":
+							return true;
+						case "System.Diagnostics.DebuggerNonUserCodeAttribute":
+							return Options.ProjectAssembliesOnly;
+						}
 					}
 				}
-			}
 
-			if (Options.ProjectAssembliesOnly) {
-				foreach (var attr in method.DeclaringType.GetCustomAttributes (false)) {
-					var attrName = attr.Constructor.DeclaringType.FullName;
+				if (Options.ProjectAssembliesOnly) {
+					foreach (var attr in method.DeclaringType.GetCustomAttributes (false)) {
+						var attrName = attr.Constructor.DeclaringType.FullName;
 
-					if (attrName == "System.Diagnostics.DebuggerNonUserCodeAttribute")
-						return Options.ProjectAssembliesOnly;
+						if (attrName == "System.Diagnostics.DebuggerNonUserCodeAttribute")
+							return Options.ProjectAssembliesOnly;
+					}
 				}
 			}
 
