@@ -947,7 +947,10 @@ namespace Mono.Debugging.Soft
 				 * filter them using the file names used by pending breakpoints.
 				 */
 				if (vm.Version.AtLeast (2, 9)) {
-					var sourceFileList = pending_bes.Where (b => b.FileName != null).Select (b => Path.GetFileName (b.FileName)).Distinct ().ToArray ();
+					var sourceFileList = pending_bes.Where (b => b.FileName != null).SelectMany ((b, i) => new [] {
+						Path.GetFileName (b.FileName),
+						b.FileName
+					}).Distinct ().ToArray ();
 					if (sourceFileList.Length > 0) {
 						//HACK: with older versions of sdb that don't support case-insenitive compares,
 						//explicitly try lowercased drivename on windows, since csc (when not hosted in VS) lowercases
@@ -2198,7 +2201,7 @@ namespace Mono.Debugging.Soft
 			//full paths, from GetSourceFiles (true), are only supported by sdb protocol 2.2 and later
 			string[] sourceFiles;
 			if (vm.Version.AtLeast (2, 2)) {
-				sourceFiles = t.GetSourceFiles ();
+				sourceFiles = t.GetSourceFiles ().Select ((fullPath) => Path.GetFileName (fullPath)).ToArray ();
 			} else {
 				sourceFiles = t.GetSourceFiles ();
 				
