@@ -53,14 +53,17 @@ namespace Mono.Debugging.Evaluation
 		
 		public override string Name {
 			get {
-				StringBuilder sb = new StringBuilder ();
-				sb.Append ('[');
-				for (int n=0; n<indices.Length; n++) {
-					if (n > 0) sb.Append (", ");
-					sb.Append (indices [n]);
+				var name = new StringBuilder ();
+
+				name.Append ('[');
+				for (int n = 0; n < indices.Length; n++) {
+					if (n > 0)
+						name.Append (", ");
+					name.Append (indices[n]);
 				}
-				sb.Append (']');
-				return sb.ToString ();
+				name.Append (']');
+
+				return name.ToString ();
 			}
 		}
 		

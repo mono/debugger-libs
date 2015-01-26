@@ -31,9 +31,9 @@ using Mono.Debugger.Soft;
 
 namespace Mono.Debugging.Soft
 {
-	public class ArrayAdaptor: ICollectionAdaptor
+	public class ArrayAdaptor : ICollectionAdaptor
 	{
-		ArrayMirror array;
+		readonly ArrayMirror array;
 		int[] dimensions;
 		
 		public ArrayAdaptor (ArrayMirror array)

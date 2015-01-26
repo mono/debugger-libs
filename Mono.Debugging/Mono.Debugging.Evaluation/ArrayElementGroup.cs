@@ -36,12 +36,12 @@ namespace Mono.Debugging.Evaluation
 {
 	public class ArrayElementGroup: RemoteFrameObject, IObjectValueSource
 	{
-		EvaluationContext ctx;
+		readonly ICollectionAdaptor array;
+		readonly EvaluationContext ctx;
 		int[] baseIndices;
 		int firstIndex;
 		int lastIndex;
 		int[] bounds;
-		ICollectionAdaptor array;
 		
 		const int MaxChildCount = 150;
 
@@ -72,7 +72,8 @@ namespace Mono.Debugging.Evaluation
 		public ObjectValue CreateObjectValue ()
 		{
 			Connect ();
-			StringBuilder sb = new StringBuilder ("[");
+
+			var sb = new StringBuilder ("[");
 			for (int n=0; n<baseIndices.Length; n++) {
 				if (n > 0)
 					sb.Append (", ");
@@ -129,8 +130,7 @@ namespace Mono.Debugging.Evaluation
 			if (!IsRange) {
 				initalIndex = lowerBound;
 				len = upperBound + 1;
-			}
-			else {
+			} else {
 				initalIndex = firstIndex;
 				len = lastIndex - firstIndex + 1;
 			}
@@ -185,10 +185,11 @@ namespace Mono.Debugging.Evaluation
 				}
 				return values;
 			}
-			else if (!isLastDimension && div == 1) {
+
+			if (!isLastDimension && div == 1) {
 				// Return an array element group for each index
 				
-				List<ObjectValue> list = new List<ObjectValue> ();
+				var list = new List<ObjectValue> ();
 				for (int i=0; i<count; i++) {
 					int index = i + initalIndex + firstItemIndex;
 					ObjectValue val;
@@ -208,8 +209,7 @@ namespace Mono.Debugging.Evaluation
 					list.Add (val);
 				}
 				return list.ToArray ();
-			}
-			else {
+			} else {
 				// Too many elements. Split the array.
 				
 				// Don't make divisions of 10 elements, min is 100
@@ -219,7 +219,7 @@ namespace Mono.Debugging.Evaluation
 				// Create the child groups
 				int i = initalIndex + firstItemIndex;
 				len += i;
-				List<ObjectValue> list = new List<ObjectValue> ();
+				var list = new List<ObjectValue> ();
 				while (i < len) {
 					int end = i + div - 1;
 					if (end > len)
