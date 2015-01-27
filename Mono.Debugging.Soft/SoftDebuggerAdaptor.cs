@@ -2033,6 +2033,9 @@ namespace Mono.Debugging.Soft
 			if (enableOutArgs) {
 				this.options |= InvokeOptions.ReturnOutArgs;
 			}
+			if (function.VirtualMachine.Version.AtLeast (2, 40)) {
+				this.options |= InvokeOptions.Virtual;
+			}
 		}
 		
 		public override string Description {
