@@ -709,31 +709,6 @@ namespace Mono.Debugging.Evaluation
 			if (vtype != null)
 				return new TypeValueReference (ctx, vtype);
 
-			// Look in nested types
-
-			if (type != null) {
-				foreach (object ntype in ctx.Adapter.GetNestedTypes (ctx, type)) {
-					if (TypeValueReference.GetTypeName (ctx.Adapter.GetTypeName (ctx, ntype)) == name)
-						return new TypeValueReference (ctx, ntype);
-				}
-
-				string[] namespaces = ctx.Adapter.GetImportedNamespaces (ctx);
-				if (namespaces.Length > 0) {
-					// Look in namespaces
-					foreach (string ns in namespaces) {
-						string nm = ns + "." + name;
-						vtype = ctx.Adapter.ForceLoadType (ctx, nm);
-						if (vtype != null)
-							return new TypeValueReference (ctx, vtype);
-					}
-
-					foreach (string ns in namespaces) {
-						if (ns == name || ns.StartsWith (name + ".", StringComparison.InvariantCulture))
-							return new NamespaceValueReference (ctx, name);
-					}
-				}
-			}
-
 			if (self == null && ctx.Adapter.HasMember (ctx, type, name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)) {
 				string message = string.Format ("An object reference is required for the non-static field, method, or property '{0}.{1}'.",
 				                                ctx.Adapter.GetDisplayTypeName (ctx, type), name);
