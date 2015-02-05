@@ -320,6 +320,11 @@ namespace Mono.Debugging.Evaluation
 		{
 			return true;
 		}
+
+		public virtual bool IsSafeToInvokeMethod (EvaluationContext ctx, object method, object obj)
+		{
+			return true;
+		}
 		
 		public virtual IEnumerable<EnumMember> GetEnumMembers (EvaluationContext ctx, object type)
 		{

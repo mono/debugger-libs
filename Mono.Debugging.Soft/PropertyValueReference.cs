@@ -39,9 +39,11 @@ namespace Mono.Debugging.Soft
 		Value[] indexerArgs;
 		object obj, value;
 		bool haveValue;
+		bool safe;
 		
 		public PropertyValueReference (EvaluationContext ctx, PropertyInfoMirror property, object obj, TypeMirror declaringType, MethodMirror getter, Value[] indexerArgs): base (ctx)
 		{
+			this.safe = Context.Adapter.IsSafeToInvokeMethod (ctx, getter, obj ?? declaringType);
 			this.declaringType = declaringType;
 			this.indexerArgs = indexerArgs;
 			this.property = property;
@@ -118,6 +120,9 @@ namespace Mono.Debugging.Soft
 		public override object GetValue (EvaluationContext ctx)
 		{
 			if (!haveValue) {
+				if (!safe)
+					throw new EvaluatorException ("This property is not safe to evaluate.");
+
 				value = ((SoftEvaluationContext) ctx).RuntimeInvoke (getter, obj ?? declaringType, indexerArgs);
 				haveValue = true;
 			}
@@ -151,7 +156,10 @@ namespace Mono.Debugging.Soft
 		protected override bool CanEvaluate (EvaluationOptions options)
 		{
 			if (options.AllowTargetInvoke)
-				return true;
+				return safe;
+
+			if (!safe)
+				return false;
 
 			try {
 				GetValue (Context.WithOptions (options));
