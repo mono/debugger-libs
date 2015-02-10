@@ -2636,7 +2636,7 @@ namespace Mono.Debugging.Soft
 						} else {
 							if (line != target.LineNumber) {
 								//None of targets has exact line match decide which is closest
-								if (Math.Abs (line - target.LineNumber) > Math.Abs (line - methodTarget.LineNumber)) {
+								if (System.Math.Abs (line - target.LineNumber) > System.Math.Abs (line - methodTarget.LineNumber)) {
 									target = methodTarget;
 									genericMethod = IsGenericMethod (method);
 								}
