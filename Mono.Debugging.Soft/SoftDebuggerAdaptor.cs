@@ -1316,7 +1316,8 @@ namespace Mono.Debugging.Soft
 			var tm = (TypeMirror) type;
 
 			foreach (var nested in tm.GetNestedTypes ())
-				yield return nested;
+				if (!IsGeneratedType (nested))
+					yield return nested;
 		}
 
 		public override IEnumerable<object> GetImplementedInterfaces (EvaluationContext ctx, object type)
