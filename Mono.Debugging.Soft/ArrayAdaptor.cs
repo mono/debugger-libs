@@ -34,20 +34,32 @@ namespace Mono.Debugging.Soft
 	public class ArrayAdaptor : ICollectionAdaptor
 	{
 		readonly ArrayMirror array;
-		int[] dimensions;
+		int[] dimensions, bounds;
 		
 		public ArrayAdaptor (ArrayMirror array)
 		{
 			this.array = array;
 		}
+
+		public int[] GetLowerBounds ()
+		{
+			if (bounds == null) {
+				bounds = new int[array.Rank];
+				for (int i = 0; i < array.Rank; i++)
+					bounds[i] = array.GetLowerBound (i);
+			}
+
+			return bounds;
+		}
 		
 		public int[] GetDimensions ()
 		{
 			if (dimensions == null) {
-				dimensions = new int [array.Rank];
-				for (int n=0; n<array.Rank; n++)
-					dimensions [n] = array.GetLength (n);
+				dimensions = new int[array.Rank];
+				for (int i = 0; i < array.Rank; i++)
+					dimensions[i] = array.GetLength (i);
 			}
+
 			return dimensions;
 		}
 		

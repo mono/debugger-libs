@@ -32,6 +32,7 @@ namespace Mono.Debugging.Evaluation
 {
 	public interface ICollectionAdaptor
 	{
+		int[] GetLowerBounds ();
 		int[] GetDimensions ();
 		object GetElement (int[] indices);
 		Array GetElements (int[] indices, int count);
