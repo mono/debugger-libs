@@ -600,10 +600,12 @@ namespace Mono.Debugging.Soft
 		
 		static bool IsClosureReferenceField (FieldInfoMirror field)
 		{
-			// mcs is "<>f__ref"
+			// mcs is "$locvar"
 			// csc is "CS$<>"
+			// roslyn is "<>8__"
 			return field.Name.StartsWith ("CS$<>", StringComparison.Ordinal) ||
-				field.Name.StartsWith ("<>f__ref", StringComparison.Ordinal);
+			field.Name.StartsWith ("$locvar", StringComparison.Ordinal) ||
+			field.Name.StartsWith ("<>8__", StringComparison.Ordinal);
 		}
 		
 		static bool IsClosureReferenceLocal (LocalVariable local)
