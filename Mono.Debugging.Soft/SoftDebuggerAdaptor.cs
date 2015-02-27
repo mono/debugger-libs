@@ -600,10 +600,14 @@ namespace Mono.Debugging.Soft
 		
 		static bool IsClosureReferenceField (FieldInfoMirror field)
 		{
-			// mcs is "<>f__ref"
+			// mcs is "$locvar"
+			// old mcs is "<>f__ref"
 			// csc is "CS$<>"
+			// roslyn is "<>8__"
 			return field.Name.StartsWith ("CS$<>", StringComparison.Ordinal) ||
-				field.Name.StartsWith ("<>f__ref", StringComparison.Ordinal);
+				        field.Name.StartsWith ("<>f__ref", StringComparison.Ordinal) ||
+				        field.Name.StartsWith ("$locvar", StringComparison.Ordinal) ||
+				        field.Name.StartsWith ("<>8__", StringComparison.Ordinal);
 		}
 		
 		static bool IsClosureReferenceLocal (LocalVariable local)
@@ -641,7 +645,7 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 
-		IEnumerable<ValueReference> GetHoistedLocalVariables (SoftEvaluationContext cx, ValueReference vthis)
+		IEnumerable<ValueReference> GetHoistedLocalVariables (SoftEvaluationContext cx, ValueReference vthis, HashSet<FieldInfoMirror> alreadyVisited = null)
 		{
 			if (vthis == null)
 				return new ValueReference [0];
@@ -661,7 +665,11 @@ namespace Mono.Debugging.Soft
 					continue;
 
 				if (IsClosureReferenceField (field)) {
-					list.AddRange (GetHoistedLocalVariables (cx, new FieldValueReference (cx, field, val, type)));
+					alreadyVisited = alreadyVisited ?? new HashSet<FieldInfoMirror> ();
+					if (alreadyVisited.Contains (field))
+						continue;
+					alreadyVisited.Add (field);
+					list.AddRange (GetHoistedLocalVariables (cx, new FieldValueReference (cx, field, val, type), alreadyVisited));
 					continue;
 				}
 
@@ -691,13 +699,17 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 		
-		ValueReference GetHoistedThisReference (SoftEvaluationContext cx, TypeMirror type, object val)
+		ValueReference GetHoistedThisReference (SoftEvaluationContext cx, TypeMirror type, object val, HashSet<FieldInfoMirror> alreadyVisited = null)
 		{
 			foreach (var field in type.GetFields ()) {
 				if (IsHoistedThisReference (field))
 					return new FieldValueReference (cx, field, val, type, "this", ObjectValueFlags.Literal);
 
 				if (IsClosureReferenceField (field)) {
+					alreadyVisited = alreadyVisited ?? new HashSet<FieldInfoMirror> ();
+					if (alreadyVisited.Contains (field))
+						continue;
+					alreadyVisited.Add (field);
 					var fieldRef = new FieldValueReference (cx, field, val, type);
 					var thisRef = GetHoistedThisReference (cx, field.FieldType, fieldRef.Value);
 					if (thisRef != null)
