@@ -711,7 +711,7 @@ namespace Mono.Debugging.Soft
 						continue;
 					alreadyVisited.Add (field);
 					var fieldRef = new FieldValueReference (cx, field, val, type);
-					var thisRef = GetHoistedThisReference (cx, field.FieldType, fieldRef.Value);
+					var thisRef = GetHoistedThisReference (cx, field.FieldType, fieldRef.Value, alreadyVisited);
 					if (thisRef != null)
 						return thisRef;
 				}
