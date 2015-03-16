@@ -612,15 +612,17 @@ namespace Mono.Debugging.Evaluation
 							values.Insert (0, BaseTypeViewSource.CreateBaseTypeView (ctx, objectSource, baseType, proxy));
 					}
 
-					if (ctx.SupportIEnumerable && GetImplementedInterfaces (ctx, type).Any ((interfaceType) => {
-						string interfaceName = GetTypeName (ctx, interfaceType);
-						if (interfaceName == "System.Collections.IEnumerable")
-							return true;
-						if (interfaceName == "System.Collections.Generic.IEnumerable`1")
-							return true;
-						return false;
-					})) {
-						values.Add (ObjectValue.CreatePrimitive (new EnumerableSource (proxy, ctx), new ObjectPath ("IEnumerator"), "", new EvaluationResult (""), ObjectValueFlags.ReadOnly | ObjectValueFlags.Object | ObjectValueFlags.Group | ObjectValueFlags.IEnumerable));
+					if (ctx.SupportIEnumerable) {
+						var iEnumerableType = GetImplementedInterfaces (ctx, type).FirstOrDefault ((interfaceType) => {
+							string interfaceName = GetTypeName (ctx, interfaceType);
+							if (interfaceName == "System.Collections.IEnumerable")
+								return true;
+							if (interfaceName == "System.Collections.Generic.IEnumerable`1")
+								return true;
+							return false;
+						});
+						if (iEnumerableType != null)
+							values.Add (ObjectValue.CreatePrimitive (new EnumerableSource (proxy, iEnumerableType, ctx), new ObjectPath ("IEnumerator"), "", new EvaluationResult (""), ObjectValueFlags.ReadOnly | ObjectValueFlags.Object | ObjectValueFlags.Group | ObjectValueFlags.IEnumerable));
 					}
 				}
 			}

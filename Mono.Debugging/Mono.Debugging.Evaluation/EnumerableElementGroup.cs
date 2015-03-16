@@ -34,29 +34,24 @@ namespace Mono.Debugging.Evaluation
 	class EnumerableSource : IObjectValueSource
 	{
 		object obj;
+		object objType;
 		EvaluationContext ctx;
 		List<ObjectValue> elements;
 		List<object> values;
 		int currentIndex = 0;
-		object enumerator = null;
+		object enumerator;
+		object enumeratorType;
 
-		public EnumerableSource (object source, EvaluationContext ctx)
+		public EnumerableSource (object source, object type, EvaluationContext ctx)
 		{
 			this.obj = source;
+			this.objType = type;
 			this.ctx = ctx;
 		}
 
-		bool MoveNext (object type, object enumerator)
+		bool MoveNext ()
 		{
-			try {
-				return (bool)ctx.Adapter.TargetObjectToObject (ctx, ctx.Adapter.RuntimeInvoke (ctx, type, enumerator, "MoveNext", new object[0], new object[0]));
-			} catch (EvaluatorException e) {
-				if (e.Message.StartsWith ("Method `MoveNext' not found in type")) {
-					return (bool)ctx.Adapter.TargetObjectToObject (ctx, ctx.Adapter.RuntimeInvoke (ctx, type, enumerator, "System.Collections.IEnumerator.MoveNext", new object[0], new object[0]));
-				} else {
-					throw;
-				}
-			}
+			return (bool)ctx.Adapter.TargetObjectToObject (ctx, ctx.Adapter.RuntimeInvoke (ctx, enumeratorType, enumerator, "MoveNext", new object[0], new object[0]));
 		}
 
 		void Fetch (int maxIndex)
@@ -64,22 +59,11 @@ namespace Mono.Debugging.Evaluation
 			if (elements == null) {
 				elements = new List<ObjectValue> ();
 				values = new List<object> ();
-				try {
-					enumerator = ctx.Adapter.RuntimeInvoke (ctx, ctx.Adapter.GetValueType (ctx, obj), obj, "GetEnumerator", new object[0], new object[0]);
-				} catch (EvaluatorException e) {
-					if (e.Message.StartsWith ("Method `GetEnumerator' not found in type")) {
-						enumerator = ctx.Adapter.RuntimeInvoke (ctx, ctx.Adapter.GetValueType (ctx, obj), obj, "System.Collections.IEnumerable.GetEnumerator", new object[0], new object[0]);
-					} else {
-						throw;
-					}
-				}
+				enumerator = ctx.Adapter.RuntimeInvoke (ctx, objType, obj, "GetEnumerator", new object[0], new object[0]);
+				enumeratorType = ctx.Adapter.GetImplementedInterfaces (ctx, ctx.Adapter.GetValueType (ctx, enumerator)).First (f => ctx.Adapter.GetTypeName (ctx, f) == "System.Collections.IEnumerator");
 			}
-			var type = ctx.Adapter.GetValueType (ctx, enumerator);
-			while (maxIndex > elements.Count && MoveNext (type, enumerator)) {
-				var valCurrent = ctx.Adapter.GetMember (ctx, null, type, enumerator, "Current");
-				if (valCurrent == null) {
-					valCurrent = ctx.Adapter.GetMember (ctx, null, type, enumerator, "System.Collections.IEnumerator.Current");
-				}
+			while (maxIndex > elements.Count && MoveNext ()) {
+				var valCurrent = ctx.Adapter.GetMember (ctx, null, enumeratorType, enumerator, "Current");
 				var val = valCurrent.Value;
 				values.Add (val);
 				if (val != null) {
