@@ -97,7 +97,7 @@ namespace Mono.Debugging.Client
 		/// <summary>
 		/// Raised when the debugged process exits
 		/// </summary>
-		public event EventHandler TargetExited;
+		public event EventHandler<TargetEventArgs> TargetExited;
 		
 		/// <summary>
 		/// Raised when an exception for which there is a catchpoint is thrown
@@ -1040,9 +1040,7 @@ namespace Mono.Debugging.Client
 					IsConnected = false;
 					HasExited = true;
 				}
-				EventHandler handler = TargetExited;
-				if (handler != null)
-					handler (this, args);
+				evnt = TargetExited;
 				break;
 			case TargetEventType.TargetHitBreakpoint:
 				lock (slock) {
