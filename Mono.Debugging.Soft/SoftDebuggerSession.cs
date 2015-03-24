@@ -1377,11 +1377,16 @@ namespace Mono.Debugging.Soft
 
 		void EventHandler ()
 		{
+			int? exit_code = null;
+
 			while (true) {
 				try {
 					EventSet e = vm.GetNextEventSet ();
 					var type = e[0].EventType;
 					if (type == EventType.VMDeath || type == EventType.VMDisconnect) {
+						if (type == EventType.VMDeath && vm.Version.AtLeast (2, 27)) {
+							exit_code = ((VMDeathEvent) e[0]).ExitCode;
+						}
 						break;
 					}
 					HandleEventSet (e);
@@ -1405,7 +1410,9 @@ namespace Mono.Debugging.Soft
 			} catch (SystemException) {
 			}
 
-			OnTargetEvent (new TargetEventArgs (TargetEventType.TargetExited));
+			OnTargetEvent (new TargetEventArgs (TargetEventType.TargetExited) {
+				ExitCode = exit_code
+			});
 		}
 		
 		protected override bool HandleException (Exception ex)
