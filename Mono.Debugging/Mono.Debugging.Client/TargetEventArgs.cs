@@ -53,5 +53,9 @@ namespace Mono.Debugging.Client
 		public BreakEvent BreakEvent {
 			get; set;
 		}
+
+		public int? ExitCode {
+			get; set;
+		}
 	}
 }
