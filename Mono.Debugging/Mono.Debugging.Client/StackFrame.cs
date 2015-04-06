@@ -190,9 +190,6 @@ namespace Mono.Debugging.Client
 		
 		public ExceptionInfo GetException (EvaluationOptions options)
 		{
-			if (!hasDebugInfo)
-				return null;
-
 			var value = sourceBacktrace.GetException (index, options);
 			if (value != null)
 				value.ConnectCallback (this);
