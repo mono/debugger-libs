@@ -170,14 +170,10 @@ namespace Mono.Debugging.Evaluation
 				}
 				
 				lock (curTask) {
-					if (!curTask.TimedOut)
-						continue; // Done. Keep waiting for more tasks.
-					
-					SafeRun (curTask.FinishedCallback);
+					if (curTask.TimedOut) {
+						SafeRun (curTask.FinishedCallback);
+					}
 				}
-
-				// The task timed out, so more threads may already have
-				// been created while this one was busy.
 				
 				lock (runningLock) {
 					Monitor.PulseAll (runningLock);
@@ -185,13 +181,11 @@ namespace Mono.Debugging.Evaluation
 						// There is pending work to do.
 						OnStartEval ();
 						threadTask = pendingTasks.Dequeue ();
-					}
-					else if (mainThreadBusy) {
+					} else if (mainThreadBusy) {
 						// More threads have been created and all are busy.
 						// This will now be the main thread.
 						mainThreadBusy = false;
-					}
-					else {
+					} else if (runningThreads > 1) {
 						// More threads have been created and one of them is waiting for tasks
 						// This thread is not needed anymore, die
 						runningThreads--;
