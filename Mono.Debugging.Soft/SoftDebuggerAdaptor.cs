@@ -1989,7 +1989,7 @@ namespace Mono.Debugging.Soft
 				if (sm.Type.IsPrimitive) {
 					// Boxed primitive
 					if (sm.Type.FullName == "System.IntPtr")
-						return new IntPtr ((long)((PrimitiveValue)sm.Fields[0]).Value);
+						return new Mono.Debugging.Backend.EvaluationResult ("0x" + ((long)((PrimitiveValue)sm.Fields [0]).Value).ToString ("x"));
 					if (sm.Fields.Length > 0 && (sm.Fields[0] is PrimitiveValue))
 						return ((PrimitiveValue)sm.Fields[0]).Value;
 				} else if (sm.Type.FullName == "System.Decimal") {
