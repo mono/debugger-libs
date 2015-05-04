@@ -1629,7 +1629,23 @@ namespace Mono.Debugging.Soft
 
 			return false;
 		}
-		
+
+		/// <summary>
+		/// Checks all frames in thread where exception occured and if any frame has user code it returns true.
+		/// Also notice that this method already check if Options.ProjectAssembliesOnly==false 
+		/// </summary>
+		bool ExceptionInUserCode (ExceptionEvent ev)
+		{
+			// this is just optimization in case Options.ProjectAssembliesOnly==false
+			if (assemblyFilters == null)
+				return true;
+			foreach (var frame in ev.Thread.GetFrames ()) {
+				if (!IsExternalCode (frame))
+					return true;
+			}
+			return false;
+		}
+
 		void HandleBreakEventSet (Event[] es, bool dequeuing)
 		{
 			if (dequeuing && HasExited)
@@ -1657,13 +1673,13 @@ namespace Mono.Debugging.Soft
 				} else {
 					// Set the exception for this thread so that CatchPoint Print message(tracing) of {$exception} works
 					activeExceptionsByThread [es[0].Thread.ThreadId] = exception;
-					if (!HandleBreakpoint (es [0].Thread, ev.Request)) {
+					if (ExceptionInUserCode(ev) && !HandleBreakpoint (es [0].Thread, ev.Request)) {
 						etype = TargetEventType.ExceptionThrown;
 						resume = false;
 					}
 
 					// Remove exception from the thread so that when the program stops due to stepFinished/programPause/breakPoint...
-					// we don't have on out-dated exception
+					// we don't have on out-dated exception(setting and unsetting few lines later is needed because it's used inside HandleBreakpoint)
 					activeExceptionsByThread.Remove (es[0].Thread.ThreadId);
 
 					// Get the breakEvent so that we can check if we should ignore it later
