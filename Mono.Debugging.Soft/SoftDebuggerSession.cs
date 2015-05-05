@@ -1636,8 +1636,8 @@ namespace Mono.Debugging.Soft
 		/// </summary>
 		bool ExceptionInUserCode (ExceptionEvent ev)
 		{
-			// this is just optimization in case Options.ProjectAssembliesOnly==false
-			if (assemblyFilters == null)
+			// this is just optimization to prevent need to fetch Frames
+			if (Options.ProjectAssembliesOnly == false)
 				return true;
 			foreach (var frame in ev.Thread.GetFrames ()) {
 				if (!IsExternalCode (frame))
