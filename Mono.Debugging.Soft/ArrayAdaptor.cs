@@ -79,14 +79,15 @@ namespace Mono.Debugging.Soft
 		{
 			array.SetValues (GetIndex (indices), new Value[] { (Value) val });
 		}
-		
-		int GetIndex (int[] indices)
+
+		int GetIndex (int [] indices)
 		{
 			int ts = 1;
 			int i = 0;
-			int[] dims = GetDimensions ();
+			int [] dims = GetDimensions ();
+			var lowerBounds = GetLowerBounds ();
 			for (int n = indices.Length - 1; n >= 0; n--) {
-				i += indices [n] * ts;
+				i += (indices [n] - lowerBounds [n]) * ts;
 				ts *= dims [n];
 			}
 			return i;

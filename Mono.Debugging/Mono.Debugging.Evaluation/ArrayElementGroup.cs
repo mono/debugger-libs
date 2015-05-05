@@ -119,12 +119,12 @@ namespace Mono.Debugging.Evaluation
 			
 			if (dimensions.Length > 1) {
 				int rank = baseIndices.Length;
-				lowerBound = 0;
-				upperBound = dimensions [rank] - 1;
+				lowerBound = array.GetLowerBounds () [rank];
+				upperBound = lowerBound + dimensions [rank] - 1;
 				isLastDimension = rank == dimensions.Length - 1;
 			} else {
-				lowerBound = 0;
-				upperBound = dimensions [0] - 1;
+				lowerBound = array.GetLowerBounds () [0];
+				upperBound = lowerBound + dimensions [0] - 1;
 				isLastDimension = true;
 			}
 			
@@ -133,7 +133,7 @@ namespace Mono.Debugging.Evaluation
 			
 			if (!IsRange) {
 				initalIndex = lowerBound;
-				len = upperBound + 1;
+				len = upperBound + 1 - lowerBound;
 			} else {
 				initalIndex = firstIndex;
 				len = lastIndex - firstIndex + 1;
