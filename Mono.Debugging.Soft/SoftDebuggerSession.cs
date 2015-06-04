@@ -824,169 +824,187 @@ namespace Mono.Debugging.Soft
 		
 		protected override BreakEventInfo OnInsertBreakEvent (BreakEvent breakEvent)
 		{
-			lock (pending_bes) {
-				var bi = new BreakInfo ();
+			var bi = new BreakInfo ();
 
-				if (HasExited) {
-					bi.SetStatus (BreakEventStatus.Disconnected, null);
-					return bi;
-				}
-
-				if (breakEvent is FunctionBreakpoint) {
-					var fb = (FunctionBreakpoint) breakEvent;
-					bool resolved = false;
-
-					foreach (var location in FindFunctionLocations (fb.FunctionName, fb.ParamTypes)) {
-						string paramList = string.Empty;
-
-						if (fb.ParamTypes != null)
-							paramList = "(" + string.Join (", ", fb.ParamTypes) + ")";
-
-						OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint for '{0}{1}' to {2}:{3} [0x{4:x5}].\n",
-						                                        fb.FunctionName, paramList, location.SourceFile, location.LineNumber, location.ILOffset));
-
-						bi.FileName = location.SourceFile;
-						bi.Location = location;
-
-						InsertBreakpoint (fb, bi);
-						bi.SetStatus (BreakEventStatus.Bound, null);
-						resolved = true;
-					}
-
-					if (!resolved) {
-						// FIXME: handle types like GenericType<>, GenericType<SomeOtherType>, and GenericType<...>+NestedGenricType<...>
-						int dot = fb.FunctionName.LastIndexOf ('.');
-						if (dot != -1)
-							bi.TypeName = fb.FunctionName.Substring (0, dot);
-
-						bi.SetStatus (BreakEventStatus.NotBound, null);
-						pending_bes.Add (bi);
-					}
-				} else if (breakEvent is InstructionBreakpoint) {
-					var bp = (InstructionBreakpoint) breakEvent;
-
-					var insideTypeRange = true;
-					var resolved = false;
-					bool generic;
-
-					bi.FileName = bp.FileName;
-
-					Location location;
-					if ((location = FindLocationByILOffset (bp, bp.FileName, out generic, out insideTypeRange)) != null) {
-						bi.Location = location;
-						InsertBreakpoint (bp, bi);
-						bi.SetStatus (BreakEventStatus.Bound, null);
-						resolved = true;
-					}
-
-					if (resolved) {
-						// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
-						if (generic)
-							pending_bes.Add (bi);
-					} else {
-						pending_bes.Add (bi);
-						if (insideTypeRange)
-							bi.SetStatus (BreakEventStatus.Invalid, null);
-						else
-							bi.SetStatus (BreakEventStatus.NotBound, null);
-					}
-
-				} else if (breakEvent is Breakpoint) {
-					var bp = (Breakpoint) breakEvent;
-					bool insideLoadedRange;
-					bool resolved = false;
-					bool generic;
-
-					bi.FileName = bp.FileName;
-
-					foreach (var location in FindLocationsByFile (bp.FileName, bp.Line, bp.Column, out generic, out insideLoadedRange)) {
-						OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
-						                                        bp.FileName, bp.Line, bp.Column, GetPrettyMethodName (location.Method), location.ILOffset));
-
-						bi.Location = location;
-						InsertBreakpoint (bp, bi);
-						bi.SetStatus (BreakEventStatus.Bound, null);
-						resolved = true;
-					}
-
-					if (resolved) {
-						// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
-						if (generic)
-							pending_bes.Add (bi);
-					} else {
-						pending_bes.Add (bi);
-						if (insideLoadedRange)
-							bi.SetStatus (BreakEventStatus.Invalid, null);
-						else
-							bi.SetStatus (BreakEventStatus.NotBound, null);
-					}
-				} else if (breakEvent is Catchpoint) {
-					var cp = (Catchpoint) breakEvent;
-					TypeMirror type;
-
-					if (!types.TryGetValue (cp.ExceptionName, out type)) {
-						//
-						// Same as in FindLocationByFile (), fetch types matching the type name
-						if (vm.Version.AtLeast (2, 9)) {
-							foreach (TypeMirror t in vm.GetTypes (cp.ExceptionName, false))
-								ProcessType (t);
-						}
-					}
-
-					if (types.TryGetValue (cp.ExceptionName, out type)) {
-						InsertCatchpoint (cp, bi, type);
-						bi.SetStatus (BreakEventStatus.Bound, null);
-					} else {
-						bi.TypeName = cp.ExceptionName;
-						pending_bes.Add (bi);
-						bi.SetStatus (BreakEventStatus.NotBound, null);
-					}
-				}
-
-				/*
-				 * TypeLoad events lead to too much wire traffic + suspend/resume work, so
-				 * filter them using the file names used by pending breakpoints.
-				 */
-				if (vm.Version.AtLeast (2, 9)) {
-					var sourceFileList = pending_bes.Where (b => b.FileName != null).SelectMany ((b, i) => new [] {
-						Path.GetFileName (b.FileName),
-						b.FileName
-					}).Distinct ().ToArray ();
-					if (sourceFileList.Length > 0) {
-						//HACK: with older versions of sdb that don't support case-insenitive compares,
-						//explicitly try lowercased drivename on windows, since csc (when not hosted in VS) lowercases
-						//the drivename in the pdb files that get converted to mdbs as-is
-						if (IsWindows && !vm.Version.AtLeast (2, 12)) {
-							int originalCount = sourceFileList.Length;
-							Array.Resize (ref sourceFileList, originalCount * 2);
-							for (int i = 0; i < originalCount; i++) {
-								string n = sourceFileList[i];
-								sourceFileList[originalCount + i] = char.ToLower (n[0]) + n.Substring (1);
-							}
-						}
-
-						if (typeLoadReq == null) {
-							typeLoadReq = vm.CreateTypeLoadRequest ();
-						}
-						typeLoadReq.Enabled = false;
-						typeLoadReq.SourceFileFilter = sourceFileList;
-						typeLoadReq.Enabled = true;
-					}
-
-					var typeNameList = pending_bes.Where (b => b.TypeName != null).Select (b => b.TypeName).ToArray ();
-					if (typeNameList.Length > 0) {
-						// Use a separate request since the filters are ANDed together
-						if (typeLoadTypeNameReq == null) {
-							typeLoadTypeNameReq = vm.CreateTypeLoadRequest ();
-						}
-						typeLoadTypeNameReq.Enabled = false;
-						typeLoadTypeNameReq.TypeNameFilter = typeNameList;
-						typeLoadTypeNameReq.Enabled = true;
-					}
-				}
-
+			if (HasExited) {
+				bi.SetStatus (BreakEventStatus.Disconnected, null);
 				return bi;
 			}
+
+			if (breakEvent is FunctionBreakpoint) {
+				var fb = (FunctionBreakpoint) breakEvent;
+				bool resolved = false;
+
+				foreach (var location in FindFunctionLocations (fb.FunctionName, fb.ParamTypes)) {
+					string paramList = string.Empty;
+
+					if (fb.ParamTypes != null)
+						paramList = "(" + string.Join (", ", fb.ParamTypes) + ")";
+
+					OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint for '{0}{1}' to {2}:{3} [0x{4:x5}].\n",
+					                                        fb.FunctionName, paramList, location.SourceFile, location.LineNumber, location.ILOffset));
+
+					bi.FileName = location.SourceFile;
+					bi.Location = location;
+
+					InsertBreakpoint (fb, bi);
+					bi.SetStatus (BreakEventStatus.Bound, null);
+					resolved = true;
+				}
+
+				if (!resolved) {
+					// FIXME: handle types like GenericType<>, GenericType<SomeOtherType>, and GenericType<...>+NestedGenricType<...>
+					int dot = fb.FunctionName.LastIndexOf ('.');
+					if (dot != -1)
+						bi.TypeName = fb.FunctionName.Substring (0, dot);
+
+					bi.SetStatus (BreakEventStatus.NotBound, null);
+					lock (pending_bes) {
+						pending_bes.Add (bi);
+					}
+				}
+			} else if (breakEvent is InstructionBreakpoint) {
+				var bp = (InstructionBreakpoint) breakEvent;
+
+				var insideTypeRange = true;
+				var resolved = false;
+				bool generic;
+
+				bi.FileName = bp.FileName;
+
+				Location location;
+				if ((location = FindLocationByILOffset (bp, bp.FileName, out generic, out insideTypeRange)) != null) {
+					bi.Location = location;
+					InsertBreakpoint (bp, bi);
+					bi.SetStatus (BreakEventStatus.Bound, null);
+					resolved = true;
+				}
+
+				if (resolved) {
+					// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
+					if (generic) {
+						lock (pending_bes) {
+							pending_bes.Add (bi);
+						}
+					}
+				} else {
+					lock (pending_bes) {
+						pending_bes.Add (bi);
+					}
+					if (insideTypeRange)
+						bi.SetStatus (BreakEventStatus.Invalid, null);
+					else
+						bi.SetStatus (BreakEventStatus.NotBound, null);
+				}
+
+			} else if (breakEvent is Breakpoint) {
+				var bp = (Breakpoint) breakEvent;
+				bool insideLoadedRange;
+				bool resolved = false;
+				bool generic;
+
+				bi.FileName = bp.FileName;
+
+				foreach (var location in FindLocationsByFile (bp.FileName, bp.Line, bp.Column, out generic, out insideLoadedRange)) {
+					OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
+					                                        bp.FileName, bp.Line, bp.Column, GetPrettyMethodName (location.Method), location.ILOffset));
+
+					bi.Location = location;
+					InsertBreakpoint (bp, bi);
+					bi.SetStatus (BreakEventStatus.Bound, null);
+					resolved = true;
+				}
+
+				if (resolved) {
+					// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
+					if (generic) {
+						lock (pending_bes) {
+							pending_bes.Add (bi);
+						}
+					}
+				} else {
+					lock (pending_bes) {
+						pending_bes.Add (bi);
+					}
+					if (insideLoadedRange)
+						bi.SetStatus (BreakEventStatus.Invalid, null);
+					else
+						bi.SetStatus (BreakEventStatus.NotBound, null);
+				}
+			} else if (breakEvent is Catchpoint) {
+				var cp = (Catchpoint) breakEvent;
+				TypeMirror type;
+
+				if (!types.TryGetValue (cp.ExceptionName, out type)) {
+					//
+					// Same as in FindLocationByFile (), fetch types matching the type name
+					if (vm.Version.AtLeast (2, 9)) {
+						foreach (TypeMirror t in vm.GetTypes (cp.ExceptionName, false))
+							ProcessType (t);
+					}
+				}
+
+				if (types.TryGetValue (cp.ExceptionName, out type)) {
+					InsertCatchpoint (cp, bi, type);
+					bi.SetStatus (BreakEventStatus.Bound, null);
+				} else {
+					bi.TypeName = cp.ExceptionName;
+					lock (pending_bes) {
+						pending_bes.Add (bi);
+					}
+					bi.SetStatus (BreakEventStatus.NotBound, null);
+				}
+			}
+
+			/*
+			 * TypeLoad events lead to too much wire traffic + suspend/resume work, so
+			 * filter them using the file names used by pending breakpoints.
+			 */
+			if (vm.Version.AtLeast (2, 9)) {
+				string [] sourceFileList;
+				lock (pending_bes) {
+					sourceFileList = pending_bes.Where (b => b.FileName != null).SelectMany ((b, i) => new [] {
+					Path.GetFileName (b.FileName),
+					b.FileName
+					}).Distinct ().ToArray ();
+				}
+				if (sourceFileList.Length > 0) {
+					//HACK: with older versions of sdb that don't support case-insenitive compares,
+					//explicitly try lowercased drivename on windows, since csc (when not hosted in VS) lowercases
+					//the drivename in the pdb files that get converted to mdbs as-is
+					if (IsWindows && !vm.Version.AtLeast (2, 12)) {
+						int originalCount = sourceFileList.Length;
+						Array.Resize (ref sourceFileList, originalCount * 2);
+						for (int i = 0; i < originalCount; i++) {
+							string n = sourceFileList[i];
+							sourceFileList[originalCount + i] = char.ToLower (n[0]) + n.Substring (1);
+						}
+					}
+
+					if (typeLoadReq == null) {
+						typeLoadReq = vm.CreateTypeLoadRequest ();
+					}
+					typeLoadReq.Enabled = false;
+					typeLoadReq.SourceFileFilter = sourceFileList;
+					typeLoadReq.Enabled = true;
+				}
+
+				string [] typeNameList;
+				lock (pending_bes) {
+					typeNameList = pending_bes.Where (b => b.TypeName != null).Select (b => b.TypeName).ToArray ();
+				}
+				if (typeNameList.Length > 0) {
+					// Use a separate request since the filters are ANDed together
+					if (typeLoadTypeNameReq == null) {
+						typeLoadTypeNameReq = vm.CreateTypeLoadRequest ();
+					}
+					typeLoadTypeNameReq.Enabled = false;
+					typeLoadTypeNameReq.TypeNameFilter = typeNameList;
+					typeLoadTypeNameReq.Enabled = true;
+				}
+			}
+
+			return bi;
 		}
 
 		private Location FindLocationByILOffset (InstructionBreakpoint bp, string filename, out bool isGeneric, out bool insideTypeRange)
@@ -1022,15 +1040,15 @@ namespace Mono.Debugging.Soft
 			if (HasExited)
 				return;
 
+			var bi = (BreakInfo) eventInfo;
+			if (bi.Requests.Count != 0) {
+				foreach (var request in bi.Requests)
+					request.Enabled = false;
+
+				RemoveQueuedBreakEvents (bi.Requests);
+			}
+
 			lock (pending_bes) {
-				var bi = (BreakInfo) eventInfo;
-				if (bi.Requests.Count != 0) {
-					foreach (var request in bi.Requests)
-						request.Enabled = false;
-
-					RemoveQueuedBreakEvents (bi.Requests);
-				}
-
 				pending_bes.Remove (bi);
 			}
 		}
@@ -1039,16 +1057,14 @@ namespace Mono.Debugging.Soft
 		{
 			if (HasExited)
 				return;
+			
+			var bi = (BreakInfo) eventInfo;
+			if (bi.Requests.Count != 0) {
+				foreach (var request in bi.Requests)
+					request.Enabled = enable;
 
-			lock (pending_bes) {
-				var bi = (BreakInfo) eventInfo;
-				if (bi.Requests.Count != 0) {
-					foreach (var request in bi.Requests)
-						request.Enabled = enable;
-
-					if (!enable)
-						RemoveQueuedBreakEvents (bi.Requests);
-				}
+				if (!enable)
+					RemoveQueuedBreakEvents (bi.Requests);
 			}
 		}
 
@@ -1814,9 +1830,7 @@ namespace Mono.Debugging.Soft
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
 
 			bool isExternal;
-			lock (pending_bes) {
-				isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
-			}
+			isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
 
 			string flagExt = isExternal ? " [External]" : "";
 			OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
@@ -1827,45 +1841,45 @@ namespace Mono.Debugging.Soft
 			var asm = events [0].Assembly;
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyUnloadEvents for multiple assemblies");
-
-			lock (pending_bes) {
-				if (assemblyFilters != null) {
-					int index = assemblyFilters.IndexOf (asm);
-					if (index != -1)
-						assemblyFilters.RemoveAt (index);
-				}
-				// Mark affected breakpoints as pending again
-				var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => x.Value != null && x.Value.Location != null &&
-					x.Value.Location.Method != null && x.Value.Location.Method.DeclaringType != null &&  x.Value.Location.Method.DeclaringType.Assembly != null &&
-					PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asm.Location)
-				));
-				foreach (var breakpoint in affectedBreakpoints) {
-					string file = breakpoint.Value.Location.SourceFile;
-					int line = breakpoint.Value.Location.LineNumber;
-					OnDebuggerOutput (false, string.Format ("Re-pending breakpoint at {0}:{1}\n", file, line));
-					breakpoints.Remove (breakpoint.Key);
+			
+			if (assemblyFilters != null) {
+				int index = assemblyFilters.IndexOf (asm);
+				if (index != -1)
+					assemblyFilters.RemoveAt (index);
+			}
+			// Mark affected breakpoints as pending again
+			var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => x.Value != null && x.Value.Location != null &&
+				x.Value.Location.Method != null && x.Value.Location.Method.DeclaringType != null &&  x.Value.Location.Method.DeclaringType.Assembly != null &&
+				PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asm.Location)
+			));
+			foreach (var breakpoint in affectedBreakpoints) {
+				string file = breakpoint.Value.Location.SourceFile;
+				int line = breakpoint.Value.Location.LineNumber;
+				OnDebuggerOutput (false, string.Format ("Re-pending breakpoint at {0}:{1}\n", file, line));
+				breakpoints.Remove (breakpoint.Key);
+				lock (pending_bes) {
 					pending_bes.Add (breakpoint.Value);
 				}
+			}
 
-				// Remove affected types from the loaded types list
-				var affectedTypes = new List<string> (from pair in types
-					 where PathComparer.Equals (pair.Value.Assembly.Location, asm.Location)
-					 select pair.Key);
+			// Remove affected types from the loaded types list
+			var affectedTypes = new List<string> (from pair in types
+				 where PathComparer.Equals (pair.Value.Assembly.Location, asm.Location)
+				 select pair.Key);
 
-				foreach (string typeName in affectedTypes) {
-					TypeMirror tm;
+			foreach (string typeName in affectedTypes) {
+				TypeMirror tm;
 
-					if (types.TryGetValue (typeName, out tm)) {
-						if (tm.IsNested)
-							aliases.Remove (NestedTypeNameToAlias (typeName));
+				if (types.TryGetValue (typeName, out tm)) {
+					if (tm.IsNested)
+						aliases.Remove (NestedTypeNameToAlias (typeName));
 
-						types.Remove (typeName);
-					}
+					types.Remove (typeName);
 				}
+			}
 
-				foreach (var pair in source_to_type) {
-					pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, asm.Location));
-				}
+			foreach (var pair in source_to_type) {
+				pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, asm.Location));
 			}
 			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", asm.Location));
 		}
@@ -1880,9 +1894,7 @@ namespace Mono.Debugging.Soft
 			//HACK: 2.6.1 VM doesn't emit type load event, so work around it
 			var t = vm.RootDomain.Corlib.GetType ("System.Exception", false, false);
 			if (t != null) {
-				lock (pending_bes) {
-					ResolveBreakpoints (t);
-				}
+				ResolveBreakpoints (t);
 			}
 		}
 
@@ -1891,11 +1903,9 @@ namespace Mono.Debugging.Soft
 			var type = events [0].Type;
 			if (events.Length > 1 && events.Any (a => a.Type != type))
 				throw new InvalidOperationException ("Simultaneous TypeLoadEvents for multiple types");
-
-			lock (pending_bes) {
-				if (!types.ContainsKey (type.FullName))
-					ResolveBreakpoints (type);
-			}
+			
+			if (!types.ContainsKey (type.FullName))
+				ResolveBreakpoints (type);
 		}
 
 		void HandleThreadStartEvents (ThreadStartEvent[] events)
@@ -2317,9 +2327,13 @@ namespace Mono.Debugging.Soft
 			Location loc;
 			
 			ProcessType (type);
-			
+
 			// First, resolve FunctionBreakpoints
-			foreach (var bi in pending_bes.Where (b => b.BreakEvent is FunctionBreakpoint)) {
+			BreakInfo [] tempPendingBes;
+			lock (pending_bes) {
+				tempPendingBes = pending_bes.Where (b => b.BreakEvent is FunctionBreakpoint).ToArray ();
+			}
+			foreach (var bi in tempPendingBes) {
 				if (CheckTypeName (type, bi.TypeName)) {
 					var bp = (FunctionBreakpoint) bi.BreakEvent;
 					string methodName;
@@ -2350,12 +2364,17 @@ namespace Mono.Debugging.Soft
 			}
 			
 			foreach (var be in resolved)
-				pending_bes.Remove (be);
+				lock (pending_bes) {
+					pending_bes.Remove (be);
+				}
 			resolved.Clear ();
 
 			// Now resolve normal Breakpoints
 			foreach (string s in type_to_source [type]) {
-				foreach (var bi in pending_bes.Where (b => (b.BreakEvent is Breakpoint) && !(b.BreakEvent is FunctionBreakpoint))) {
+				lock (pending_bes) {
+					tempPendingBes = pending_bes.Where (b => (b.BreakEvent is Breakpoint) && !(b.BreakEvent is FunctionBreakpoint)).ToArray ();
+				}
+				foreach (var bi in tempPendingBes) {
 					var bp = (Breakpoint) bi.BreakEvent;
 					if (PathComparer.Compare (Path.GetFileName (bp.FileName), s) == 0) {
 						bool insideLoadedRange;
@@ -2383,12 +2402,17 @@ namespace Mono.Debugging.Soft
 				}
 				
 				foreach (var be in resolved)
-					pending_bes.Remove (be);
+					lock (pending_bes) {
+						pending_bes.Remove (be);
+					}
 				resolved.Clear ();
 			}
-			
+
 			// Thirdly, resolve pending catchpoints
-			foreach (var bi in pending_bes.Where (b => b.BreakEvent is Catchpoint)) {
+			lock (pending_bes) {
+				tempPendingBes = pending_bes.Where (b => b.BreakEvent is Catchpoint).ToArray ();
+			}
+			foreach (var bi in tempPendingBes) {
 				var cp = (Catchpoint) bi.BreakEvent;
 				if (cp.ExceptionName == type.FullName) {
 					ResolvePendingCatchpoint (bi, type);
@@ -2397,7 +2421,9 @@ namespace Mono.Debugging.Soft
 			}
 			
 			foreach (var be in resolved)
-				pending_bes.Remove (be);
+				lock (pending_bes) {
+					pending_bes.Remove (be);
+				}
 		}
 		
 		internal static string NormalizePath (string path)
