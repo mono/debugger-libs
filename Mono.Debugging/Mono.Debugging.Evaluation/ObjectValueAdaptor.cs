@@ -1058,8 +1058,8 @@ namespace Mono.Debugging.Evaluation
 					if (em.Value != 0 && (rest & em.Value) == em.Value) {
 						rest &= ~em.Value;
 						if (composed.Length > 0) {
-							composed += "|";
-							composedDisplay += "|";
+							composed += " | ";
+							composedDisplay += " | ";
 						}
 						composed += typeName + "." + em.Name;
 						composedDisplay += em.Name;
