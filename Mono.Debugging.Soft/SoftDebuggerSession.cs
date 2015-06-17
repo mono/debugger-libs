@@ -55,6 +55,8 @@ namespace Mono.Debugging.Soft
 		readonly Dictionary<long,ObjectMirror> activeExceptionsByThread = new Dictionary<long, ObjectMirror> ();
 		readonly Dictionary<EventRequest, BreakInfo> breakpoints = new Dictionary<EventRequest, BreakInfo> ();
 		readonly Dictionary<string, MonoSymbolFile> symbolFiles = new Dictionary<string, MonoSymbolFile> ();
+		readonly Dictionary<string, long> symbolFilesTimestamps = new Dictionary<string, long> ();
+		readonly Dictionary<string, string> symbolFileCopies = new Dictionary<string, string> ();
 		readonly Dictionary<TypeMirror, string[]> type_to_source = new Dictionary<TypeMirror, string[]> ();
 		readonly Dictionary<string, TypeMirror> aliases = new Dictionary<string, TypeMirror> ();
 		readonly Dictionary<string, TypeMirror> types = new Dictionary<string, TypeMirror> ();
@@ -552,6 +554,15 @@ namespace Mono.Debugging.Soft
 				symfile.Value.Dispose ();
 
 			symbolFiles.Clear ();
+
+			if (IsWindows) {
+				foreach (var symfileCopy in symbolFileCopies)
+					if (File.Exists (symfileCopy.Value))
+						File.Delete (symfileCopy.Value);
+
+				symbolFileCopies.Clear ();
+			} else
+				symbolFilesTimestamps.Clear ();
 
 			if (!HasExited) {
 				if (vm != null) {
@@ -2515,7 +2526,18 @@ namespace Mono.Debugging.Soft
 			// Return the location of the method.
 			return method.Locations.Count > 0 ? method.Locations[0] : null;
 		}
-		
+
+		void UnloadMdb(string mdbFileName)
+		{
+			MonoSymbolFile oldMdb;
+
+			if (!symbolFiles.TryGetValue (mdbFileName, out oldMdb)) 
+				return; // Nothing to unload
+
+			oldMdb.Dispose(); // Close file handle on currently open .mdb file
+			symbolFiles.Remove(mdbFileName);
+		}
+
 		bool CheckBetterMatch (TypeMirror type, string file, int line, int column, Location found)
 		{
 			if (type.Assembly == null)
@@ -2534,11 +2556,56 @@ namespace Mono.Debugging.Soft
 			int fileId = -1;
 			
 			try {
+
+				// Allow the .mdb file to be reloaded while the debugger session is running.
+				string mdbOpenFileName;
+
+				if(IsWindows)
+				{
+					// Windows: Make a copy of the .mdb file and open the copy to avoid
+					// issues with being unable to overwrite the .mdb because it is open.
+					if (!symbolFileCopies.TryGetValue(mdbFileName, out mdbOpenFileName))
+					{
+						// .mdb copy does not exist, create it.
+						mdbOpenFileName = Path.GetTempFileName();
+						File.Copy(mdbFileName, mdbOpenFileName, true);
+						symbolFileCopies.Add(mdbFileName, mdbOpenFileName);
+					}
+					else
+					{
+						// Check if .mdb file has been updated and if so, reload it.
+						if (File.GetLastWriteTimeUtc(mdbFileName) > File.GetLastWriteTimeUtc(mdbOpenFileName))
+						{
+							UnloadMdb(mdbFileName);
+							File.Copy(mdbFileName, mdbOpenFileName, true);
+						}
+					}
+				}
+				else
+				{
+					long mdbFileNameTicks;
+
+					// Check if there is a previously saved timestamp for this .mdb file.
+					if(!symbolFilesTimestamps.TryGetValue(mdbFileName, out mdbFileNameTicks))
+						mdbFileNameTicks = 0;							
+
+					long currentMdbFileNameTicks = File.GetLastWriteTimeUtc(mdbFileName).Ticks;
+
+					// Check if .mdb file has been updated and if so, reload it.
+					if(currentMdbFileNameTicks > mdbFileNameTicks)
+					{
+						UnloadMdb(mdbFileName);
+						symbolFilesTimestamps[mdbFileName] = currentMdbFileNameTicks;
+					}
+
+					mdbOpenFileName = mdbFileName;
+				}
+
 				if (!symbolFiles.TryGetValue (mdbFileName, out mdb)) {
-					if (!File.Exists (mdbFileName))
+					if (!File.Exists (mdbOpenFileName))
 						return false;
-					
-					mdb = MonoSymbolFile.ReadSymbolFile (mdbFileName);
+
+					mdb = MonoSymbolFile.ReadSymbolFile (mdbOpenFileName);
 					symbolFiles.Add (mdbFileName, mdb);
 				}
 			} catch {
