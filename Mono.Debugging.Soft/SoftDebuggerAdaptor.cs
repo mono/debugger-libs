@@ -1981,7 +1981,7 @@ namespace Mono.Debugging.Soft
 				return ((PrimitiveValue)obj).Value;
 
 			if (obj is PointerValue)
-				return new IntPtr (((PointerValue)obj).Address);
+				return new Mono.Debugging.Backend.EvaluationResult ("0x" + ((PointerValue)obj).Address.ToString ("x"));
 
 			if (obj is StructMirror) {
 				var sm = (StructMirror) obj;
