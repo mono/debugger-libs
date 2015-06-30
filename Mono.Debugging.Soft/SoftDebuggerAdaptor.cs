@@ -298,6 +298,11 @@ namespace Mono.Debugging.Soft
 
 			fromType = valueType as TypeMirror;
 
+			// If we are trying to cast into non-primitive/enum value(e.g. System.nint)
+			// that class might have implicit operator and this must be handled via TypeMirrors
+			if (toType != null && !toType.IsPrimitive  && !toType.IsEnum)
+				fromType = ToTypeMirror (ctx, valueType);
+
 			if (fromType != null) {
 				if (toType != null && toType.IsAssignableFrom (fromType))
 					return val;
