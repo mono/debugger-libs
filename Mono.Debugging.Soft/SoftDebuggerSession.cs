@@ -2100,7 +2100,7 @@ namespace Mono.Debugging.Soft
 
 		static SourceLocation GetSourceLocation (MDB.StackFrame frame)
 		{
-			return new SourceLocation (frame.Method.Name, frame.FileName, frame.LineNumber, frame.ColumnNumber);
+			return new SourceLocation (frame.Method.Name, frame.FileName, frame.LineNumber, frame.ColumnNumber, frame.EndLineNumber, frame.EndColumnNumber);
 		}
 
 		static string FormatSourceLocation (BreakEvent breakEvent)

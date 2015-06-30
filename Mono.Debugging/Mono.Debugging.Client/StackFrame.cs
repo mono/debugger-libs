@@ -302,7 +302,7 @@ namespace Mono.Debugging.Client
 
 		public void UpdateSourceFile (string newFilePath)
 		{
-			location = new SourceLocation (location.MethodName, newFilePath, location.Line, location.Column, location.FileHash);
+			location = new SourceLocation (location.MethodName, newFilePath, location.Line, location.Column, location.EndLine, location.EndColumn, location.FileHash);
 		}
 	}
 	
