@@ -185,7 +185,7 @@ namespace Mono.Debugging.Soft
 				}
 			}
 
-			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber, frame.Location.SourceFileHash);
+			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber, frame.Location.EndLineNumber, frame.Location.EndColumnNumber, frame.Location.SourceFileHash);
 
 			string addressSpace = string.Empty;
 			bool hasDebugInfo = false;
