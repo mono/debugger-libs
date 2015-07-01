@@ -1,0 +1,3 @@
+[submodule "Mono.Debugging.LLDB/LLDBSharp"]
+	path = Mono.Debugging.LLDB/LLDBSharp
+	url = git://github.com/tritao/lldbsharp.git
