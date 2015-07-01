@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\Unit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests.TestApp", "UnitTests\UnitTests\UnitTests.TestApp\UnitTests.TestApp.csproj", "{19C3E201-4625-48B7-8E89-4ED9BA3BBD52}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Debugging.LLDB", "Mono.Debugging.LLDB\Mono.Debugging.LLDB.csproj", "{F30E5764-4A53-4201-B682-2B36B08197EB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -291,6 +293,34 @@ Global
 		{DE40756E-57F6-4AF2-B155-55E3A88CCED8}.winphone_Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DE40756E-57F6-4AF2-B155-55E3A88CCED8}.winphone_Release|Any CPU.ActiveCfg = Debug|Any CPU
 		{DE40756E-57F6-4AF2-B155-55E3A88CCED8}.winphone_Release|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_2_0_Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_2_0_Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_2_0_Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_2_0_Release|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_3_5_Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_3_5_Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_3_5_Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_3_5_Release|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_4_0_Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_4_0_Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_4_0_Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_4_0_Release|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_4_5_Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_4_5_Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_4_5_Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.net_4_5_Release|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.silverlight_Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.silverlight_Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.silverlight_Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.silverlight_Release|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.winphone_Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.winphone_Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.winphone_Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F30E5764-4A53-4201-B682-2B36B08197EB}.winphone_Release|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0349A5CF-1F90-4055-A3B2-BDAA347AED71} = {66CF303B-09F8-4123-B869-0608D54B1970}
