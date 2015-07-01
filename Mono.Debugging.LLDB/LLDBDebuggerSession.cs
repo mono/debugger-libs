@@ -19,17 +19,7 @@ namespace Mono.Debugging.LLDB
 
 		protected override void OnRun (DebuggerStartInfo startInfo)
 		{
-			throw new NotImplementedException ();
-		}
-
-		protected override void OnAttachToProcess (long processId)
-		{
-			throw new NotImplementedException ();
-		}
-
-		protected override void OnDetach ()
-		{
-			throw new NotImplementedException ();
+			var info = (LLDBDebuggerStartInfo)startInfo;
 		}
 
 		protected override void OnSetActiveThread (long processId, long threadId)
@@ -135,7 +125,17 @@ namespace Mono.Debugging.LLDB
 //			Adaptor.Dispose ();
 		}
 
-		// Maybe?
+		#region MAYBE<SOMETIME>
+		protected override void OnAttachToProcess (long processId)
+		{
+			throw new NotSupportedException ();
+		}
+
+		protected override void OnDetach ()
+		{
+			throw new NotSupportedException ();
+		}
+
 		public override bool CanCancelAsyncEvaluations {
 			get {
 				return base.CanCancelAsyncEvaluations;
@@ -179,6 +179,7 @@ namespace Mono.Debugging.LLDB
 		{
 			return base.OnDisassembleFile (file);
 		}
+		#endregion
 	}
 }
 
