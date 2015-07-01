@@ -6,11 +6,8 @@ namespace Mono.Debugging.LLDB
 {
 	public class LLDBDebuggerStartInfo : DebuggerStartInfo
 	{
-		public string AppPath { get; private set; }
-
-		public LLDBDebuggerStartInfo (string appPath)
+		public LLDBDebuggerStartInfo ()
 		{
-			AppPath = appPath;
 		}
 	}
 }
