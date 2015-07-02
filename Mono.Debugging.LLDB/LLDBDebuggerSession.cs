@@ -4,6 +4,7 @@ using System.IO;
 using LLDBSharp = LLDB;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Mono.Debugging.LLDB
 {
@@ -12,8 +13,10 @@ namespace Mono.Debugging.LLDB
 		const string RelativeDebugServerPath = "Contents/SharedFrameworks/LLDB.framework/Versions/Current/Resources/debugserver";
 		bool disposed;
 
-		LLDBSharp.Debugger debugger;
 		LLDBSharp.Process process;
+		LLDBSharp.Target target;
+		LLDBSharp.Debugger debugger;
+		LLDBSharp.Broadcaster broadcaster;
 		ThreadInfo[] threads;
 
 		static LLDBDebuggerSession ()
@@ -36,22 +39,42 @@ namespace Mono.Debugging.LLDB
 			return string.Empty;
 		}
 
+		void NotifyStopped ()
+		{
+			OnTargetEvent (new TargetEventArgs (TargetEventType.TargetStopped) {
+				Process = new ProcessInfo ((long)process.ProcessID, process.PluginName),
+				Thread = GetThread (),
+				Backtrace = OnGetThreadBacktrace ((long)process.ProcessID, (long)GetThread ().Id),
+			});
+		}
+
+		unsafe bool OnBreakHit(IntPtr baton, IntPtr proc, IntPtr thread, IntPtr location)
+		{
+			NotifyStopped ();
+			return true;
+		}
+
 		protected override void OnRun (DebuggerStartInfo startInfo)
 		{
-			var info = (LLDBDebuggerStartInfo)startInfo;
+			//var info = (LLDBDebuggerStartInfo)startInfo;
 
-			var target = debugger.CreateTarget (info.Command);
+			// TODO: Use info.Command.
+			target = debugger.CreateTarget ("mono");
 			if (target == null)
 				throw new Exception ("Could not create LLDB target");
-
+			
 			// TODO: Make this be on transitions managed to native.
-			var mainBreakpoint = target.BreakpointCreateByName ("mono_runtime_invoke", target.GetExecutable().Filename);
+			var mainBreakpoint = target.BreakpointCreateByName ("NativeFunc", null);
+			mainBreakpoint.SetCallback (OnBreakHit, IntPtr.Zero);
 
 			// TODO: Make this app current dir.
 			var currentDir = Directory.GetCurrentDirectory ();
 
-			// Be afraid, be very afraid.
-			var argsArr = info.Arguments.Split (' ');
+			// TODO: Feex meee!
+			startInfo.Arguments = "/Users/therzok/Work/debugger-libs/Mono.Debugging.LLDB/LLDBSharp/gmake/lib/Debug_x32/Managed.exe";
+
+			// Be afraid, be very afraid. Also, freeme!
+			var argsArr = startInfo.Arguments.Split (' ');
 			var stringArgs = argsArr.Select((string arg) => Marshal.StringToHGlobalAuto (arg)).ToList();
 			stringArgs.Add (IntPtr.Zero);
 
@@ -60,33 +83,43 @@ namespace Mono.Debugging.LLDB
 				var error = new LLDBSharp.Error();
 				fixed (IntPtr* ptr = stringArgsArr) {
 					process = target.Launch (debugger.GetListener (), (sbyte**)ptr, null, null, null, null, currentDir,
-						0, false, error);
+						0, true, error);
 
 					if (process == null || error.ErrorCode != 0)
 						throw new Exception (string.Format("Could not create LLDB process: {0}", error.CString));
-				}
-			}
 
-			var state = process.State;
-			Console.WriteLine ("Process state: {0}", state);
+					broadcaster = process.GetBroadcaster ();
+					Task.Run (() => {
+						LLDBSharp.Event ev = new LLDBSharp.Event ();
+						var listener = new LLDBSharp.Listener ("Process State Listener");
+						broadcaster.AddListener (listener, (uint)LLDBSharp.Process.BroadcastBit.BroadcastBitStateChanged);
+						while (true) {
+							listener.WaitForEventForBroadcasterWithType (200,
+								broadcaster,
+								(uint)LLDBSharp.Process.BroadcastBit.BroadcastBitStateChanged,
+								ev);
 
-			for (uint threadIndex = 0; threadIndex < process.NumThreads; ++threadIndex) {
-				var thread = process.GetThreadAtIndex (threadIndex);
-
-				Console.WriteLine ("Stack trace");
-				for (uint frameIndex = 0; frameIndex < thread.NumFrames; ++frameIndex) {
-					var frame = thread.GetFrameAtIndex (frameIndex);
-					var function = frame.GetFunction ();
-
-					var symbol = frame.GetSymbol ();
-					Console.WriteLine ("\t{0}", function.Name ?? symbol.Name);
+							if (process.State == LLDBSharp.StateType.Exited)
+								break;
+						}
+						OnTargetEvent (new TargetEventArgs (TargetEventType.TargetExited) {
+							ExitCode = process.ExitStatus,
+						});
+					});
+					process.Continue ();
 				}
 			}
 		}
 
+		ThreadInfo GetThread ()
+		{
+			process.GetSelectedThread ().Resume ();
+			return new ThreadInfo ((long)process.ProcessID, (long)process.GetSelectedThread ().ThreadID, process.GetSelectedThread ().Name, null);
+		}
+
 		protected override void OnSetActiveThread (long processId, long threadId)
 		{
-			process.SetSelectedThread (process.GetThreadByID ((ulong)threadId));
+			process.SetSelectedThreadByID ((ulong)threadId);
 		}
 
 		protected override void OnStop ()
@@ -107,27 +140,37 @@ namespace Mono.Debugging.LLDB
 
 		protected override void OnStepLine ()
 		{
-			process.GetSelectedThread ().StepOver (LLDBSharp.RunMode.OnlyDuringStepping);
+			process.GetSelectedThread ().StepInto (LLDBSharp.RunMode.OnlyDuringStepping);
+			NotifyStopped ();
+			PrintShit ();
 		}
 
 		protected override void OnNextLine ()
 		{
 			process.GetSelectedThread ().StepOver (LLDBSharp.RunMode.OnlyDuringStepping);
+			NotifyStopped ();
+			PrintShit ();
 		}
 
 		protected override void OnStepInstruction ()
 		{
 			process.GetSelectedThread ().StepInstruction (false);
+			NotifyStopped ();
+			PrintShit ();
 		}
 
 		protected override void OnNextInstruction ()
 		{
 			process.GetSelectedThread ().StepInstruction (true);
+			NotifyStopped ();
+			PrintShit ();
 		}
 
 		protected override void OnFinish ()
 		{
 			process.GetSelectedThread ().StepOut ();
+			NotifyStopped ();
+			PrintShit ();
 		}
 
 		protected override BreakEventInfo OnInsertBreakEvent (BreakEvent breakEvent)
@@ -171,7 +214,7 @@ namespace Mono.Debugging.LLDB
 
 		protected override Backtrace OnGetThreadBacktrace (long processId, long threadId)
 		{
-			throw new NotImplementedException ();
+			return new Backtrace (new LLDBDebuggerBacktrace (this, process.GetThreadByID ((ulong)threadId)));
 		}
 
 		protected override void OnFetchFrames (ThreadInfo[] threads)
