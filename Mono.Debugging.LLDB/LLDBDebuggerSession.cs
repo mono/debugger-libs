@@ -35,9 +35,10 @@ namespace Mono.Debugging.LLDB
 			debugger.Async = false;
 		}
 
+		int counter;
 		protected override string OnResolveExpression (string expression, SourceLocation location)
 		{
-			return string.Empty;
+			return target.CreateValueFromExpression (string.Format ("val{0}", counter++), expression).ValueAsString;
 		}
 
 		void NotifyStopped ()
