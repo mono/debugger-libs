@@ -904,6 +904,31 @@ namespace Mono.Debugging.Soft
 		{
 			var type = t as TypeMirror;
 
+			// Type in which we are currently(execution stopped)
+			var currentType = ((SoftEvaluationContext)ctx).Frame.Method.DeclaringType;
+
+			// True if object we are inspecting is inherited from type we are currently in
+			bool currentTypeIsParent = false;
+
+			var loopType = type.BaseType;
+			while (loopType != null) {
+				if (currentType == loopType) {
+					currentTypeIsParent = true;
+					break;
+				}
+				loopType = loopType.BaseType;
+			}
+
+			if (currentTypeIsParent) {
+				var found = GetMember (ctx, currentType, co, name, false);
+				if (found != null)
+					return found;
+			}
+			return GetMember (ctx, type, co, name, true);
+		}
+
+		ValueReference GetMember (EvaluationContext ctx, TypeMirror type, object co, string name, bool ignoreHideBySig)
+		{
 			while (type != null) {
 				var field = FindByName (type.GetFields (), f => f.Name, name, ctx.CaseSensitive);
 
@@ -912,7 +937,7 @@ namespace Mono.Debugging.Soft
 
 				var prop = FindByName (type.GetProperties (), p => p.Name, name, ctx.CaseSensitive);
 
-				if (prop != null && (IsStatic (prop) || co != null)) {
+				if (prop != null && (IsStatic (prop) || co != null) && (ignoreHideBySig || IsHideBySig (prop))) {
 					// Optimization: if the property has a CompilerGenerated backing field, use that instead.
 					// This way we avoid overhead of invoking methods on the debugee when the value is requested.
 					string cgFieldName = string.Format ("<{0}>{1}", prop.Name, IsAnonymousType (type) ? "" : "k__BackingField");
@@ -921,7 +946,7 @@ namespace Mono.Debugging.Soft
 
 					// Backing field not available, so do things the old fashioned way.
 					var getter = prop.GetGetMethod (true);
-					
+
 					return getter != null ? new PropertyValueReference (ctx, prop, co, type, getter, null) : null;
 				}
 
@@ -938,12 +963,19 @@ namespace Mono.Debugging.Soft
 
 			return generated != null;
 		}
-		
+
 		static bool IsStatic (PropertyInfoMirror prop)
 		{
 			var met = prop.GetGetMethod (true) ?? prop.GetSetMethod (true);
 
 			return met.IsStatic;
+		}
+
+		static bool IsHideBySig (PropertyInfoMirror prop)
+		{
+			var met = prop.GetGetMethod (true) ?? prop.GetSetMethod (true);
+
+			return met.IsHideBySig;
 		}
 		
 		static T FindByName<T> (IEnumerable<T> items, Func<T,string> getName, string name, bool caseSensitive)
@@ -1812,41 +1844,67 @@ namespace Mono.Debugging.Soft
 
 		public static MethodMirror OverloadResolve (SoftEvaluationContext ctx, TypeMirror type, string methodName, TypeMirror[] genericTypeArgs, TypeMirror returnType, TypeMirror[] argTypes, bool allowInstance, bool allowStatic, bool throwIfNotFound, bool tryCasting = true)
 		{
+			// Type in which we are currently(execution stopped)
+			var currentType = ((SoftEvaluationContext)ctx).Frame.Method.DeclaringType;
+
+			// True if object we are inspecting is inherited from type we are currently in
+			bool currentTypeIsParent = false;
+
+			var loopType = type.BaseType;
+			while (loopType != null) {
+				if (currentType == loopType) {
+					currentTypeIsParent = true;
+					break;
+				}
+				loopType = loopType.BaseType;
+			}
+
+			if (currentTypeIsParent) {
+				var found = OverloadResolve (ctx, currentType, methodName, genericTypeArgs, returnType, argTypes, allowInstance, allowStatic, throwIfNotFound, tryCasting, false);
+				if (found != null)
+					return found;
+			}
+			return OverloadResolve (ctx, type, methodName, genericTypeArgs, returnType, argTypes, allowInstance, allowStatic, throwIfNotFound, tryCasting, true);
+
+		}
+
+		static MethodMirror OverloadResolve (SoftEvaluationContext ctx, TypeMirror type, string methodName, TypeMirror [] genericTypeArgs, TypeMirror returnType, TypeMirror [] argTypes, bool allowInstance, bool allowStatic, bool throwIfNotFound, bool tryCasting, bool ignoreHideBySig)
+		{
 			const BindingFlags methodByNameFlags = BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 			var cache = ctx.Session.OverloadResolveCache;
 			var candidates = new List<MethodMirror> ();
 			var currentType = type;
-			
+
 			while (currentType != null) {
-				MethodMirror[] methods = null;
-				
+				MethodMirror [] methods = null;
+
 				if (ctx.CaseSensitive) {
 					lock (cache) {
 						cache.TryGetValue (Tuple.Create (currentType, methodName), out methods);
 					}
 				}
-				
+
 				if (methods == null) {
 					if (currentType.VirtualMachine.Version.AtLeast (2, 7)) {
 						methods = currentType.GetMethodsByNameFlags (methodName, methodByNameFlags, !ctx.CaseSensitive);
 					} else {
 						methods = currentType.GetMethods ();
 					}
-					
+
 					if (ctx.CaseSensitive) {
 						lock (cache) {
 							cache [Tuple.Create (currentType, methodName)] = methods;
 						}
 					}
 				}
-				
+
 				foreach (var method in methods) {
 					if (method.Name == methodName || (!ctx.CaseSensitive && method.Name.Equals (methodName, StringComparison.CurrentCultureIgnoreCase))) {
 						MethodMirror actualMethod;
 
 						if (argTypes != null && method.VirtualMachine.Version.AtLeast (2, 24) && method.IsGenericMethod) {
 							var generic = method.GetGenericMethodDefinition ();
-							TypeMirror[] typeArgs;
+							TypeMirror [] typeArgs;
 
 							//Console.WriteLine ("Attempting to resolve generic type args for: {0}", GetPrettyMethodName (ctx, generic));
 
@@ -1867,17 +1925,17 @@ namespace Mono.Debugging.Soft
 						}
 
 						var parms = actualMethod.GetParameters ();
-						if (argTypes == null || parms.Length == argTypes.Length && ((actualMethod.IsStatic && allowStatic) || (!actualMethod.IsStatic && allowInstance)))
+						if (argTypes == null || parms.Length == argTypes.Length && (ignoreHideBySig || method.IsHideBySig) && ((actualMethod.IsStatic && allowStatic) || (!actualMethod.IsStatic && allowInstance)))
 							candidates.Add (actualMethod);
 					}
 				}
 
 				if (argTypes == null && candidates.Count > 0)
 					break; // when argTypes is null, we are just looking for *any* match (not a specific match)
-				
+
 				if (methodName == ".ctor")
 					break; // Can't create objects using constructor from base classes
-				
+
 				// Make sure that we always pull in at least System.Object methods (this is mostly needed for cases where 'type' was an interface)
 				if (currentType.BaseType == null && currentType.FullName != "System.Object")
 					currentType = ctx.Adapter.GetType (ctx, "System.Object") as TypeMirror;
