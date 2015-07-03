@@ -211,7 +211,7 @@ namespace Mono.Debugging.LLDB
 			bi = new UnmanagedBreakInfo {
 				Breakpoint = CreateBreakpoint (breakEvent),
 			};
-			bi.SetStatus (BreakEventStatus.Bound);
+			bi.SetStatus (BreakEventStatus.Bound, null);
 			return bi;
 		}
 
