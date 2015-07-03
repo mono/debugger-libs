@@ -19,6 +19,11 @@ namespace Mono.Debugging.Client
 		{
 		}
 
+        public SourceLocation(string methodName, string fileName, int line,int column)
+            : this(methodName, fileName, line, column, -1, -1, null)
+        {
+        }
+
 		public SourceLocation (string methodName, string fileName, int line, int column, int endLine, int endColumn, byte[] hash = null)
 		{
 			this.MethodName = methodName;
