@@ -201,15 +201,18 @@ namespace Mono.Debugging.LLDB
 
 		protected override BreakEventInfo OnInsertBreakEvent (BreakEvent breakEvent)
 		{
+			UnmanagedBreakInfo bi;
 			if (process.State == LLDBSharp.StateType.Exited) {
-				var bi = new UnmanagedBreakInfo ();
+				bi = new UnmanagedBreakInfo ();
 				bi.SetStatus (BreakEventStatus.Disconnected, null);
 				return bi;
 			}
 
-			return new UnmanagedBreakInfo {
+			bi = new UnmanagedBreakInfo {
 				Breakpoint = CreateBreakpoint (breakEvent),
 			};
+			bi.SetStatus (BreakEventStatus.Bound);
+			return bi;
 		}
 
 		protected override void OnRemoveBreakEvent (BreakEventInfo eventInfo)
