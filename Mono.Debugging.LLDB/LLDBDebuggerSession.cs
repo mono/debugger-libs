@@ -271,11 +271,8 @@ namespace Mono.Debugging.LLDB
 
 			disposed = true;
 
-//			if (!HasExited)
-//				EndLaunch ();
-
-			if (!HasExited) {
-			}
+			if (process.State != LLDBSharp.StateType.Stopped)
+				process.Stop ();
 
 //			Adaptor.Dispose ();
 		}
