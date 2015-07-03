@@ -5,6 +5,7 @@ using LLDBSharp = LLDB;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Mono.Debugging.LLDB
 {
@@ -50,10 +51,14 @@ namespace Mono.Debugging.LLDB
 
 		unsafe bool OnBreakHit(IntPtr baton, IntPtr proc, IntPtr thread, IntPtr location)
 		{
-			NotifyStopped ();
+			OnTargetEvent (new TargetEventArgs (TargetEventType.TargetHitBreakpoint) {
+				Process = new ProcessInfo ((long)process.ProcessID, process.PluginName),
+				Thread = GetThread (),
+				Backtrace = OnGetThreadBacktrace ((long)process.ProcessID, (long)GetThread ().Id),
+			});
 			return true;
 		}
-
+		 
 		protected override void OnRun (DebuggerStartInfo startInfo)
 		{
 			//var info = (LLDBDebuggerStartInfo)startInfo;
@@ -62,10 +67,6 @@ namespace Mono.Debugging.LLDB
 			target = debugger.CreateTarget ("mono");
 			if (target == null)
 				throw new Exception ("Could not create LLDB target");
-			
-			// TODO: Make this be on transitions managed to native.
-			var mainBreakpoint = target.BreakpointCreateByName ("NativeFunc", null);
-			mainBreakpoint.SetCallback (OnBreakHit, IntPtr.Zero);
 
 			// TODO: Make this app current dir.
 			var currentDir = Directory.GetCurrentDirectory ();
@@ -87,6 +88,8 @@ namespace Mono.Debugging.LLDB
 
 					if (process == null || error.ErrorCode != 0)
 						throw new Exception (string.Format("Could not create LLDB process: {0}", error.CString));
+
+					OnStarted ();
 
 					broadcaster = process.GetBroadcaster ();
 					Task.Run (() => {
@@ -142,55 +145,92 @@ namespace Mono.Debugging.LLDB
 		{
 			process.GetSelectedThread ().StepInto (LLDBSharp.RunMode.OnlyDuringStepping);
 			NotifyStopped ();
-			PrintShit ();
 		}
 
 		protected override void OnNextLine ()
 		{
 			process.GetSelectedThread ().StepOver (LLDBSharp.RunMode.OnlyDuringStepping);
 			NotifyStopped ();
-			PrintShit ();
 		}
 
 		protected override void OnStepInstruction ()
 		{
 			process.GetSelectedThread ().StepInstruction (false);
 			NotifyStopped ();
-			PrintShit ();
 		}
 
 		protected override void OnNextInstruction ()
 		{
 			process.GetSelectedThread ().StepInstruction (true);
 			NotifyStopped ();
-			PrintShit ();
 		}
 
 		protected override void OnFinish ()
 		{
 			process.GetSelectedThread ().StepOut ();
 			NotifyStopped ();
-			PrintShit ();
+		}
+
+		class UnmanagedBreakInfo : BreakEventInfo
+		{
+			public LLDBSharp.Breakpoint Breakpoint;
+		}
+
+		LLDBSharp.Breakpoint CreateBreakpoint (BreakEvent breakEvent)
+		{
+			var fb = breakEvent as FunctionBreakpoint;
+			LLDBSharp.Breakpoint bp;
+			if (fb != null)
+				bp = target.BreakpointCreateByName (fb.FunctionName, null);
+			else {
+				var lb = breakEvent as Breakpoint;
+				if (lb != null)
+					bp = target.BreakpointCreateByLocation (lb.FileName, (uint)lb.Line);
+				else
+					// TODO: Tracepoints.
+					throw new NotImplementedException ();
+			}
+
+			// TODO: Conditions.
+			bp.Enabled = breakEvent.Enabled;
+			bp.SetCallback (OnBreakHit, IntPtr.Zero);
+
+			return bp;
 		}
 
 		protected override BreakEventInfo OnInsertBreakEvent (BreakEvent breakEvent)
 		{
-			throw new NotImplementedException ();
+			if (process.State == LLDBSharp.StateType.Exited) {
+				var bi = new UnmanagedBreakInfo ();
+				bi.SetStatus (BreakEventStatus.Disconnected, null);
+				return bi;
+			}
+
+			return new UnmanagedBreakInfo {
+				Breakpoint = CreateBreakpoint (breakEvent),
+			};
 		}
 
 		protected override void OnRemoveBreakEvent (BreakEventInfo eventInfo)
 		{
-			throw new NotImplementedException ();
+			var info = (UnmanagedBreakInfo)eventInfo;
+			target.BreakpointDelete (info.Breakpoint.ID);
+			info.Breakpoint.Dispose ();
 		}
 
 		protected override void OnUpdateBreakEvent (BreakEventInfo eventInfo)
 		{
-			throw new NotImplementedException ();
+			var info = (UnmanagedBreakInfo)eventInfo;
+			target.BreakpointDelete (info.Breakpoint.ID);
+			info.Breakpoint.Dispose ();
+
+			info.Breakpoint = CreateBreakpoint (eventInfo.BreakEvent);
 		}
 
 		protected override void OnEnableBreakEvent (BreakEventInfo eventInfo, bool enable)
 		{
-			throw new NotImplementedException ();
+			var info = (UnmanagedBreakInfo)eventInfo;
+			info.Breakpoint.Enabled = enable;
 		}
 
 		protected override ThreadInfo[] OnGetThreads (long processId)
