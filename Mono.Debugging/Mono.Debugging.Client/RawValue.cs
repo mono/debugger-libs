@@ -29,261 +29,289 @@ using Mono.Debugging.Backend;
 
 namespace Mono.Debugging.Client
 {
-	/// <summary>
-	/// Represents an object in the process being debugged
-	/// </summary>
-	[Serializable]
-	public class RawValue: IRawObject
-	{
-		IRawValue source;
-		EvaluationOptions options;
-		
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Mono.Debugging.Client.RawValue"/> class.
-		/// </summary>
-		/// <param name='source'>
-		/// Value source
-		/// </param>
-		public RawValue (IRawValue source)
-		{
-			this.source = source;
-		}
-		
-		void IRawObject.Connect (DebuggerSession session, EvaluationOptions options)
-		{
-			this.options = options;
-			source = session.WrapDebuggerObject (source);
-		}
+    /// <summary>
+    /// Represents an object in the process being debugged
+    /// </summary>
+    [Serializable]
+    public class RawValue : IRawObject
+    {
+        IRawValue source;
+        EvaluationOptions options;
+        DebuggerSession session;
 
-		internal IRawValue Source {
-			get { return this.source; }
-		}
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Mono.Debugging.Client.RawValue"/> class.
+        /// </summary>
+        /// <param name='source'>
+        /// Value source
+        /// </param>
+        public RawValue(IRawValue source)
+        {
+            this.source = source;
+        }
 
-		/// <summary>
-		/// Full name of the type of the object
-		/// </summary>
-		public string TypeName { get; set; }
-		
-		/// <summary>
-		/// Invokes a method on the object
-		/// </summary>
-		/// <returns>
-		/// The result of the invocation
-		/// </returns>
-		/// <param name='methodName'>
-		/// The name of the method
-		/// </param>
-		/// <param name='parameters'>
-		/// The parameters (primitive type values, RawValue instances or RawValueArray instances)
-		/// </param>
-		public object CallMethod (string methodName, params object[] parameters)
-		{
-			object res = source.CallMethod (methodName, parameters, options);
-			RawValue val = res as RawValue;
-			if (val != null)
-				val.options = options;
-			return res;
-		}
+        void IRawObject.Connect(DebuggerSession session, EvaluationOptions options)
+        {
+            this.options = options;
+            this.session = session;
+            source = session.WrapDebuggerObject(source);
+        }
 
-		public object CallMethod (string methodName, out object[] outArgs, params object[] parameters)
-		{
-			object res = source.CallMethod (methodName, parameters, out outArgs, options);
-			RawValue val = res as RawValue;
-			if (val != null)
-				val.options = options;
-			return res;
-		}
-		
-		/// <summary>
-		/// Gets the value of a field or property
-		/// </summary>
-		/// <returns>
-		/// The value (a primitive type value, a RawValue instance or a RawValueArray instance)
-		/// </returns>
-		/// <param name='name'>
-		/// Name of the field or property
-		/// </param>
-		public object GetMemberValue (string name)
-		{
-			object res = source.GetMemberValue (name, options);
-			RawValue val = res as RawValue;
-			if (val != null)
-				val.options = options;
-			return res;
-		}
-		
-		/// <summary>
-		/// Sets the value of a field or property
-		/// </summary>
-		/// <param name='name'>
-		/// Name of the field or property
-		/// </param>
-		/// <param name='value'>
-		/// The value (a primitive type value, a RawValue instance or a RawValueArray instance)
-		/// </param>
-		public void SetMemberValue (string name, object value)
-		{
-			source.SetMemberValue (name, value, options);
-		}
-	}
-	
-	/// <summary>
-	/// Represents an array of objects in the process being debugged
-	/// </summary>
-	[Serializable]
-	public class RawValueArray: IRawObject
-	{
-		IRawValueArray source;
-		int[] dimensions;
-		
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Mono.Debugging.Client.RawValueArray"/> class.
-		/// </summary>
-		/// <param name='source'>
-		/// Value source.
-		/// </param>
-		public RawValueArray (IRawValueArray source)
-		{
-			this.source = source;
-		}
-		
-		void IRawObject.Connect (DebuggerSession session, EvaluationOptions options)
-		{
-			source = session.WrapDebuggerObject (source);
-		}
+        internal IRawValue Source
+        {
+            get { return this.source; }
+        }
 
-		internal IRawValueArray Source {
-			get { return this.source; }
-		}
+        /// <summary>
+        /// Full name of the type of the object
+        /// </summary>
+        public string TypeName { get; set; }
 
-		/// <summary>
-		/// Full type name of the array items
-		/// </summary>
-		public string ElementTypeName { get; set; }
+        /// <summary>
+        /// Invokes a method on the object
+        /// </summary>
+        /// <returns>
+        /// The result of the invocation
+        /// </returns>
+        /// <param name='methodName'>
+        /// The name of the method
+        /// </param>
+        /// <param name='parameters'>
+        /// The parameters (primitive type values, RawValue instances or RawValueArray instances)
+        /// </param>
+        public object CallMethod(string methodName, params object[] parameters)
+        {
+            object res = source.CallMethod(methodName, parameters, options);
+            RawValue val = res as RawValue;
+            if (val != null)
+                val.options = options;
+            IRawObject raw = res as IRawObject;
+            if (raw != null)
+                raw.Connect(session, options);
+            return res;
+        }
 
-		/// <summary>
-		/// Gets or sets the item at the specified index.
-		/// </summary>
-		/// <param name='index'>
-		/// The index
-		/// </param>
-		/// <remarks>
-		/// The item value can be a primitive type value, a RawValue instance or a RawValueArray instance.
-		/// </remarks>
-		public object this [int index] {
-			get {
-				return source.GetValue (new int[] { index });
-			}
-			set {
-				source.SetValue (new int[] { index }, value);
-			}
-		}
+        public object CallMethod(string methodName, out object[] outArgs, params object[] parameters)
+        {
+            object res = source.CallMethod(methodName, parameters, out outArgs, options);
+            RawValue val = res as RawValue;
+            if (val != null)
+                val.options = options;
+            IRawObject raw = res as IRawObject;
+            if (raw != null)
+                raw.Connect(session, options);
+            return res;
+        }
 
-		/// <summary>
-		/// Gets the values.
-		/// </summary>
-		/// <returns>The items.</returns>
-		/// <param name="index">The index.</param>
-		/// <param name="count">The number of items to get.</param>
-		/// <remarks>
-		/// This method is useful for incrementally fetching an array in order to avoid
-		/// long waiting periods when the array is too large for ToArray().
-		/// </remarks>
-		public Array GetValues (int index, int count)
-		{
-			return source.GetValues (new int[] { index }, count);
-		}
-		
-		/// <summary>
-		/// Returns an array with all items of the RawValueArray
-		/// </summary>
-		/// <remarks>
-		/// This method is useful to avoid unnecessary debugger-debuggee roundtrips
-		/// when processing all items of an array. For example, if a RawValueArray
-		/// represents an image encoded in a byte[], getting the values one by one
-		/// using the indexer is very slow. The ToArray() will return the whole byte[]
-		/// in a single call.
-		/// </remarks>
-		public Array ToArray ()
-		{
-			return source.ToArray ();
-		}
+        /// <summary>
+        /// Gets the value of a field or property
+        /// </summary>
+        /// <returns>
+        /// The value (a primitive type value, a RawValue instance or a RawValueArray instance)
+        /// </returns>
+        /// <param name='name'>
+        /// Name of the field or property
+        /// </param>
+        public object GetMemberValue(string name)
+        {
+            object res = source.GetMemberValue(name, options);
+            RawValue val = res as RawValue;
+            if (val != null)
+                val.options = options;
+            IRawObject raw = res as IRawObject;
+            if (raw != null)
+                raw.Connect(session, options);
+            return res;
+        }
 
-		/// <summary>
-		/// Gets the length of the array
-		/// </summary>
-		public int Length {
-			get {
-				if (dimensions == null)
-					dimensions = source.Dimensions;
-				return dimensions[0];
-			}
-		}
-	}
-	
-	/// <summary>
-	/// Represents a string object in the process being debugged
-	/// </summary>
-	[Serializable]
-	public class RawValueString: IRawObject
-	{
-		IRawValueString source;
-		
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Mono.Debugging.Client.RawValueString"/> class.
-		/// </summary>
-		/// <param name='source'>
-		/// Value source.
-		/// </param>
-		public RawValueString (IRawValueString source)
-		{
-			this.source = source;
-		}
-		
-		void IRawObject.Connect (DebuggerSession session, EvaluationOptions options)
-		{
-			source = session.WrapDebuggerObject (source);
-		}
+        /// <summary>
+        /// Sets the value of a field or property
+        /// </summary>
+        /// <param name='name'>
+        /// Name of the field or property
+        /// </param>
+        /// <param name='value'>
+        /// The value (a primitive type value, a RawValue instance or a RawValueArray instance)
+        /// </param>
+        public void SetMemberValue(string name, object value)
+        {
+            source.SetMemberValue(name, value, options);
+        }
+    }
 
-		internal IRawValueString Source {
-			get { return source; }
-		}
+    /// <summary>
+    /// Represents an array of objects in the process being debugged
+    /// </summary>
+    [Serializable]
+    public class RawValueArray : IRawObject
+    {
+        IRawValueArray source;
+        EvaluationOptions options;
+        DebuggerSession session;
+        int[] dimensions;
 
-		/// <summary>
-		/// Gets the length of the string
-		/// </summary>
-		public int Length {
-			get { return source.Length; }
-		}
-		
-		/// <summary>
-		/// Gets a substring of the string
-		/// </summary>
-		/// <param name='index'>
-		/// The starting index of the requested substring.
-		/// </param>
-		/// <param name='length'>
-		/// The length of the requested substring.
-		/// </param>
-		public string Substring (int index, int length)
-		{
-			return source.Substring (index, length);
-		}
-		
-		/// <summary>
-		/// Gets the value.
-		/// </summary>
-		/// <value>
-		/// The value.
-		/// </value>
-		public string Value {
-			get { return source.Value; }
-		}
-	}
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Mono.Debugging.Client.RawValueArray"/> class.
+        /// </summary>
+        /// <param name='source'>
+        /// Value source.
+        /// </param>
+        public RawValueArray(IRawValueArray source)
+        {
+            this.source = source;
+        }
 
-	interface IRawObject
-	{
-		void Connect (DebuggerSession session, EvaluationOptions options);
-	}
+        void IRawObject.Connect(DebuggerSession session, EvaluationOptions options)
+        {
+            this.options = options;
+            this.session = session;
+            source = session.WrapDebuggerObject(source);
+        }
+
+        internal IRawValueArray Source
+        {
+            get { return this.source; }
+        }
+
+        /// <summary>
+        /// Full type name of the array items
+        /// </summary>
+        public string ElementTypeName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the item at the specified index.
+        /// </summary>
+        /// <param name='index'>
+        /// The index
+        /// </param>
+        /// <remarks>
+        /// The item value can be a primitive type value, a RawValue instance or a RawValueArray instance.
+        /// </remarks>
+        public object this[int index]
+        {
+            get
+            {
+                return source.GetValue(new int[] { index });
+            }
+            set
+            {
+                source.SetValue(new int[] { index }, value);
+            }
+        }
+
+        /// <summary>
+        /// Gets the values.
+        /// </summary>
+        /// <returns>The items.</returns>
+        /// <param name="index">The index.</param>
+        /// <param name="count">The number of items to get.</param>
+        /// <remarks>
+        /// This method is useful for incrementally fetching an array in order to avoid
+        /// long waiting periods when the array is too large for ToArray().
+        /// </remarks>
+        public Array GetValues(int index, int count)
+        {
+            return source.GetValues(new int[] { index }, count);
+        }
+
+        /// <summary>
+        /// Returns an array with all items of the RawValueArray
+        /// </summary>
+        /// <remarks>
+        /// This method is useful to avoid unnecessary debugger-debuggee roundtrips
+        /// when processing all items of an array. For example, if a RawValueArray
+        /// represents an image encoded in a byte[], getting the values one by one
+        /// using the indexer is very slow. The ToArray() will return the whole byte[]
+        /// in a single call.
+        /// </remarks>
+        public Array ToArray()
+        {
+            var array = source.ToArray();
+            for (int i = 0; i < array.Length; i++)
+                ((IRawObject)array.GetValue(i)).Connect(session, options);
+            return array;
+        }
+
+        /// <summary>
+        /// Gets the length of the array
+        /// </summary>
+        public int Length
+        {
+            get
+            {
+                if (dimensions == null)
+                    dimensions = source.Dimensions;
+                return dimensions[0];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Represents a string object in the process being debugged
+    /// </summary>
+    [Serializable]
+    public class RawValueString : IRawObject
+    {
+        IRawValueString source;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Mono.Debugging.Client.RawValueString"/> class.
+        /// </summary>
+        /// <param name='source'>
+        /// Value source.
+        /// </param>
+        public RawValueString(IRawValueString source)
+        {
+            this.source = source;
+        }
+
+        void IRawObject.Connect(DebuggerSession session, EvaluationOptions options)
+        {
+            source = session.WrapDebuggerObject(source);
+        }
+
+        internal IRawValueString Source
+        {
+            get { return source; }
+        }
+
+        /// <summary>
+        /// Gets the length of the string
+        /// </summary>
+        public int Length
+        {
+            get { return source.Length; }
+        }
+
+        /// <summary>
+        /// Gets a substring of the string
+        /// </summary>
+        /// <param name='index'>
+        /// The starting index of the requested substring.
+        /// </param>
+        /// <param name='length'>
+        /// The length of the requested substring.
+        /// </param>
+        public string Substring(int index, int length)
+        {
+            return source.Substring(index, length);
+        }
+
+        /// <summary>
+        /// Gets the value.
+        /// </summary>
+        /// <value>
+        /// The value.
+        /// </value>
+        public string Value
+        {
+            get { return source.Value; }
+        }
+    }
+
+    interface IRawObject
+    {
+        void Connect(DebuggerSession session, EvaluationOptions options);
+    }
 }
 
