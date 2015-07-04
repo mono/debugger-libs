@@ -55,10 +55,6 @@ namespace Mono.Debugging.LLDB
 
 		public ObjectValue[] GetLocalVariables (int frameIndex, EvaluationOptions options)
 		{
-			var frame = thread.GetFrameAtIndex ((uint)frameIndex);
-			var locals = frame.GetVariables (arguments: false, locals: true, statics: true, in_scope_only: true);
-			var values = locals.ToValues (this);
-
 			return thread
 				.GetFrameAtIndex ((uint)frameIndex)
 				.GetVariables (new LLDBSharp.VariablesOptions {
@@ -71,10 +67,6 @@ namespace Mono.Debugging.LLDB
 
 		public ObjectValue[] GetParameters (int frameIndex, EvaluationOptions options)
 		{
-			var frame = thread.GetFrameAtIndex ((uint)frameIndex);
-			var locals = frame.GetVariables (arguments: true, locals: false, statics: false, in_scope_only: true);
-			var values = locals.ToValues (this);
-
 			return thread
 				.GetFrameAtIndex ((uint)frameIndex)
 				.GetVariables (new LLDBSharp.VariablesOptions {
@@ -88,7 +80,7 @@ namespace Mono.Debugging.LLDB
 		public ObjectValue GetThisReference (int frameIndex, EvaluationOptions options)
 		{
 			var @this = thread.GetFrameAtIndex ((uint)frameIndex).GetValueForVariablePath ("this");
-			return null;
+			return @this.IsValid () ? @this.ToValue (new LLDBDebuggerBacktrace (session, thread)) : null;
 		}
 
 		public ExceptionInfo GetException (int frameIndex, EvaluationOptions options)
@@ -98,9 +90,6 @@ namespace Mono.Debugging.LLDB
 
 		public ObjectValue[] GetAllLocals (int frameIndex, EvaluationOptions options)
 		{
-			var frame = thread.GetFrameAtIndex ((uint)frameIndex);
-			var values = GetLocalVariables (frameIndex, options).Concat (GetParameters (frameIndex, options)).ToArray ();
-
 			return GetLocalVariables (frameIndex, options).Concat (GetParameters (frameIndex, options)).ToArray ();
 		}
 
