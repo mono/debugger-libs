@@ -94,16 +94,41 @@ namespace Mono.Debugging.LLDB
 
 					broadcaster = process.GetBroadcaster ();
 					Task.Run (() => {
+						const uint mask = (uint)(LLDBSharp.Process.BroadcastBit.BroadcastBitStateChanged | LLDBSharp.Process.BroadcastBit.BroadcastBitSTDOUT | LLDBSharp.Process.BroadcastBit.BroadcastBitSTDERR);
 						LLDBSharp.Event ev = new LLDBSharp.Event ();
 						var listener = new LLDBSharp.Listener ("Process State Listener");
-						broadcaster.AddListener (listener, (uint)LLDBSharp.Process.BroadcastBit.BroadcastBitStateChanged);
-						while (true) {
-							listener.WaitForEventForBroadcasterWithType (200,
+						broadcaster.AddListener (listener, mask);
+						bool exited = false;
+						while (!exited) {
+							sbyte[] sb;
+							listener.WaitForEventForBroadcasterWithType (1,
 								broadcaster,
-								(uint)LLDBSharp.Process.BroadcastBit.BroadcastBitStateChanged,
+								mask,
 								ev);
+							
+							switch ((LLDBSharp.Process.BroadcastBit)ev.Type) {
+							case LLDBSharp.Process.BroadcastBit.BroadcastBitStateChanged:
+								exited |= process.State == LLDBSharp.StateType.Exited;
+								break;
 
-							if (process.State == LLDBSharp.StateType.Exited)
+							case LLDBSharp.Process.BroadcastBit.BroadcastBitSTDOUT:
+								sb = new sbyte [1024];
+								fixed (sbyte *s = &sb[0]) {
+									while (process.GetSTDOUT (s, 1024) > 0)
+										OnDebuggerOutput (false, Marshal.PtrToStringAnsi ((IntPtr)s));
+								}
+								break;
+
+								case LLDBSharp.Process.BroadcastBit.BroadcastBitSTDERR:
+								sb = new sbyte [1024];
+								fixed (sbyte *s = &sb[0]) {
+									while (process.GetSTDOUT (s, 1024) > 0)
+										OnDebuggerOutput (true, Marshal.PtrToStringAnsi ((IntPtr)s));
+								}
+								break;
+							}
+
+							if (exited)
 								break;
 						}
 						OnTargetEvent (new TargetEventArgs (TargetEventType.TargetExited) {
