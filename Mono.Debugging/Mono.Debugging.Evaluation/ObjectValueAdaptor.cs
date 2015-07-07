@@ -766,8 +766,11 @@ namespace Mono.Debugging.Evaluation
 			if (dot != -1) {
 				try {
 					var vr = ctx.Evaluator.Evaluate (ctx, expr.Substring (0, dot), null);
-					if (vr != null)
-						return GetMemberCompletionData (ctx, vr);
+					if (vr != null) {
+						var completionData = GetMemberCompletionData (ctx, vr);
+						completionData.ExpressionLength = expr.Length - dot - 1;
+						return completionData;
+					}
 
 					// FIXME: handle types and namespaces...
 				} catch (Exception ex) {
