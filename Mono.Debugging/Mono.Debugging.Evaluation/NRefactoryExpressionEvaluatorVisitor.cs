@@ -1036,8 +1036,12 @@ namespace Mono.Debugging.Evaluation
 				val = Convert.ChangeType (num, val.GetType ());
 				break;
 			case UnaryOperatorType.Minus:
-				num = -GetInteger (val);
-				val = Convert.ChangeType (num, val.GetType ());
+				if (val is decimal) {
+					val = -(decimal)val;
+				} else {
+					num = -GetInteger (val);
+					val = Convert.ChangeType (num, val.GetType ());
+				}
 				break;
 			case UnaryOperatorType.Not:
 				if (!(val is bool))

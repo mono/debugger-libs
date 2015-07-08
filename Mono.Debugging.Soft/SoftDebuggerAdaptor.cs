@@ -540,6 +540,12 @@ namespace Mono.Debugging.Soft
 			if (str != null)
 				return cx.Domain.CreateString (str);
 
+			if (value is decimal) {
+				var bits = decimal.GetBits ((decimal)value);
+
+				return CreateValue (ctx, ToTypeMirror (ctx, typeof (decimal)), CreateValue (ctx, bits [0]), CreateValue (ctx, bits [1]), CreateValue (ctx, bits [2]), CreateValue (ctx, (bits [3] & unchecked((int)0x80000000)) != 0), CreateValue (ctx, (byte)(bits [3] >> 16)));
+			}
+
 			return cx.Session.VirtualMachine.CreateValue (value);
 		}
 
