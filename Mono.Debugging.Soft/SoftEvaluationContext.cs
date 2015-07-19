@@ -180,6 +180,10 @@ namespace Mono.Debugging.Soft
 			}
 
 			try {
+				//If method is virtual we can't optimize(execute IL) because it's maybe
+				//overriden... call runtime to invoke overriden version...
+				if (method.IsVirtual)
+					throw new NotSupportedException ();
 				return method.Evaluate (target is TypeMirror ? null : (Value) target, values);
 			} catch (NotSupportedException) {
 				AssertTargetInvokeAllowed ();

@@ -909,32 +909,6 @@ namespace Mono.Debugging.Soft
 		protected override ValueReference GetMember (EvaluationContext ctx, object t, object co, string name)
 		{
 			var type = t as TypeMirror;
-
-			// Type in which we are currently(execution stopped)
-			var currentType = ((SoftEvaluationContext)ctx).Frame.Method.DeclaringType;
-
-			// True if object we are inspecting is inherited from type we are currently in
-			bool currentTypeIsParent = false;
-
-			var loopType = type.BaseType;
-			while (loopType != null) {
-				if (currentType == loopType) {
-					currentTypeIsParent = true;
-					break;
-				}
-				loopType = loopType.BaseType;
-			}
-
-			if (currentTypeIsParent) {
-				var found = GetMember (ctx, currentType, co, name, false);
-				if (found != null)
-					return found;
-			}
-			return GetMember (ctx, type, co, name, true);
-		}
-
-		ValueReference GetMember (EvaluationContext ctx, TypeMirror type, object co, string name, bool ignoreHideBySig)
-		{
 			while (type != null) {
 				var field = FindByName (type.GetFields (), f => f.Name, name, ctx.CaseSensitive);
 
@@ -943,7 +917,7 @@ namespace Mono.Debugging.Soft
 
 				var prop = FindByName (type.GetProperties (), p => p.Name, name, ctx.CaseSensitive);
 
-				if (prop != null && (IsStatic (prop) || co != null) && (ignoreHideBySig || IsHideBySig (prop))) {
+				if (prop != null && (IsStatic (prop) || co != null)) {
 					// Optimization: if the property has a CompilerGenerated backing field, use that instead.
 					// This way we avoid overhead of invoking methods on the debugee when the value is requested.
 					string cgFieldName = string.Format ("<{0}>{1}", prop.Name, IsAnonymousType (type) ? "" : "k__BackingField");
@@ -977,13 +951,6 @@ namespace Mono.Debugging.Soft
 			return met.IsStatic;
 		}
 
-		static bool IsHideBySig (PropertyInfoMirror prop)
-		{
-			var met = prop.GetGetMethod (true) ?? prop.GetSetMethod (true);
-
-			return met.IsHideBySig;
-		}
-		
 		static T FindByName<T> (IEnumerable<T> items, Func<T,string> getName, string name, bool caseSensitive)
 		{
 			T best = default(T);
@@ -1848,33 +1815,7 @@ namespace Mono.Debugging.Soft
 			return OverloadResolve (ctx, type, methodName, genericTypeArgs, null, argTypes, allowInstance, allowStatic, throwIfNotFound, tryCasting);
 		}
 
-		public static MethodMirror OverloadResolve (SoftEvaluationContext ctx, TypeMirror type, string methodName, TypeMirror[] genericTypeArgs, TypeMirror returnType, TypeMirror[] argTypes, bool allowInstance, bool allowStatic, bool throwIfNotFound, bool tryCasting = true)
-		{
-			// Type in which we are currently(execution stopped)
-			var currentType = ((SoftEvaluationContext)ctx).Frame.Method.DeclaringType;
-
-			// True if object we are inspecting is inherited from type we are currently in
-			bool currentTypeIsParent = false;
-
-			var loopType = type.BaseType;
-			while (loopType != null) {
-				if (currentType == loopType) {
-					currentTypeIsParent = true;
-					break;
-				}
-				loopType = loopType.BaseType;
-			}
-
-			if (currentTypeIsParent) {
-				var found = OverloadResolve (ctx, currentType, methodName, genericTypeArgs, returnType, argTypes, allowInstance, allowStatic, throwIfNotFound, tryCasting, false);
-				if (found != null)
-					return found;
-			}
-			return OverloadResolve (ctx, type, methodName, genericTypeArgs, returnType, argTypes, allowInstance, allowStatic, throwIfNotFound, tryCasting, true);
-
-		}
-
-		static MethodMirror OverloadResolve (SoftEvaluationContext ctx, TypeMirror type, string methodName, TypeMirror [] genericTypeArgs, TypeMirror returnType, TypeMirror [] argTypes, bool allowInstance, bool allowStatic, bool throwIfNotFound, bool tryCasting, bool ignoreHideBySig)
+		public static MethodMirror OverloadResolve (SoftEvaluationContext ctx, TypeMirror type, string methodName, TypeMirror [] genericTypeArgs, TypeMirror returnType, TypeMirror [] argTypes, bool allowInstance, bool allowStatic, bool throwIfNotFound, bool tryCasting)
 		{
 			const BindingFlags methodByNameFlags = BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 			var cache = ctx.Session.OverloadResolveCache;
@@ -1931,7 +1872,7 @@ namespace Mono.Debugging.Soft
 						}
 
 						var parms = actualMethod.GetParameters ();
-						if (argTypes == null || parms.Length == argTypes.Length && (ignoreHideBySig || method.IsHideBySig) && ((actualMethod.IsStatic && allowStatic) || (!actualMethod.IsStatic && allowInstance)))
+						if (argTypes == null || parms.Length == argTypes.Length && ((actualMethod.IsStatic && allowStatic) || (!actualMethod.IsStatic && allowInstance)))
 							candidates.Add (actualMethod);
 					}
 				}

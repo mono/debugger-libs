@@ -684,6 +684,12 @@ namespace Mono.Debugging.Evaluation
 
 			if (self != null) {
 				// check for fields and properties in this instance
+
+				// first try if current type has field or property
+				var = ctx.Adapter.GetMember (ctx, self, ctx.Adapter.GetEnclosingType (ctx), self.Value, name);
+				if (var != null)
+					return var;
+				
 				var = ctx.Adapter.GetMember (ctx, self, self.Type, self.Value, name);
 				if (var != null)
 					return var;
@@ -804,7 +810,7 @@ namespace Mono.Debugging.Evaluation
 				types[n] = ctx.Adapter.GetValueType (ctx, args[n]);
 				n++;
 			}
-
+			object vtype = null;
 			if (invocationExpression.Target is MemberReferenceExpression) {
 				var field = (MemberReferenceExpression) invocationExpression.Target;
 				target = field.Target.AcceptVisitor<ValueReference> (this);
@@ -818,6 +824,7 @@ namespace Mono.Debugging.Evaluation
 				methodName = ResolveMethodName (method, out typeArgs);
 
 				if (vref != null && ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, null, BindingFlags.Instance)) {
+					vtype = ctx.Adapter.GetEnclosingType (ctx);
 					// There is an instance method for 'this', although it may not have an exact signature match. Check it now.
 					if (ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, types, BindingFlags.Instance)) {
 						target = vref;
@@ -825,8 +832,7 @@ namespace Mono.Debugging.Evaluation
 						// There isn't an instance method with exact signature match.
 						// If there isn't a static method, then use the instance method,
 						// which will report the signature match error when invoked
-						object etype = ctx.Adapter.GetEnclosingType (ctx);
-						if (!ctx.Adapter.HasMethod (ctx, etype, methodName, typeArgs, types, BindingFlags.Static))
+						if (!ctx.Adapter.HasMethod (ctx, vtype, methodName, typeArgs, types, BindingFlags.Static))
 							target = vref;
 					}
 				} else {
@@ -838,7 +844,8 @@ namespace Mono.Debugging.Evaluation
 				throw NotSupported ();
 			}
 
-			object vtype = target != null ? target.Type : ctx.Adapter.GetEnclosingType (ctx);
+			if (vtype == null)
+				vtype = target != null ? target.Type : ctx.Adapter.GetEnclosingType (ctx);
 			object vtarget = (target is TypeValueReference) || target == null ? null : target.Value;
 
 			if (invokeBaseMethod) {
