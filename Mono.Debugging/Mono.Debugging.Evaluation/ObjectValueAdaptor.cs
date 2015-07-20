@@ -766,8 +766,11 @@ namespace Mono.Debugging.Evaluation
 			if (dot != -1) {
 				try {
 					var vr = ctx.Evaluator.Evaluate (ctx, expr.Substring (0, dot), null);
-					if (vr != null)
-						return GetMemberCompletionData (ctx, vr);
+					if (vr != null) {
+						var completionData = GetMemberCompletionData (ctx, vr);
+						completionData.ExpressionLength = expr.Length - dot - 1;
+						return completionData;
+					}
 
 					// FIXME: handle types and namespaces...
 				} catch (Exception ex) {
@@ -1058,8 +1061,8 @@ namespace Mono.Debugging.Evaluation
 					if (em.Value != 0 && (rest & em.Value) == em.Value) {
 						rest &= ~em.Value;
 						if (composed.Length > 0) {
-							composed += "|";
-							composedDisplay += "|";
+							composed += " | ";
+							composedDisplay += " | ";
 						}
 						composed += typeName + "." + em.Name;
 						composedDisplay += em.Name;

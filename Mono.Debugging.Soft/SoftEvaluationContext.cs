@@ -50,7 +50,7 @@ namespace Mono.Debugging.Soft
 			string method = frame.Method.Name;
 			if (frame.Method.DeclaringType != null)
 				method = frame.Method.DeclaringType.FullName + "." + method;
-			var location = new DC.SourceLocation (method, frame.FileName, frame.LineNumber, frame.ColumnNumber, frame.Location.SourceFileHash);
+			var location = new DC.SourceLocation (method, frame.FileName, frame.LineNumber, frame.ColumnNumber, frame.EndLineNumber, frame.EndColumnNumber, frame.Location.SourceFileHash);
 			string language;
 
 			if (frame.Method != null) {
@@ -180,6 +180,10 @@ namespace Mono.Debugging.Soft
 			}
 
 			try {
+				//If method is virtual we can't optimize(execute IL) because it's maybe
+				//overriden... call runtime to invoke overriden version...
+				if (method.IsVirtual)
+					throw new NotSupportedException ();
 				return method.Evaluate (target is TypeMirror ? null : (Value) target, values);
 			} catch (NotSupportedException) {
 				AssertTargetInvokeAllowed ();

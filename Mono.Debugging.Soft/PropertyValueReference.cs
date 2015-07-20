@@ -50,6 +50,9 @@ namespace Mono.Debugging.Soft
 			this.getter = getter;
 			this.obj = obj;
 
+			if (getter.IsStatic)
+				this.obj = null;
+			
 			var objectMirror = obj as ObjectMirror;
 			if (objectMirror != null)
 				EnsureContextHasDomain (objectMirror.Domain);
