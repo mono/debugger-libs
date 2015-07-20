@@ -44,7 +44,7 @@ namespace Mono.Debugging.Evaluation
 		bool useTimeout;
 		bool disposed;
 		
-		public TimedEvaluator (): this (true)
+		public TimedEvaluator (): this (false)
 		{
 		}
 
