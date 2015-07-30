@@ -1452,7 +1452,7 @@ namespace Mono.Debugging.Soft
 				return pv.Value.GetType ();
 			}
 
-			throw new NotSupportedException ();
+			throw new NotSupportedException (val.GetType ().FullName);
 		}
 		
 		public override object GetBaseType (EvaluationContext ctx, object type)
