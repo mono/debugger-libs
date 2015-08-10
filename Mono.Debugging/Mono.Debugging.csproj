@@ -26,6 +26,7 @@
     </Execution>
     <NoWarn>1591;1573</NoWarn>
     <DocumentationFile>bin\Debug\Mono.Debugging.xml</DocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

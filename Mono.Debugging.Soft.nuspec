@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>Mono.Debugging.Soft</id>
+    <version>0.1.0.0</version>
+    <title>Mono.Debugging.Soft</title>
+    <authors>Mono team</authors>
+    <owners>Mono team</owners>
+    <licenseUrl>http://opensource.org/licenses/mit-license.php</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectUrl>https://github.com/mono/debugger-libs</projectUrl>
+    <summary>Several libraries which can be used to control the Mono debugger.</summary>
+    <description>Several libraries which can be used to control the Mono debugger.</description>
+    <language>en-US</language>
+    <tags>mono debug debugger soft</tags>
+    <dependencies>
+      <dependency id="ICSharpCode.NRefactory" version="5.5.1" />
+      <dependency id="Mono.Cecil" version="0.9.5.6" />
+      <dependency id="Mono.Debugging" version="0.1.0.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="Mono.Debugger.Soft\bin\Release\Mono.Debugger.Soft.*" target="lib/net40" />
+    <file src="Mono.Debugging.Soft\bin\Release\Mono.Debugging.Soft.*" target="lib/net40" />
+  </files>
+</package>
