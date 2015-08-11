@@ -32,7 +32,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Microsoft.Samples.Debugging.Extensions
 {
-	//[CLSCompliant (false)]
+	[CLSCompliant (false)]
 	public static class DebuggerExtensions
 	{
 		// [Xamarin] Output redirection.

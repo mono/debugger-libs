@@ -79,11 +79,11 @@
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\addins\MonoDevelop.Debugger.Win32\CorApi2\CorApi2.csproj">
+    <ProjectReference Include="..\CorApi2\CorApi2.csproj">
       <Project>{69136056-bfd3-4cec-bb41-d9991c79593c}</Project>
       <Name>CorApi2</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\src\addins\MonoDevelop.Debugger.Win32\CorApi\CorApi.csproj">
+    <ProjectReference Include="..\CorApi\CorApi.csproj">
       <Project>{9fbcc262-10dc-4e84-a5c4-17230bbf8862}</Project>
       <Name>CorApi</Name>
     </ProjectReference>
