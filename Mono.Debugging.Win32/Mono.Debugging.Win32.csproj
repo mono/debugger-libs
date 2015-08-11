@@ -7,10 +7,11 @@
     <ProjectGuid>{74704C00-5861-4F86-920C-865148A175C5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Mono.Debugger.Win32</RootNamespace>
-    <AssemblyName>Mono.Debugger.Win32</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <RootNamespace>Mono.Debugging.Win32</RootNamespace>
+    <AssemblyName>Mono.Debugging.Win32</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
