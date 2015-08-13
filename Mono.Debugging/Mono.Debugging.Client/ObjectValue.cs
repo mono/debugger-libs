@@ -32,6 +32,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Mono.Debugging.Backend;
+using Mono.Debugging.Evaluation;
 
 namespace Mono.Debugging.Client
 {
@@ -151,8 +152,18 @@ namespace Mono.Debugging.Client
 			val.value = value;
 			return val;
 		}
-		
-		public static ObjectValue CreateImplicitNotSupported (IObjectValueSource source, ObjectPath path, string typeName, ObjectValueFlags flags)
+
+		public static ObjectValue CreateEvaluationException (EvaluationContext ctx, IObjectValueSource source, ObjectPath path, EvaluatorExceptionThrownException exception,
+			ObjectValueFlags flags = ObjectValueFlags.None)
+		{
+			var error = CreateError (source, path, exception.ExceptionTypeName, "Exception was thrown", flags);
+			var exceptionReference = LiteralValueReference.CreateTargetObjectLiteral (ctx, "Exception", exception.Exception);
+			var exceptionValue = exceptionReference.CreateObjectValue (ctx.Options);
+			error.children = new List<ObjectValue> {exceptionValue};
+			return error;
+		}
+
+	  public static ObjectValue CreateImplicitNotSupported (IObjectValueSource source, ObjectPath path, string typeName, ObjectValueFlags flags)
 		{
 			var val = Create (source, path, typeName);
 			val.flags = flags | ObjectValueFlags.ImplicitNotSupported;

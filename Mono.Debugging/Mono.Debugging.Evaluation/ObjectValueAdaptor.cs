@@ -1355,6 +1355,8 @@ namespace Mono.Debugging.Evaluation
 				return ObjectValue.CreateImplicitNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ObjectValueFlags.None);
 			} catch (NotSupportedExpressionException ex) {
 				return ObjectValue.CreateNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message, ObjectValueFlags.None);
+			} catch (EvaluatorExceptionThrownException ex) {
+				return ObjectValue.CreateEvaluationException (ctx, ctx.ExpressionValueSource, new ObjectPath (exp), ex);
 			} catch (EvaluatorException ex) {
 				return ObjectValue.CreateError (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message, ObjectValueFlags.None);
 			} catch (Exception ex) {
