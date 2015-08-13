@@ -1128,7 +1128,8 @@ namespace Mono.Debugger.Win32
 				else
 					mc.ExceptionMessage = "Evaluation failed.";*/
 				CorValRef vref = new CorValRef (exception);
-				throw new EvaluatorException ("Evaluation failed: " + ObjectAdapter.GetValueTypeName (ctx, vref));
+				//throw new EvaluatorException ("Evaluation failed: " + );
+			  throw new EvaluatorExceptionThrownException (vref, ObjectAdapter.GetValueTypeName (ctx, vref));
 			}
 
 			return eval.Result;

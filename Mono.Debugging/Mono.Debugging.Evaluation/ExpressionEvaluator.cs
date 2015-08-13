@@ -199,17 +199,32 @@ namespace Mono.Debugging.Evaluation
 	[Serializable]
 	public class EvaluatorException: Exception
 	{
-		protected EvaluatorException (SerializationInfo info, StreamingContext context)
+	  
+	  protected EvaluatorException (SerializationInfo info, StreamingContext context)
 			: base (info, context)
 		{
 		}
 		
-		public EvaluatorException (string msg, params object[] args): base (string.Format (msg, args))
+		public EvaluatorException (string msg, params object[] args): base (string.Format(msg, args))
 		{
 		}
 	}
 
-	[Serializable]
+  [Serializable]
+  public class EvaluatorExceptionThrownException : EvaluatorException
+  {
+    public EvaluatorExceptionThrownException (object exception, string exceptionTypeName) : base ("Exception is thrown")
+    {
+      Exception = exception;
+      ExceptionTypeName = exceptionTypeName;
+    }
+
+    public object Exception { get; private set; }
+    public string ExceptionTypeName { get; private set; }
+
+  }
+
+  [Serializable]
 	public class EvaluatorAbortedException: EvaluatorException
 	{
 		protected EvaluatorAbortedException (SerializationInfo info, StreamingContext context)

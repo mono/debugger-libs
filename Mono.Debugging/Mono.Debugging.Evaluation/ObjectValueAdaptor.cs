@@ -1335,16 +1335,24 @@ namespace Mono.Debugging.Evaluation
 
 		public ObjectValue GetExpressionValue (EvaluationContext ctx, string exp)
 		{
-			try {
-				ValueReference var = ctx.Evaluator.Evaluate (ctx, exp);
+		  try {
+		    ValueReference var = ctx.Evaluator.Evaluate (ctx, exp);
 
-				return var != null ? var.CreateObjectValue (ctx.Options) : ObjectValue.CreateUnknown (exp);
-			} catch (ImplicitEvaluationDisabledException) {
-				return ObjectValue.CreateImplicitNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ObjectValueFlags.None);
-			} catch (NotSupportedExpressionException ex) {
-				return ObjectValue.CreateNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message, ObjectValueFlags.None);
-			} catch (EvaluatorException ex) {
-				return ObjectValue.CreateError (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message, ObjectValueFlags.None);
+		    return var != null ? var.CreateObjectValue (ctx.Options) : ObjectValue.CreateUnknown (exp);
+		  }
+		  catch (ImplicitEvaluationDisabledException) {
+		    return ObjectValue.CreateImplicitNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "",
+		      ObjectValueFlags.None);
+		  }
+		  catch (NotSupportedExpressionException ex) {
+		    return ObjectValue.CreateNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message,
+		      ObjectValueFlags.None);
+		  }
+		  catch (EvaluatorExceptionThrownException ex) {        
+        return ObjectValue.CreateEvaluationException(ctx, ctx.ExpressionValueSource, new ObjectPath(exp), ex);
+		  }
+      catch (EvaluatorException ex) {
+        return ObjectValue.CreateError(ctx.ExpressionValueSource, new ObjectPath(exp), "", ex.Message, ObjectValueFlags.None);			  
 			} catch (Exception ex) {
 				ctx.WriteDebuggerError (ex);
 				return ObjectValue.CreateUnknown (exp);
