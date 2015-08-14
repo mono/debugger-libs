@@ -2,7 +2,7 @@
 <package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <id>Mono.Debugging.Win32</id>
-    <version>0.1.0.3</version>
+    <version>0.1.0.6</version>
     <title>Mono.Debugging.Win32</title>
     <authors>Mono team</authors>
     <owners>Mono team</owners>
@@ -14,11 +14,11 @@
     <language>en-US</language>
     <tags>mono debug debugger soft</tags>
     <dependencies>
-      <dependency id="Mono.Debugging" version="0.1.0.0" />
+      <dependency id="Mono.Debugging" version="1.0.0.1" />
     </dependencies>
   </metadata>
   <files>
-    <file src="bin\Release\Mono.Debugging.Win32.*" target="lib/net40" />
-    <file src="bin\Release\CorApi*" target="lib/net40" />
+    <file src="Mono.Debugging.Win32\bin\Release\Mono.Debugging.Win32.*" target="lib/net40" />
+    <file src="Mono.Debugging.Win32\bin\Release\CorApi*" target="lib/net40" />
   </files>
 </package>
