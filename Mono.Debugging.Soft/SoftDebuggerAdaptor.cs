@@ -116,8 +116,12 @@ namespace Mono.Debugging.Soft
 		string InvokeToString (SoftEvaluationContext ctx, MethodMirror method, object obj)
 		{
 			try {
-				var res = ctx.RuntimeInvoke (method, obj, new Value[0]) as StringMirror;
-				return res != null ? res.Value : null;
+				var res = ctx.RuntimeInvoke (method, obj, new Value [0]) as StringMirror;
+				if (res != null) {
+					return MirrorStringToString (ctx, res);
+				} else {
+					return null;
+				}
 			} catch {
 				return GetDisplayTypeName (GetValueTypeName (ctx, obj));
 			}
@@ -2033,27 +2037,7 @@ namespace Mono.Debugging.Soft
 		public override object TargetObjectToObject (EvaluationContext ctx, object obj)
 		{
 			if (obj is StringMirror) {
-				var mirror = (StringMirror) obj;
-				string str;
-				
-				if (ctx.Options.EllipsizeStrings) {
-					if (mirror.VirtualMachine.Version.AtLeast (2, 10)) {
-						int length = mirror.Length;
-						
-						if (length > ctx.Options.EllipsizedLength)
-							str = new string (mirror.GetChars (0, ctx.Options.EllipsizedLength)) + EvaluationOptions.Ellipsis;
-						else
-							str = mirror.Value;
-					} else {
-						str = mirror.Value;
-						if (str.Length > ctx.Options.EllipsizedLength)
-							str = str.Substring (0, ctx.Options.EllipsizedLength) + EvaluationOptions.Ellipsis;
-					}
-				} else {
-					str = mirror.Value;
-				}
-				
-				return str;
+				return MirrorStringToString (ctx, (StringMirror)obj);
 			}
 
 			if (obj is PrimitiveValue)
@@ -2100,6 +2084,30 @@ namespace Mono.Debugging.Soft
 			}
 
 			return base.TargetObjectToObject (ctx, obj);
+		}
+
+		static string MirrorStringToString (EvaluationContext ctx, StringMirror mirror)
+		{
+			string str;
+
+			if (ctx.Options.EllipsizeStrings) {
+				if (mirror.VirtualMachine.Version.AtLeast (2, 10)) {
+					int length = mirror.Length;
+
+					if (length > ctx.Options.EllipsizedLength)
+						str = new string (mirror.GetChars (0, ctx.Options.EllipsizedLength)) + EvaluationOptions.Ellipsis;
+					else
+						str = mirror.Value;
+				} else {
+					str = mirror.Value;
+					if (str.Length > ctx.Options.EllipsizedLength)
+						str = str.Substring (0, ctx.Options.EllipsizedLength) + EvaluationOptions.Ellipsis;
+				}
+			} else {
+				str = mirror.Value;
+			}
+
+			return str;
 		}
 	}
 
