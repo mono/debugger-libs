@@ -2816,7 +2816,12 @@ namespace Mono.Debugging.Soft
 		{
 			if (thread == null)
 				return false;
-			var state = thread.ThreadState;
+			ThreadState state;
+			try {
+				state = thread.ThreadState;
+			} catch (ObjectCollectedException) {
+				return false;//Thread was already collected by garbage collector, hence it's not alive
+			}
 			return state != ThreadState.Stopped && state != ThreadState.Aborted;
 		}
 		
