@@ -417,7 +417,7 @@ namespace Mono.Debugging.Soft
 			
 			HideConnectionDialog ();
 			
-			machine.EnableEvents (EventType.AssemblyLoad, EventType.ThreadStart, EventType.ThreadDeath,
+			machine.EnableEvents (EventType.AppDomainCreate, EventType.AppDomainUnload, EventType.AssemblyLoad, EventType.ThreadStart, EventType.ThreadDeath,
 				EventType.AssemblyUnload, EventType.UserBreak, EventType.UserLog);
 			try {
 				unhandledExceptionRequest = machine.CreateExceptionRequest (null, false, true);
