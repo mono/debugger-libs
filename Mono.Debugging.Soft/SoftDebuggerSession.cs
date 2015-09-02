@@ -82,6 +82,7 @@ namespace Mono.Debugging.Soft
 		bool autoStepInto;
 		bool disposed;
 		bool started;
+		bool domainUnloaded = false;
 
 		internal int StackVersion;
 
@@ -417,7 +418,7 @@ namespace Mono.Debugging.Soft
 			
 			HideConnectionDialog ();
 			
-			machine.EnableEvents (EventType.AppDomainCreate, EventType.AppDomainUnload, EventType.AssemblyLoad, EventType.ThreadStart, EventType.ThreadDeath,
+			machine.EnableEvents (EventType.AppDomainUnload, EventType.AssemblyLoad, EventType.ThreadStart, EventType.ThreadDeath,
 				EventType.AssemblyUnload, EventType.UserBreak, EventType.UserLog);
 			try {
 				unhandledExceptionRequest = machine.CreateExceptionRequest (null, false, true);
@@ -523,6 +524,24 @@ namespace Mono.Debugging.Soft
 
 			if (!types.TryGetValue (fullName, out tm))
 				aliases.TryGetValue (fullName, out tm);
+
+			if (!domainUnloaded || tm == null)
+				return tm;
+
+			// Check if this type has been unloaded due to bug https://github.com/mono/debugger-libs/issues/57
+			try
+			{
+				tm.GetTypeObject();
+			}
+			catch(CommandException e)
+			{
+				if (e.ErrorCode == ErrorCode.ERR_UNLOADED)
+				{
+					types.Remove(fullName);
+					aliases.Remove(fullName);
+					return null;
+				}
+			}
 
 			return tm;
 		}
@@ -1475,6 +1494,10 @@ namespace Mono.Debugging.Soft
 			}
 
 			switch (type) {
+		
+			case EventType.AppDomainUnload:
+				HandleAppDomainUnloadEvents (Array.ConvertAll(es.Events, item => (AppDomainUnloadEvent)item));
+				break;
 			case EventType.AssemblyLoad:
 				HandleAssemblyLoadEvents (Array.ConvertAll (es.Events, item => (AssemblyLoadEvent)item));
 				break;
@@ -1823,6 +1846,11 @@ namespace Mono.Debugging.Soft
 					OnTargetEvent (args);
 				}
 			}
+		}
+
+		void HandleAppDomainUnloadEvents (AppDomainUnloadEvent[] events)
+		{
+			domainUnloaded = true;
 		}
 
 		void HandleAssemblyLoadEvents (AssemblyLoadEvent[] events)
