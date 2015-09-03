@@ -52,6 +52,7 @@ namespace Mono.Debugging.Soft
 	{
 		readonly Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> overloadResolveCache = new Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> ();
 		readonly Dictionary<string, List<TypeMirror>> source_to_type = new Dictionary<string, List<TypeMirror>> (PathComparer);
+		readonly Dictionary<AppDomainMirror, AssemblyMirror[]> domainAssemblies = new Dictionary<AppDomainMirror, AssemblyMirror[]>();
 		readonly Dictionary<long,ObjectMirror> activeExceptionsByThread = new Dictionary<long, ObjectMirror> ();
 		readonly Dictionary<EventRequest, BreakInfo> breakpoints = new Dictionary<EventRequest, BreakInfo> ();
 		readonly Dictionary<string, MonoSymbolFile> symbolFiles = new Dictionary<string, MonoSymbolFile> ();
@@ -416,8 +417,8 @@ namespace Mono.Debugging.Soft
 			ConnectOutput (machine.StandardError, true);
 			
 			HideConnectionDialog ();
-			
-			machine.EnableEvents (EventType.AssemblyLoad, EventType.ThreadStart, EventType.ThreadDeath,
+
+			machine.EnableEvents (EventType.AppDomainCreate, EventType.AppDomainUnload, EventType.AssemblyLoad, EventType.ThreadStart, EventType.ThreadDeath,
 				EventType.AssemblyUnload, EventType.UserBreak, EventType.UserLog);
 			try {
 				unhandledExceptionRequest = machine.CreateExceptionRequest (null, false, true);
@@ -1475,6 +1476,12 @@ namespace Mono.Debugging.Soft
 			}
 
 			switch (type) {
+			case EventType.AppDomainCreate:
+				HandleAppDomainCreateEvents (Array.ConvertAll(es.Events, item => (AppDomainCreateEvent)item));
+				break;
+			case EventType.AppDomainUnload:
+				HandleAppDomainUnloadEvents (Array.ConvertAll(es.Events, item => (AppDomainUnloadEvent)item));
+				break;
 			case EventType.AssemblyLoad:
 				HandleAssemblyLoadEvents (Array.ConvertAll (es.Events, item => (AssemblyLoadEvent)item));
 				break;
@@ -1825,6 +1832,51 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
+		void HandleAppDomainCreateEvents(AppDomainCreateEvent[] events)
+		{
+			var domain = events[0].Domain;
+			if (events.Length > 1)
+				throw new InvalidOperationException("Simultaneous AppDomainCreateEvent for multiple domains");
+
+			if(!domainAssemblies.ContainsKey(domain))
+				domainAssemblies[domain] = null;
+		}
+
+		void HandleAppDomainUnloadEvents(AppDomainUnloadEvent[] events)
+		{
+			var domain = events[0].Domain;
+			if (events.Length > 1)
+				throw new InvalidOperationException("Simultaneous AppDomainUnloadEvent for multiple domains");
+
+			if (!domainAssemblies.ContainsKey(domain))
+				return;
+
+			var assemblies = domainAssemblies[domain];
+
+			foreach (var asm in assemblies)
+			{
+				// Remove affected types from the loaded types list
+				var affectedTypes = new List<string>(from pair in types
+													 where PathComparer.Equals(pair.Value.Assembly.Location, asm.Location)
+													 select pair.Key);
+
+				foreach (string typeName in affectedTypes)
+				{
+					TypeMirror tm;
+
+					if (types.TryGetValue(typeName, out tm))
+					{
+						if (tm.IsNested)
+							aliases.Remove(NestedTypeNameToAlias(typeName));
+
+						types.Remove(typeName);
+					}
+				}
+			}
+
+			domainAssemblies.Remove(domain);
+		}
+
 		void HandleAssemblyLoadEvents (AssemblyLoadEvent[] events)
 		{
 			var asm = events [0].Assembly;
@@ -1836,6 +1888,11 @@ namespace Mono.Debugging.Soft
 
 			string flagExt = isExternal ? " [External]" : "";
 			OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
+
+			// Update loaded assemblies for each domain
+			var domains = new List<AppDomainMirror>(domainAssemblies.Keys);
+			foreach (var domain in domains)
+				domainAssemblies[domain] = domain.GetAssemblies();
 		}
 
 		void HandleAssemblyUnloadEvents (AssemblyUnloadEvent[] events)
@@ -1861,22 +1918,6 @@ namespace Mono.Debugging.Soft
 				breakpoints.Remove (breakpoint.Key);
 				lock (pending_bes) {
 					pending_bes.Add (breakpoint.Value);
-				}
-			}
-
-			// Remove affected types from the loaded types list
-			var affectedTypes = new List<string> (from pair in types
-				 where PathComparer.Equals (pair.Value.Assembly.Location, asm.Location)
-				 select pair.Key);
-
-			foreach (string typeName in affectedTypes) {
-				TypeMirror tm;
-
-				if (types.TryGetValue (typeName, out tm)) {
-					if (tm.IsNested)
-						aliases.Remove (NestedTypeNameToAlias (typeName));
-
-					types.Remove (typeName);
 				}
 			}
 
