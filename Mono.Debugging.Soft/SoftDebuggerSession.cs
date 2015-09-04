@@ -1832,6 +1832,32 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
+		void RemoveUnloadedAssemblyTypes(AssemblyMirror asm)
+		{
+			// Remove affected types from the loaded types list
+			var affectedTypes = new List<string>(from pair in types
+												 where PathComparer.Equals(pair.Value.Assembly.Location, asm.Location)
+												 select pair.Key);
+
+			foreach (string typeName in affectedTypes)
+			{
+				TypeMirror tm;
+
+				if (types.TryGetValue(typeName, out tm))
+				{
+					if (tm.IsNested)
+						aliases.Remove(NestedTypeNameToAlias(typeName));
+
+					types.Remove(typeName);
+				}
+			}
+
+			foreach (var pair in source_to_type)
+			{
+				pair.Value.RemoveAll(m => PathComparer.Equals(m.Assembly.Location, asm.Location));
+			}
+		}
+
 		void HandleAppDomainCreateEvents(AppDomainCreateEvent[] events)
 		{
 			var domain = events[0].Domain;
@@ -1854,25 +1880,7 @@ namespace Mono.Debugging.Soft
 			var assemblies = domainAssemblies[domain];
 
 			foreach (var asm in assemblies)
-			{
-				// Remove affected types from the loaded types list
-				var affectedTypes = new List<string>(from pair in types
-													 where PathComparer.Equals(pair.Value.Assembly.Location, asm.Location)
-													 select pair.Key);
-
-				foreach (string typeName in affectedTypes)
-				{
-					TypeMirror tm;
-
-					if (types.TryGetValue(typeName, out tm))
-					{
-						if (tm.IsNested)
-							aliases.Remove(NestedTypeNameToAlias(typeName));
-
-						types.Remove(typeName);
-					}
-				}
-			}
+				RemoveUnloadedAssemblyTypes(asm);
 
 			domainAssemblies.Remove(domain);
 		}
@@ -1921,9 +1929,8 @@ namespace Mono.Debugging.Soft
 				}
 			}
 
-			foreach (var pair in source_to_type) {
-				pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, asm.Location));
-			}
+			RemoveUnloadedAssemblyTypes(asm);
+
 			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", asm.Location));
 		}
 
