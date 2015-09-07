@@ -33,7 +33,7 @@ namespace Mono.Debugging.Evaluation
 {
 	public class TimedEvaluator
 	{
-		const int maxThreads = 2;
+		const int maxThreads = 1;
 
 		object runningLock = new object ();
 		Queue<Task> pendingTasks = new Queue<Task> ();
