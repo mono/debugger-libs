@@ -36,18 +36,11 @@ namespace Mono.Debugging.Client
 		string name;
 		
 		[NonSerialized]
-		ThreadInfo[] currentThreads;
-		
-		[NonSerialized]
 		DebuggerSession session;
 		
 		internal void Attach (DebuggerSession session)
 		{
 			this.session = session;
-			if (currentThreads != null) {
-				foreach (ThreadInfo t in currentThreads)
-					t.Attach (session);
-			}
 		}
 		
 		public long Id {
@@ -70,9 +63,7 @@ namespace Mono.Debugging.Client
 		
 		public ThreadInfo[] GetThreads ()
 		{
-			if (currentThreads == null)
-				currentThreads = session.GetThreads (id);
-			return currentThreads;
+			return session.GetThreads (id);
 		}
 	}
 }
