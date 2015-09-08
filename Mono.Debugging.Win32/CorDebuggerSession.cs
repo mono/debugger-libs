@@ -701,7 +701,8 @@ namespace Mono.Debugger.Win32
 		{
 			MtaThread.Run (delegate
 			{
-				process.Detach ();
+        process.Stop (1000);
+        process.Detach ();
 			});
 		}
 

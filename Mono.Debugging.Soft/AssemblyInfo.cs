@@ -27,5 +27,5 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 
 [assembly: AssemblyTitle("Mono.Debugging.Soft")]
-[assembly: AssemblyVersionAttribute("1.0.0.2")]
-[assembly: AssemblyFileVersionAttribute("1.0.0.2")]
+[assembly: AssemblyVersionAttribute("1.0.0.5")]
+[assembly: AssemblyFileVersionAttribute("1.0.0.5")]

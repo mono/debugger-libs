@@ -353,7 +353,7 @@ namespace Mono.Debugging.Client
 				this.options = options;
 				OnRunning ();
 				Dispatch (delegate {
-					try {
+					try { 
 						OnAttachToProcess (proc.Id);
 						attached = true;
 					} catch (Exception ex) {
@@ -370,14 +370,20 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public void Detach ()
 		{
+      Breakpoints.Clear ();
 			lock (slock) {
-				try {
-					OnDetach ();
-				} catch (Exception ex) {
-					if (!HandleException (ex))
-						throw;
-				}
+			  Dispatch (delegate {
+			    try {
+			      OnDetach ();
+			    }
+			    catch (Exception ex) {
+			      if (!HandleException (ex))
+			        throw;
+			    }
+			    IsConnected = false;
+			  });
 			}
+      
 		}
 		
 		/// <summary>

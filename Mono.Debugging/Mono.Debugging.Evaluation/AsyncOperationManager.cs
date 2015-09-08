@@ -161,8 +161,13 @@ namespace Mono.Debugging.Evaluation
 						ST.Monitor.Exit (this);
 						break;
 					}
-				} catch {
+				} catch (Exception){
 					// If abort fails, try again after a short wait
+				  if (abortState > 20) {
+            // somewhen invoke callback is not called, which cause debugger hanging. Need to break the loop
+            ST.Monitor.Exit(this);
+            break;
+				  }
 				}
 				abortState++;
 				if (abortState == 6) {

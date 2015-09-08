@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Mono.Debugging")]
-[assembly: AssemblyDescription("Mono.Debugging")]
+[assembly: AssemblyTitle("Mono.Debugger.Soft")]
+[assembly: AssemblyDescription("Mono.Debugger.Soft")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Mono.Debugging.Properties")]
+[assembly: AssemblyProduct("Mono.Debugger.Soft.Properties")]
 [assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("8d0f467f-7ec6-49e2-b331-a964ecdd70d2")]
+[assembly: Guid("f15900df-5f6d-494c-a510-91e7d54cfe10")]
 
 // Version information for an assembly consists of the following four values:
 //
