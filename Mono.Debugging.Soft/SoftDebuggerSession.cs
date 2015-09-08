@@ -720,11 +720,15 @@ namespace Mono.Debugging.Soft
 			return name;
 		}
 
-		protected override void OnFetchFrames (ThreadInfo[] threads)
+		protected override void OnFetchFrames (ThreadInfo [] threads)
 		{
-			var mirrorThreads = new ThreadMirror[threads.Length];
-			for (int i = 0; i < threads.Length; i++)
-				mirrorThreads [i] = GetThread (threads [i].Id);
+			var mirrorThreads = new List<ThreadMirror> (threads.Length);
+			for (int i = 0; i < threads.Length; i++) {
+				var thread = GetThread (threads [i].Id);
+				if (thread != null) {
+					mirrorThreads.Add (thread);
+				}
+			}
 			ThreadMirror.FetchFrames (mirrorThreads);
 		}
 
@@ -1912,6 +1916,7 @@ namespace Mono.Debugging.Soft
 
 		void HandleThreadStartEvents (ThreadStartEvent[] events)
 		{
+			current_threads = null;
 			var thread = events [0].Thread;
 			if (events.Length > 1 && events.Any (a => a.Thread != thread))
 				throw new InvalidOperationException ("Simultaneous ThreadStartEvents for multiple threads");
@@ -1926,6 +1931,7 @@ namespace Mono.Debugging.Soft
 
 		void HandleThreadDeathEvents (ThreadDeathEvent[] events)
 		{
+			current_threads = null;
 			var thread = events [0].Thread;
 			if (events.Length > 1 && events.Any (a => a.Thread != thread))
 				throw new InvalidOperationException ("Simultaneous ThreadDeathEvents for multiple threads");
