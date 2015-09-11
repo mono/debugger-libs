@@ -2593,6 +2593,9 @@ namespace Mono.Debugging.Soft
 
 		bool CheckFileMd5 (string file, byte[] hash)
 		{
+			if (hash == null)
+				return false;
+
 			if (File.Exists (file)) {
 				using (var fs = File.OpenRead (file)) {
 					using (var md5 = MD5.Create ()) {
