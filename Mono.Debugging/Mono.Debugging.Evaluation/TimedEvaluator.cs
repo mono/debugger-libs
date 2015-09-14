@@ -104,8 +104,14 @@ namespace Mono.Debugging.Evaluation
 			}
 			WaitHandle.WaitAny (new WaitHandle [] { task.RunningEvent, disposedEvent });
 			if (WaitHandle.WaitAny (new WaitHandle [] { task.RunFinishedEvent, disposedEvent }, TimeSpan.FromMilliseconds (RunTimeout), false) != 0) {
-				task.TimedOut = true;
-				return false;
+				lock (task) {
+					if (task.Processed) {
+						return true;
+					} else {
+						task.TimedOut = true;
+						return false;
+					}
+				}
 			}
 			return true;
 		}
@@ -152,9 +158,11 @@ namespace Mono.Debugging.Evaluation
 				threadTask.RunningEvent.Set ();
 				SafeRun (threadTask.Evaluator);
 				threadTask.RunFinishedEvent.Set ();
-
-				if (threadTask.TimedOut && !disposed) {
-					SafeRun (threadTask.FinishedCallback);
+				lock (threadTask) {
+					threadTask.Processed = true;
+					if (threadTask.TimedOut && !disposed) {
+						SafeRun (threadTask.FinishedCallback);
+					}
 				}
 			}
 		}
@@ -198,11 +206,12 @@ namespace Mono.Debugging.Evaluation
 
 		class Task
 		{
-			public AutoResetEvent RunningEvent = new AutoResetEvent (false);
-			public AutoResetEvent RunFinishedEvent = new AutoResetEvent (false);
+			public ManualResetEvent RunningEvent = new ManualResetEvent (false);
+			public ManualResetEvent RunFinishedEvent = new ManualResetEvent (false);
 			public EvaluatorDelegate Evaluator;
 			public EvaluatorDelegate FinishedCallback;
 			public bool TimedOut;
+			public bool Processed;
 		}
 	}
 
