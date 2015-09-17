@@ -391,6 +391,8 @@ namespace Mono.Debugging.Client
 			XmlDocument doc = new XmlDocument ();
 			XmlElement elem = doc.CreateElement ("BreakpointStore");
 			foreach (BreakEvent ev in this) {
+				if (ev.NonUserBreakpoint)
+					continue;
 				XmlElement be = ev.ToXml (doc);
 				elem.AppendChild (be);
 			}

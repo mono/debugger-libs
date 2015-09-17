@@ -329,6 +329,17 @@ namespace Mono.Debugging.Client
 				breakIfConditionChanges = value;
 			}
 		}
+
+		/// <summary>
+		/// NonUserBreakpoint is special kind of breakpoint that is not placed by user but by IDE/Add-In.
+		/// This breakpoint is usually used by AddIn to execute code on debugee at certain point in application execution.
+		/// IDE must hide this breakpoint from user. In breakpoints list and it must not stop execution(show breakpoint hit location).
+		/// WARNING: Code that adds this breakpoint must also make sure to call session.Continue(); when breakpoint is hit.
+		/// </summary>
+		public bool NonUserBreakpoint {
+			get;
+			set;
+		}
 		
 		/// <summary>
 		/// Commits changes done in the break event properties
