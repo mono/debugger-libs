@@ -1803,7 +1803,7 @@ namespace Mono.Debugging.Soft
 							autoStepInto = true;
 							stepOut = true;
 						}
-					} else if (etype == TargetEventType.TargetHitBreakpoint && breakEvent != null && IgnoreBreakpoint (frame.StackFrame.Method)) {
+					} else if (etype == TargetEventType.TargetHitBreakpoint && breakEvent != null && !breakEvent.NonUserBreakpoint && IgnoreBreakpoint (frame.StackFrame.Method)) {
 						vm.Resume ();
 						DequeueEventsForFirstThread ();
 						return;
