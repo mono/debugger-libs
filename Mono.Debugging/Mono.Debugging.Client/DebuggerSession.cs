@@ -370,20 +370,19 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public void Detach ()
 		{
-      Breakpoints.Clear ();
+			Breakpoints.Clear ();
 			lock (slock) {
-			  Dispatch (delegate {
-			    try {
-			      OnDetach ();
-			    }
-			    catch (Exception ex) {
-			      if (!HandleException (ex))
-			        throw;
-			    }
-			    IsConnected = false;
-			  });
+				Dispatch (delegate {
+					try {
+						OnDetach ();
+					}
+					catch (Exception ex) {
+						if (!HandleException (ex))
+							throw;
+					}
+					IsConnected = false;
+				});
 			}
-      
 		}
 		
 		/// <summary>

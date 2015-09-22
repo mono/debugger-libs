@@ -153,15 +153,15 @@ namespace Mono.Debugging.Client
 			return val;
 		}
 
-	  public static ObjectValue CreateEvaluationException (EvaluationContext ctx, IObjectValueSource source, ObjectPath path, EvaluatorExceptionThrownException exception,
-	    ObjectValueFlags flags = ObjectValueFlags.None)
-	  {
-      var error = CreateError(source, path, exception.ExceptionTypeName, "Exception was thrown", flags);
-      var exceptionReference = LiteralValueReference.CreateTargetObjectLiteral(ctx, "Exception", exception.Exception);
-      var exceptionValue = exceptionReference.CreateObjectValue(ctx.Options);
-	    error.children = new List<ObjectValue> {exceptionValue};
-      return error;
-	  }
+		public static ObjectValue CreateEvaluationException (EvaluationContext ctx, IObjectValueSource source, ObjectPath path, EvaluatorExceptionThrownException exception,
+			ObjectValueFlags flags = ObjectValueFlags.None)
+		{
+			var error = CreateError (source, path, exception.ExceptionTypeName, "Exception was thrown", flags);
+			var exceptionReference = LiteralValueReference.CreateTargetObjectLiteral (ctx, "Exception", exception.Exception);
+			var exceptionValue = exceptionReference.CreateObjectValue (ctx.Options);
+			error.children = new List<ObjectValue> {exceptionValue};
+			return error;
+		}
 
 	  public static ObjectValue CreateImplicitNotSupported (IObjectValueSource source, ObjectPath path, string typeName, ObjectValueFlags flags)
 		{

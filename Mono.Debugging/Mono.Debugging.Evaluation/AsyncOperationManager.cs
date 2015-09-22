@@ -124,7 +124,7 @@ namespace Mono.Debugging.Evaluation
 		internal AsyncOperationManager Manager;
 		
 		public bool Aborting { get; internal set; }
-		
+
 		internal void InternalAbort ()
 		{
 			ST.Monitor.Enter (this);
@@ -132,24 +132,24 @@ namespace Mono.Debugging.Evaluation
 				ST.Monitor.Exit (this);
 				return;
 			}
-			
+
 			if (Aborting) {
 				// Somebody else is aborting this. Just wait for it to finish.
 				ST.Monitor.Exit (this);
 				WaitForCompleted (ST.Timeout.Infinite);
 				return;
 			}
-			
+
 			Aborting = true;
-			
+
 			int abortState = 0;
 			int abortRetryWait = 100;
 			bool abortRequested = false;
-			
+
 			do {
 				if (abortState > 0)
 					ST.Monitor.Enter (this);
-				
+
 				try {
 					if (!Aborted && !abortRequested) {
 						// The Abort() call doesn't block. WaitForCompleted is used below to wait for the abort to succeed
@@ -161,13 +161,14 @@ namespace Mono.Debugging.Evaluation
 						ST.Monitor.Exit (this);
 						break;
 					}
-				} catch (Exception){
+				}
+				catch (Exception) {
 					// If abort fails, try again after a short wait
-				  if (abortState > 20) {
-            // somewhen invoke callback is not called, which cause debugger hanging. Need to break the loop
-            ST.Monitor.Exit(this);
-            break;
-				  }
+					if (abortState > 20) {
+						// somewhen invoke callback is not called, which cause debugger hanging. Need to break the loop
+						ST.Monitor.Exit (this);
+						break;
+					}
 				}
 				abortState++;
 				if (abortState == 6) {
@@ -175,13 +176,14 @@ namespace Mono.Debugging.Evaluation
 					abortRetryWait = 500;
 					try {
 						Manager.EnterBusyState (this);
-					} catch (Exception ex) {
+					}
+					catch (Exception ex) {
 						Console.WriteLine (ex);
 					}
 				}
 				ST.Monitor.Exit (this);
 			} while (!Aborted && !WaitForCompleted (abortRetryWait) && !Manager.Disposing);
-			
+
 			if (Manager.Disposing) {
 				InternalShutdown ();
 			}
