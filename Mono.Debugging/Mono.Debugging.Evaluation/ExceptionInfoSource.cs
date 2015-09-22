@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -49,7 +50,9 @@ namespace Mono.Debugging.Evaluation
 		
 		public ObjectValue CreateObjectValue (bool withTimeout, EvaluationOptions options)
 		{
-			string type = ctx.Adapter.GetTypeName (ctx, Exception.Type);
+			options = options.Clone ();
+			options.EllipsizeStrings = false;
+			string type = ctx.Adapter.GetValueTypeName (ctx, Exception.ObjectValue);
 
 			var excInstance = Exception.CreateObjectValue (withTimeout, options);
 			excInstance.Name = "Instance";
@@ -109,6 +112,35 @@ namespace Mono.Debugging.Evaluation
 
 			if (childExceptionValue == null)
 				childExceptionValue = ObjectValue.CreateUnknown ("InnerException");
+
+			// Inner exceptions in case of AgregatedException
+
+			ObjectValue childExceptionsValue = null;
+			ObjectEvaluatorDelegate getInnerExceptionsDelegate = delegate {
+				var inner = Exception.GetChild ("InnerExceptions", options);
+				if (inner != null && !ctx.Adapter.IsNull (ctx, inner.Value)) {
+					var obj = inner.GetValue (ctx);
+					var objType = ctx.Adapter.GetValueType (ctx, obj);
+					var enumerator = ctx.Adapter.RuntimeInvoke (ctx, objType, obj, "GetEnumerator", new object[0], new object[0]);
+					var enumeratorType = ctx.Adapter.GetImplementedInterfaces (ctx, ctx.Adapter.GetValueType (ctx, enumerator)).First (f => ctx.Adapter.GetTypeName (ctx, f) == "System.Collections.IEnumerator");
+					var childrenList = new List<ObjectValue> ();
+					while ((bool)ctx.Adapter.TargetObjectToObject (ctx, ctx.Adapter.RuntimeInvoke (ctx, enumeratorType, enumerator, "MoveNext", new object[0], new object[0]))) {
+						var valCurrent = ctx.Adapter.GetMember (ctx, null, enumeratorType, enumerator, "Current");
+						childrenList.Add (new ExceptionInfoSource (ctx, valCurrent).CreateObjectValue (withTimeout, ctx.Options));
+					}
+					return ObjectValue.CreateObject (null, new ObjectPath ("InnerExceptions"), "", "", ObjectValueFlags.None, childrenList.ToArray ());
+				}
+
+				return ObjectValue.CreateUnknown ("InnerExceptions");
+			};
+			if (withTimeout) {
+				childExceptionsValue = ctx.Adapter.CreateObjectValueAsync ("InnerExceptions", ObjectValueFlags.None, getInnerExceptionsDelegate);
+			} else {
+				childExceptionsValue = getInnerExceptionsDelegate ();
+			}
+
+			if (childExceptionsValue == null)
+				childExceptionsValue = ObjectValue.CreateUnknown ("InnerExceptions");
 			
 			// Stack trace
 			
@@ -121,7 +153,7 @@ namespace Mono.Debugging.Evaluation
 				stackTraceValue = GetStackTrace (options);
 			}
 
-			var children = new ObjectValue [] { excInstance, messageValue, stackTraceValue, childExceptionValue };
+			var children = new ObjectValue [] { excInstance, messageValue, stackTraceValue, childExceptionValue, childExceptionsValue };
 
 			return ObjectValue.CreateObject (null, new ObjectPath ("InnerException"), type, "", ObjectValueFlags.None, children);
 		}
@@ -131,12 +163,13 @@ namespace Mono.Debugging.Evaluation
 			var stackTrace = Exception.GetChild ("StackTrace", options);
 			if (stackTrace == null)
 				return ObjectValue.CreateUnknown ("StackTrace");
-
+			
 			string trace = stackTrace.ObjectValue as string;
 			if (trace == null)
 				return ObjectValue.CreateUnknown ("StackTrace");
 
 			var regex = new Regex ("at (?<MethodName>.*) in (?<FileName>.*):(?<LineNumber>\\d+)(,(?<Column>\\d+))?");
+			var regexLine = new Regex ("at (?<MethodName>.*) in (?<FileName>.*):line (?<LineNumber>\\d+)(,(?<Column>\\d+))?");
 			var frames = new List<ObjectValue> ();
 			
 			foreach (var sframe in trace.Split ('\n')) {
@@ -150,10 +183,16 @@ namespace Mono.Debugging.Evaluation
 
 				var match = regex.Match (text);
 				if (match.Success) {
-					text = match.Groups["MethodName"].ToString ();
-					file = match.Groups["FileName"].ToString ();
-					int.TryParse (match.Groups["LineNumber"].ToString (), out line);
-					int.TryParse (match.Groups["Column"].ToString (), out column);
+					text = match.Groups ["MethodName"].ToString ();
+					file = match.Groups ["FileName"].ToString ();
+					int.TryParse (match.Groups ["LineNumber"].ToString (), out line);
+					int.TryParse (match.Groups ["Column"].ToString (), out column);
+				} else {
+					match = regexLine.Match (text);
+					text = match.Groups ["MethodName"].ToString ();
+					file = match.Groups ["FileName"].ToString ();
+					int.TryParse (match.Groups ["LineNumber"].ToString (), out line);
+					int.TryParse (match.Groups ["Column"].ToString (), out column);
 				}
 
 				var fileVal = ObjectValue.CreatePrimitive (null, new ObjectPath ("File"), "", new EvaluationResult (file), ObjectValueFlags.None);

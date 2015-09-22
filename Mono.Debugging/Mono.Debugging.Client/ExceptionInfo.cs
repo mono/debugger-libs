@@ -174,6 +174,30 @@ namespace Mono.Debugging.Client
 				return innerException;
 			}
 		}
+
+		List<ExceptionInfo> innerExceptions;
+		public List<ExceptionInfo> InnerExceptions {
+			get {
+				if (innerExceptions == null) {
+					ObjectValue innerVal = exception.GetChild ("InnerExceptions");
+					if (innerVal == null || innerVal.IsError || innerVal.IsUnknown)
+						return null;
+					if (innerVal.IsEvaluating) {
+						innerVal.ValueChanged += delegate { NotifyChanged (); };
+						return null;
+					}
+					innerExceptions = new List<ExceptionInfo> ();
+					foreach (var inner in innerVal.GetAllChildren ()) {
+						var innerObj = new ExceptionInfo (inner);
+						innerObj.Changed += delegate {
+							NotifyChanged ();
+						};
+						innerExceptions.Add (innerObj);
+					}
+				}
+				return innerExceptions;
+			}
+		}
 		
 		public event EventHandler Changed;
 		

@@ -129,7 +129,10 @@ namespace Mono.Debugging.Soft
 			} else {
 				methodName = method.Name;
 			}
-			
+
+			if (string.IsNullOrEmpty (methodName))
+				methodName = "[Function Without Name]";
+
 			// Compiler generated anonymous/lambda methods
 			bool special_method = false;
 			if (methodName [0] == '<' && methodName.Contains (">m__")) {

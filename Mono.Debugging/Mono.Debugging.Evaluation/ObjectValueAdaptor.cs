@@ -552,6 +552,11 @@ namespace Mono.Debugging.Evaluation
 			// to avoid problems with objects being invalidated due to evaluations in the target,
 			var list = new List<ValueReference> ();
 			list.AddRange (GetMembersSorted (ctx, objectSource, type, proxy, access));
+
+			// Some implementations of DebuggerProxies(showRawView==true) only have private members
+			if (showRawView && list.Count == 0) {
+				list.AddRange (GetMembersSorted (ctx, objectSource, type, proxy, access | BindingFlags.NonPublic));
+			}
 			var names = new ObjectValueNameTracker (ctx);
 			object tdataType = type;
 			

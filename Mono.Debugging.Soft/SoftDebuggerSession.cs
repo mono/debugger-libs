@@ -720,11 +720,15 @@ namespace Mono.Debugging.Soft
 			return name;
 		}
 
-		protected override void OnFetchFrames (ThreadInfo[] threads)
+		protected override void OnFetchFrames (ThreadInfo [] threads)
 		{
-			var mirrorThreads = new ThreadMirror[threads.Length];
-			for (int i = 0; i < threads.Length; i++)
-				mirrorThreads [i] = GetThread (threads [i].Id);
+			var mirrorThreads = new List<ThreadMirror> (threads.Length);
+			for (int i = 0; i < threads.Length; i++) {
+				var thread = GetThread (threads [i].Id);
+				if (thread != null) {
+					mirrorThreads.Add (thread);
+				}
+			}
 			ThreadMirror.FetchFrames (mirrorThreads);
 		}
 
@@ -1799,7 +1803,7 @@ namespace Mono.Debugging.Soft
 							autoStepInto = true;
 							stepOut = true;
 						}
-					} else if (etype == TargetEventType.TargetHitBreakpoint && breakEvent != null && IgnoreBreakpoint (frame.StackFrame.Method)) {
+					} else if (etype == TargetEventType.TargetHitBreakpoint && breakEvent != null && !breakEvent.NonUserBreakpoint && IgnoreBreakpoint (frame.StackFrame.Method)) {
 						vm.Resume ();
 						DequeueEventsForFirstThread ();
 						return;
@@ -1912,6 +1916,7 @@ namespace Mono.Debugging.Soft
 
 		void HandleThreadStartEvents (ThreadStartEvent[] events)
 		{
+			current_threads = null;
 			var thread = events [0].Thread;
 			if (events.Length > 1 && events.Any (a => a.Thread != thread))
 				throw new InvalidOperationException ("Simultaneous ThreadStartEvents for multiple threads");
@@ -1926,6 +1931,7 @@ namespace Mono.Debugging.Soft
 
 		void HandleThreadDeathEvents (ThreadDeathEvent[] events)
 		{
+			current_threads = null;
 			var thread = events [0].Thread;
 			if (events.Length > 1 && events.Any (a => a.Thread != thread))
 				throw new InvalidOperationException ("Simultaneous ThreadDeathEvents for multiple threads");
@@ -2518,6 +2524,12 @@ namespace Mono.Debugging.Soft
 		
 		bool CheckBetterMatch (TypeMirror type, string file, int line, int column, Location found)
 		{
+			// target.ColumnNumber == 0 is workaround Android Linker bug to fix Bug 32383
+			// It's harmless since minimal valid/logic target.ColumnNumber is 1
+			if (found.ColumnNumber < 1)
+				return false;
+				
+
 			if (type.Assembly == null)
 				return false;
 			
@@ -2581,6 +2593,9 @@ namespace Mono.Debugging.Soft
 
 		bool CheckFileMd5 (string file, byte[] hash)
 		{
+			if (hash == null)
+				return false;
+
 			if (File.Exists (file)) {
 				using (var fs = File.OpenRead (file)) {
 					using (var md5 = MD5.Create ()) {
@@ -2810,7 +2825,12 @@ namespace Mono.Debugging.Soft
 		{
 			if (thread == null)
 				return false;
-			var state = thread.ThreadState;
+			ThreadState state;
+			try {
+				state = thread.ThreadState;
+			} catch (ObjectCollectedException) {
+				return false;//Thread was already collected by garbage collector, hence it's not alive
+			}
 			return state != ThreadState.Stopped && state != ThreadState.Aborted;
 		}
 		

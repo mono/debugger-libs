@@ -237,6 +237,7 @@ namespace Mono.Debugging.Evaluation
 			
 			finfo = new FrameInfo ();
 			finfo.Context = ctx;
+			//Don't try to optimize lines below with lazy loading, you won't gain anything(in communication with runtime)
 			finfo.LocalVariables.AddRange (ctx.Evaluator.GetLocalVariables (ctx));
 			finfo.Parameters.AddRange (ctx.Evaluator.GetParameters (ctx));
 			finfo.This = ctx.Evaluator.GetThisReference (ctx);
