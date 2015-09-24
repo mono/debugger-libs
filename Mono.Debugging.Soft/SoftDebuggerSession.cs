@@ -53,6 +53,7 @@ namespace Mono.Debugging.Soft
 		readonly Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> overloadResolveCache = new Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> ();
 		readonly Dictionary<string, List<TypeMirror>> source_to_type = new Dictionary<string, List<TypeMirror>> (PathComparer);
 		readonly Dictionary<long,ObjectMirror> activeExceptionsByThread = new Dictionary<long, ObjectMirror> ();
+		readonly Dictionary<AssemblyMirror, string> assemblyLocations = new Dictionary<AssemblyMirror, string>();
 		readonly Dictionary<EventRequest, BreakInfo> breakpoints = new Dictionary<EventRequest, BreakInfo> ();
 		readonly Dictionary<string, MonoSymbolFile> symbolFiles = new Dictionary<string, MonoSymbolFile> ();
 		readonly Dictionary<TypeMirror, string[]> type_to_source = new Dictionary<TypeMirror, string[]> ();
@@ -1835,6 +1836,9 @@ namespace Mono.Debugging.Soft
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
 
+
+			assemblyLocations[asm] = asm.Location;
+
 			bool isExternal;
 			isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
 
@@ -1847,7 +1851,14 @@ namespace Mono.Debugging.Soft
 			var asm = events [0].Assembly;
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyUnloadEvents for multiple assemblies");
-			
+
+			String asmLocation;
+
+			if (!assemblyLocations.TryGetValue(asm, out asmLocation))
+				return;
+
+			assemblyLocations.Remove(asm);
+
 			if (assemblyFilters != null) {
 				int index = assemblyFilters.IndexOf (asm);
 				if (index != -1)
@@ -1856,7 +1867,7 @@ namespace Mono.Debugging.Soft
 			// Mark affected breakpoints as pending again
 			var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => x.Value != null && x.Value.Location != null &&
 				x.Value.Location.Method != null && x.Value.Location.Method.DeclaringType != null &&  x.Value.Location.Method.DeclaringType.Assembly != null &&
-				PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asm.Location)
+				PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asmLocation)
 			));
 			foreach (var breakpoint in affectedBreakpoints) {
 				string file = breakpoint.Value.Location.SourceFile;
@@ -1870,7 +1881,7 @@ namespace Mono.Debugging.Soft
 
 			// Remove affected types from the loaded types list
 			var affectedTypes = new List<string> (from pair in types
-				 where PathComparer.Equals (pair.Value.Assembly.Location, asm.Location)
+				 where PathComparer.Equals (pair.Value.Assembly.Location, asmLocation)
 				 select pair.Key);
 
 			foreach (string typeName in affectedTypes) {
@@ -1885,9 +1896,9 @@ namespace Mono.Debugging.Soft
 			}
 
 			foreach (var pair in source_to_type) {
-				pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, asm.Location));
+				pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, asmLocation));
 			}
-			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", asm.Location));
+			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", asmLocation));
 		}
 
 		void HandleVMStartEvents (VMStartEvent[] events)
