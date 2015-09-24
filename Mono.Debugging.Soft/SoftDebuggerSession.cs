@@ -50,11 +50,31 @@ namespace Mono.Debugging.Soft
 {
 	public class SoftDebuggerSession : DebuggerSession
 	{
+		class MdbSourceFileInfo
+		{
+			public string FullFilePath { get; set; }
+			public int FileID { get; set; }
+			public byte[] Hash { get; set; }
+			public List<MethodMdbInfo> Methods { get; private set; }
+
+			public MdbSourceFileInfo()
+			{
+				Methods = new List<MethodMdbInfo>();
+			}
+		}
+
+		class MethodMdbInfo
+		{
+			public LineNumberEntry[] SequencePoints { get; set; }
+		}
+
 		readonly Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> overloadResolveCache = new Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> ();
 		readonly Dictionary<string, List<TypeMirror>> source_to_type = new Dictionary<string, List<TypeMirror>> (PathComparer);
 		readonly Dictionary<long,ObjectMirror> activeExceptionsByThread = new Dictionary<long, ObjectMirror> ();
 		readonly Dictionary<EventRequest, BreakInfo> breakpoints = new Dictionary<EventRequest, BreakInfo> ();
-		readonly Dictionary<string, MonoSymbolFile> symbolFiles = new Dictionary<string, MonoSymbolFile> ();
+		readonly Dictionary<string, List<MdbSourceFileInfo>> fileToSourceFileInfos = new Dictionary<string, List<MdbSourceFileInfo>>();
+		readonly Dictionary<string, List<MdbSourceFileInfo>> mdbToSourceFileInfos = new Dictionary<string, List<MdbSourceFileInfo>>();
+		readonly Dictionary<string, long> symbolFilesTimestamps = new Dictionary<string, long> ();	
 		readonly Dictionary<TypeMirror, string[]> type_to_source = new Dictionary<TypeMirror, string[]> ();
 		readonly Dictionary<string, TypeMirror> aliases = new Dictionary<string, TypeMirror> ();
 		readonly Dictionary<string, TypeMirror> types = new Dictionary<string, TypeMirror> ();
@@ -548,10 +568,10 @@ namespace Mono.Debugging.Soft
 			if (!HasExited)
 				EndLaunch ();
 
-			foreach (var symfile in symbolFiles)
-				symfile.Value.Dispose ();
+			symbolFilesTimestamps.Clear ();
 
-			symbolFiles.Clear ();
+			mdbToSourceFileInfos.Clear ();
+			fileToSourceFileInfos.Clear ();
 
 			if (!HasExited) {
 				if (vm != null) {
@@ -2521,15 +2541,71 @@ namespace Mono.Debugging.Soft
 			// Return the location of the method.
 			return method.Locations.Count > 0 ? method.Locations[0] : null;
 		}
-		
+
+		bool LoadMdbFile(string mdbFileName)
+		{
+			if (!File.Exists (mdbFileName))
+				return false;
+
+			var sourcesInfos = new List<MdbSourceFileInfo> ();
+			mdbToSourceFileInfos [mdbFileName] = sourcesInfos;
+
+			using(MonoSymbolFile mdb = MonoSymbolFile.ReadSymbolFile(mdbFileName))
+			{
+				foreach (var src in mdb.Sources) 
+				{
+					// Check if file has already been added. Can happen if multiple projects share the same source file.
+					if (fileToSourceFileInfos.ContainsKey (src.FileName))
+						continue; 
+
+					MdbSourceFileInfo info = new MdbSourceFileInfo ();
+
+					info.Hash = src.Checksum;
+					info.FileID = src.Index;
+					info.FullFilePath = src.FileName;
+
+					foreach (var method in mdb.Methods) 
+						info.Methods.Add (new MethodMdbInfo{ SequencePoints = method.GetLineNumberTable ().LineNumbers });
+
+					fileToSourceFileInfos [src.FileName] = new List<MdbSourceFileInfo> ();
+
+					if (!fileToSourceFileInfos.ContainsKey (Path.GetFileName (src.FileName)))
+						fileToSourceFileInfos [Path.GetFileName (src.FileName)] = new List<MdbSourceFileInfo> ();
+
+					fileToSourceFileInfos [src.FileName].Add (info);
+					fileToSourceFileInfos [Path.GetFileName(src.FileName)].Add (info);
+
+					sourcesInfos.Add (info);
+				}
+			}
+
+			return true;
+		}
+
+		void UnloadMdbFile(string mdbFileName)
+		{
+			List<MdbSourceFileInfo> infos;
+
+			if (!mdbToSourceFileInfos.TryGetValue (mdbFileName, out infos))
+				return;
+			
+			foreach (var info in infos) 
+			{
+				fileToSourceFileInfos.Remove (info.FullFilePath);
+				fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)].RemoveAll (i => i.FullFilePath == info.FullFilePath);
+			}
+
+			mdbToSourceFileInfos.Remove (mdbFileName);
+		}
+
+		bool ReloadMdbFile(string mdbFilename)
+		{
+			UnloadMdbFile (mdbFilename);
+			return LoadMdbFile (mdbFilename);
+		}
+
 		bool CheckBetterMatch (TypeMirror type, string file, int line, int column, Location found)
 		{
-			// target.ColumnNumber == 0 is workaround Android Linker bug to fix Bug 32383
-			// It's harmless since minimal valid/logic target.ColumnNumber is 1
-			if (found.ColumnNumber < 1)
-				return false;
-				
-
 			if (type.Assembly == null)
 				return false;
 			
@@ -2541,44 +2617,105 @@ namespace Mono.Debugging.Soft
 				return false;
 			
 			string mdbFileName = assemblyFileName + ".mdb";
-			int foundDelta = found.LineNumber - line;
-			MonoSymbolFile mdb;
-			int fileId = -1;
-			
-			try {
-				if (!symbolFiles.TryGetValue (mdbFileName, out mdb)) {
-					if (!File.Exists (mdbFileName))
-						return false;
-					
-					mdb = MonoSymbolFile.ReadSymbolFile (mdbFileName);
-					symbolFiles.Add (mdbFileName, mdb);
-				}
-			} catch {
-				return false;
+			long mdbFileNameTicks;
+
+			// Check if there is a previously saved timestamp for this .mdb file.
+			if(!symbolFilesTimestamps.TryGetValue(mdbFileName, out mdbFileNameTicks))
+				mdbFileNameTicks = 0;							
+
+			long currentMdbFileNameTicks = File.GetLastWriteTimeUtc(mdbFileName).Ticks;
+
+			// Check if .mdb file has been updated and if so, reload it.
+			if(currentMdbFileNameTicks > mdbFileNameTicks)
+			{
+				if(!ReloadMdbFile(mdbFileName))
+					return false;
+
+				symbolFilesTimestamps[mdbFileName] = currentMdbFileNameTicks;
 			}
 
-			if (File.Exists (file)) {
-				using (var fs = File.OpenRead (file)) {
-					using (var md5 = MD5.Create ()) {
-						var hash = md5.ComputeHash (fs);
-						foreach (var src in mdb.Sources) {
-							if (PathsAreEqual (src.FileName, file) ||
-								(PathComparer.Compare (Path.GetFileName (src.FileName), Path.GetFileName (file)) == 0 && hash.SequenceEqual (src.Checksum))) {
-								fileId = src.Index;
-								break;
+			// Try to find MdbSourceFileInfo for file
+			MdbSourceFileInfo sourceInfo = null;
+			List<MdbSourceFileInfo> mdbInfos;
+
+			// Search by full path
+			if (fileToSourceFileInfos.TryGetValue (file, out mdbInfos)) 
+			{
+				if (mdbInfos.Count != 1)
+					throw new Exception ("mdbInfos.Count is " + mdbInfos.Count + " for file: '" + file + "'");
+
+				sourceInfo = mdbInfos [0];
+			}
+			else
+			{
+				if (!File.Exists (file))
+					return false;
+
+				// Search by filename and hash
+				if (fileToSourceFileInfos.TryGetValue (Path.GetFileName (file), out mdbInfos))
+				{
+					using (var fs = File.OpenRead (file)) {
+						using (var md5 = MD5.Create ()) {
+							var hash = md5.ComputeHash (fs);
+							foreach (var info in mdbInfos) {
+								if (hash.SequenceEqual (info.Hash)) {
+									sourceInfo = info;
+									break;
+								}
 							}
 						}
 					}
 				}
 			}
 
-			if (fileId == -1)
-				return false;
+			if (sourceInfo == null)
+			{
+				// Search by symlink resolving
+				var resolvedFile = ResolveSymbolicLink (file);
 
-			foreach (var method in mdb.Methods) {
-				var table = method.GetLineNumberTable ();
-				foreach (var entry in table.LineNumbers) {
-					if (entry.File != fileId)
+				if (PathComparer.Compare (resolvedFile, file) == 0)
+					return false;
+
+				// Check if we have already added the symlink in a previous lookup
+				if (fileToSourceFileInfos.TryGetValue (resolvedFile, out mdbInfos))
+				{
+					if (mdbInfos.Count != 1)
+						throw new Exception ("mdbInfos.Count is " + mdbInfos.Count + " for resolved file: '" + resolvedFile + "'");
+
+					sourceInfo = mdbInfos [0];
+				}
+				else 
+				{
+					if (!mdbToSourceFileInfos.TryGetValue(mdbFileName, out mdbInfos))
+						return false;
+
+					foreach (var info in mdbInfos) 
+					{
+						var resolvedFullFilePath = ResolveSymbolicLink (info.FullFilePath);
+
+						if (PathComparer.Compare (resolvedFile, resolvedFullFilePath) == 0)
+						{
+							sourceInfo = info;
+
+							// Add symlink so subsequent lookups are faster
+							fileToSourceFileInfos [resolvedFile] = fileToSourceFileInfos[info.FullFilePath];
+
+							break;
+						}
+					}
+
+					if (sourceInfo == null)
+						return false;
+				}
+			}
+
+			int foundDelta = found.LineNumber - line;
+
+			foreach(var methodInfo in sourceInfo.Methods)
+			{
+				foreach (var entry in methodInfo.SequencePoints) 
+				{
+					if (entry.File != sourceInfo.FileID)
 						continue;
 
 					if ((entry.Row >= line && (entry.Row - line) < foundDelta))
