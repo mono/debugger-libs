@@ -68,15 +68,14 @@ namespace Mono.Debugging.Soft
 			public LineNumberEntry[] SequencePoints { get; set; }
 		}
 
+		readonly Dictionary<string, Dictionary<string, List<MdbSourceFileInfo>>> mdbsSourceFileInfos = new Dictionary<string, Dictionary<string, List<MdbSourceFileInfo>>>();
 		readonly Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> overloadResolveCache = new Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> ();
 		readonly Dictionary<string, List<TypeMirror>> source_to_type = new Dictionary<string, List<TypeMirror>> (PathComparer);
 		readonly Dictionary<long,ObjectMirror> activeExceptionsByThread = new Dictionary<long, ObjectMirror> ();
 		readonly Dictionary<EventRequest, BreakInfo> breakpoints = new Dictionary<EventRequest, BreakInfo> ();
-		readonly Dictionary<string, List<MdbSourceFileInfo>> fileToSourceFileInfos = new Dictionary<string, List<MdbSourceFileInfo>>();
-		readonly Dictionary<string, List<MdbSourceFileInfo>> mdbToSourceFileInfos = new Dictionary<string, List<MdbSourceFileInfo>>();
-		readonly Dictionary<string, long> symbolFilesTimestamps = new Dictionary<string, long> ();	
 		readonly Dictionary<TypeMirror, string[]> type_to_source = new Dictionary<TypeMirror, string[]> ();
-		readonly Dictionary<string, TypeMirror> aliases = new Dictionary<string, TypeMirror> ();
+		readonly Dictionary<string, long> symbolFilesTimestamps = new Dictionary<string, long>();
+		readonly Dictionary<string, TypeMirror> aliases = new Dictionary<string, TypeMirror>();
 		readonly Dictionary<string, TypeMirror> types = new Dictionary<string, TypeMirror> ();
 		readonly LinkedList<List<Event>> queuedEventSets = new LinkedList<List<Event>> ();
 		readonly Dictionary<long,long> localThreadIds = new Dictionary<long, long> ();
@@ -570,8 +569,7 @@ namespace Mono.Debugging.Soft
 
 			symbolFilesTimestamps.Clear ();
 
-			mdbToSourceFileInfos.Clear ();
-			fileToSourceFileInfos.Clear ();
+			mdbsSourceFileInfos.Clear();
 
 			if (!HasExited) {
 				if (vm != null) {
@@ -2547,17 +2545,13 @@ namespace Mono.Debugging.Soft
 			if (!File.Exists (mdbFileName))
 				return false;
 
-			var sourcesInfos = new List<MdbSourceFileInfo> ();
-			mdbToSourceFileInfos [mdbFileName] = sourcesInfos;
+			var fileToSourceFileInfos = new Dictionary<string, List<MdbSourceFileInfo>>();
+			mdbsSourceFileInfos[mdbFileName] = fileToSourceFileInfos;
 
 			using(MonoSymbolFile mdb = MonoSymbolFile.ReadSymbolFile(mdbFileName))
 			{
 				foreach (var src in mdb.Sources) 
 				{
-					// Check if file has already been added. Can happen if multiple projects share the same source file.
-					if (fileToSourceFileInfos.ContainsKey (src.FileName))
-						continue; 
-
 					MdbSourceFileInfo info = new MdbSourceFileInfo ();
 
 					info.Hash = src.Checksum;
@@ -2574,8 +2568,6 @@ namespace Mono.Debugging.Soft
 
 					fileToSourceFileInfos [src.FileName].Add (info);
 					fileToSourceFileInfos [Path.GetFileName(src.FileName)].Add (info);
-
-					sourcesInfos.Add (info);
 				}
 			}
 
@@ -2584,18 +2576,10 @@ namespace Mono.Debugging.Soft
 
 		void UnloadMdbFile(string mdbFileName)
 		{
-			List<MdbSourceFileInfo> infos;
-
-			if (!mdbToSourceFileInfos.TryGetValue (mdbFileName, out infos))
+			if (!mdbsSourceFileInfos.ContainsKey(mdbFileName))
 				return;
-			
-			foreach (var info in infos) 
-			{
-				fileToSourceFileInfos.Remove (info.FullFilePath);
-				fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)].RemoveAll (i => i.FullFilePath == info.FullFilePath);
-			}
 
-			mdbToSourceFileInfos.Remove (mdbFileName);
+			mdbsSourceFileInfos.Remove(mdbFileName);
 		}
 
 		bool ReloadMdbFile(string mdbFilename)
@@ -2633,6 +2617,11 @@ namespace Mono.Debugging.Soft
 
 				symbolFilesTimestamps[mdbFileName] = currentMdbFileNameTicks;
 			}
+
+			Dictionary<string, List<MdbSourceFileInfo>> fileToSourceFileInfos;
+
+			if (!mdbsSourceFileInfos.TryGetValue(mdbFileName, out fileToSourceFileInfos))
+				throw new Exception("Unable to retrieve MdbSourceFileInfo's for  '" + mdbFileName + "'");
 
 			// Try to find MdbSourceFileInfo for file
 			MdbSourceFileInfo sourceInfo = null;
@@ -2686,21 +2675,21 @@ namespace Mono.Debugging.Soft
 				}
 				else 
 				{
-					if (!mdbToSourceFileInfos.TryGetValue(mdbFileName, out mdbInfos))
-						return false;
-
-					foreach (var info in mdbInfos) 
+					foreach (var entry in fileToSourceFileInfos)
 					{
-						var resolvedFullFilePath = ResolveSymbolicLink (info.FullFilePath);
-
-						if (PathComparer.Compare (resolvedFile, resolvedFullFilePath) == 0)
+						foreach (var info in entry.Value)
 						{
-							sourceInfo = info;
+							var resolvedFullFilePath = ResolveSymbolicLink(info.FullFilePath);
 
-							// Add symlink so subsequent lookups are faster
-							fileToSourceFileInfos [resolvedFile] = fileToSourceFileInfos[info.FullFilePath];
+							if (PathComparer.Compare(resolvedFile, resolvedFullFilePath) == 0)
+							{
+								sourceInfo = info;
 
-							break;
+								// Add symlink so subsequent lookups are faster
+								fileToSourceFileInfos[resolvedFile] = fileToSourceFileInfos[info.FullFilePath];
+
+								break;
+							}
 						}
 					}
 
