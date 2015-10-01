@@ -1863,6 +1863,8 @@ namespace Mono.Debugging.Soft
 				int line = breakpoint.Value.Location.LineNumber;
 				OnDebuggerOutput (false, string.Format ("Re-pending breakpoint at {0}:{1}\n", file, line));
 				breakpoints.Remove (breakpoint.Key);
+				breakpoint.Value.Requests.Clear ();
+
 				lock (pending_bes) {
 					pending_bes.Add (breakpoint.Value);
 				}
