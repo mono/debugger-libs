@@ -42,8 +42,6 @@ namespace Mono.Debugging.Soft
 		public ThreadMirror Thread { get; set; }
 		public AppDomainMirror Domain { get; set; }
 
-		static ConditionalWeakTable<VirtualMachine, object> methodInvokeLocks = new ConditionalWeakTable<VirtualMachine, object> ();
-
 		public SoftEvaluationContext (SoftDebuggerSession session, StackFrame frame, DC.EvaluationOptions options): base (options)
 		{
 			Frame = frame;
@@ -194,10 +192,7 @@ namespace Mono.Debugging.Soft
 				var mc = new MethodCall (this, method, target, values, enableOutArgs);
 				//Since runtime is returning NOT_SUSPENDED error if two methods invokes are executed
 				//at same time we have to lock invoking to prevent this...
-				//We could be locking on method.VirtualMachine since that represent 1 runtime connection
-				//but I'm afraid someone else could use that lock for something totally unrelated and deadlock
-				//could happen so we use localized ConditionalWeakTable instead...
-				lock (methodInvokeLocks.GetOrCreateValue (method.VirtualMachine)) {
+				lock (method.VirtualMachine) {
 					Adapter.AsyncExecute (mc, Options.EvaluationTimeout);
 				}
 				if (enableOutArgs) {
