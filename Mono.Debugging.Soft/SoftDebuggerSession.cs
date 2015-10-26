@@ -92,6 +92,7 @@ namespace Mono.Debugging.Soft
 		SoftDebuggerStartArgs startArgs;
 		List<string> userAssemblyNames;
 		ThreadInfo[] current_threads;
+		TextWriter ideSideLogWriter;
 		string remoteProcessName;
 		long currentAddress = -1;
 		IAsyncResult connection;
@@ -209,11 +210,15 @@ namespace Mono.Debugging.Soft
 				psi.RedirectStandardOutput = false;
 				psi.RedirectStandardError = false;
 			}
+			var ideSideLogFile = DebuggerLoggingService.CustomLogger.GetNewDebuggerLogFilename ();
+			if (ideSideLogFile != null) {
+				ideSideLogWriter = new StreamWriter (ideSideLogFile);
+			}
+			var runtimeSideLogFile = DebuggerLoggingService.CustomLogger.GetNewDebuggerLogFilename ();
 
-			var sdbLog = Environment.GetEnvironmentVariable ("MONODEVELOP_SDB_LOG");
-			if (!string.IsNullOrEmpty (sdbLog)) {
+			if (!string.IsNullOrEmpty (runtimeSideLogFile)) {
 				options = options ?? new LaunchOptions ();
-				options.AgentArgs = string.Format ("loglevel=10,logfile='{0}',setpgid=y", sdbLog);
+				options.AgentArgs = string.Format ("loglevel=10,logfile='{0}',setpgid=y", runtimeSideLogFile);
 			}
 			
 			foreach (var env in args.MonoRuntimeEnvironmentVariables)
@@ -226,7 +231,7 @@ namespace Mono.Debugging.Soft
 				OnDebuggerOutput (false, dsi.LogMessage + Environment.NewLine);
 			
 			var callback = HandleConnectionCallbackErrors (ar => ConnectionStarted (VirtualMachineManager.EndLaunch (ar)));
-			ConnectionStarting (VirtualMachineManager.BeginLaunch (psi, callback, options), dsi, true, 0);
+			ConnectionStarting (VirtualMachineManager.BeginLaunch (psi, callback, options, ideSideLogWriter), dsi, true, 0);
 		}
 		
 		/// <summary>Starts the debugger listening for a connection over TCP/IP</summary>
@@ -248,9 +253,14 @@ namespace Mono.Debugging.Soft
 		{
 			IPEndPoint dbgEP, conEP;
 			InitForRemoteSession (dsi, out dbgEP, out conEP);
-			
+
+			var ideSideLogFile = DebuggerLoggingService.CustomLogger.GetNewDebuggerLogFilename ();
+			if (ideSideLogFile != null) {
+				ideSideLogWriter = new StreamWriter (ideSideLogFile);
+			}
+
 			var callback = HandleConnectionCallbackErrors (ar => ConnectionStarted (VirtualMachineManager.EndListen (ar)));
-			var a = VirtualMachineManager.BeginListen (dbgEP, conEP, callback, out assignedDebugPort, out assignedConsolePort);
+			var a = VirtualMachineManager.BeginListen (dbgEP, conEP, callback, out assignedDebugPort, out assignedConsolePort, ideSideLogWriter);
 			ConnectionStarting (a, dsi, true, 0);
 		}
 
@@ -277,7 +287,12 @@ namespace Mono.Debugging.Soft
 			
 			IPEndPoint dbgEP, conEP;
 			InitForRemoteSession (dsi, out dbgEP, out conEP);
-			
+
+			var ideSideLogFile = DebuggerLoggingService.CustomLogger.GetNewDebuggerLogFilename ();
+			if (ideSideLogFile != null) {
+				ideSideLogWriter = new StreamWriter (ideSideLogFile);
+			}
+
 			AsyncCallback callback = null;
 			int attemptNumber = 0;
 			callback = delegate (IAsyncResult ar) {
@@ -295,14 +310,14 @@ namespace Mono.Debugging.Soft
 					if (timeBetweenAttempts > 0)
 						Thread.Sleep (timeBetweenAttempts);
 					
-					ConnectionStarting (VirtualMachineManager.BeginConnect (dbgEP, conEP, callback), dsi, false, attemptNumber);
+					ConnectionStarting (VirtualMachineManager.BeginConnect (dbgEP, conEP, callback, ideSideLogWriter), dsi, false, attemptNumber);
 					
 				} catch (Exception ex2) {
 					OnConnectionError (ex2);
 				}
 			};
 			
-			ConnectionStarting (VirtualMachineManager.BeginConnect (dbgEP, conEP, callback), dsi, false, 0);
+			ConnectionStarting (VirtualMachineManager.BeginConnect (dbgEP, conEP, callback, ideSideLogWriter), dsi, false, 0);
 		}
 		
 		void InitForRemoteSession (SoftDebuggerStartInfo dsi, out IPEndPoint dbgEP, out IPEndPoint conEP)
@@ -569,7 +584,7 @@ namespace Mono.Debugging.Soft
 
 			symbolFilesTimestamps.Clear ();
 
-			mdbsSourceFileInfos.Clear();
+			mdbsSourceFileInfos.Clear ();
 
 			if (!HasExited) {
 				if (vm != null) {
@@ -583,8 +598,11 @@ namespace Mono.Debugging.Soft
 					});
 				}
 			}
-			
+
 			Adaptor.Dispose ();
+
+			if (ideSideLogWriter != null)
+				ideSideLogWriter.Dispose ();
 		}
 
 		protected override void OnAttachToProcess (long processId)
