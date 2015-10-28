@@ -135,7 +135,7 @@ namespace Mono.Debugger.Soft
 
 		public static VirtualMachine Launch (string[] args, TextWriter logWriter = null)
 		{
-			return Launch (args, null);
+			return Launch (args, null, logWriter);
 		}
 
 		public static VirtualMachine Launch (string[] args, LaunchOptions options, TextWriter logWriter = null)
