@@ -222,8 +222,12 @@ namespace Mono.Debugging.Client
 		public Array ToArray ()
 		{
 			var array = source.ToArray ();
-			for (int i = 0; i < array.Length; i++)
-				((IRawObject)array.GetValue (i)).Connect (session, options);
+			for (int i = 0; i < array.Length; i++) {
+				var val = array.GetValue (i) as IRawObject;
+				if (val != null) {
+					val.Connect (session, options);
+				}
+			}
 			return array;
 		}
 
