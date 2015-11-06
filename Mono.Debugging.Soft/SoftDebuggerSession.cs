@@ -2518,12 +2518,6 @@ namespace Mono.Debugging.Soft
 		
 		bool CheckBetterMatch (TypeMirror type, string file, int line, int column, Location found)
 		{
-			// target.ColumnNumber == 0 is workaround Android Linker bug to fix Bug 32383
-			// It's harmless since minimal valid/logic target.ColumnNumber is 1
-			if (found.ColumnNumber < 1)
-				return false;
-				
-
 			if (type.Assembly == null)
 				return false;
 			
@@ -2577,7 +2571,7 @@ namespace Mono.Debugging.Soft
 
 					if ((entry.Row >= line && (entry.Row - line) < foundDelta))
 						return true;
-					if (entry.Row == line && column >= entry.Column && entry.Column > found.ColumnNumber)
+					if (entry.Row == line && column >= entry.Column && entry.Column > found.ColumnNumber && found.ColumnNumber > 0)
 						return true;
 				}
 			}
@@ -3115,3 +3109,4 @@ namespace Mono.Debugging.Soft
 		}
 	}
 }
+
