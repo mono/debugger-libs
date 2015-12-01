@@ -661,8 +661,9 @@ namespace Mono.Debugging.Soft
 
 			// Note: mcs uses the form <${NAME}>c__${KIND}${NUMBER} where the leading '<' seems to have been dropped in 3.4.x
 			//       csc uses the form <${NAME}>d__${NUMBER}
+			//		 roslyn uses the form <${NAME}>d
 
-			return tm.Name.IndexOf (">c__", StringComparison.Ordinal) > 0 || tm.Name.IndexOf (">d__", StringComparison.Ordinal) > 0;
+			return tm.Name.IndexOf (">c__", StringComparison.Ordinal) > 0 || tm.Name.IndexOf (">d", StringComparison.Ordinal) > 0;
 		}
 
 		internal static string GetNameFromGeneratedType (TypeMirror tm)
