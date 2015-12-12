@@ -591,6 +591,40 @@ namespace Mono.Debugging.Soft
 			return nss;
 		}
 
+		public override ValueReference GetIndexerReference (EvaluationContext ctx, object target, object type, object [] indices)
+		{
+			var values = new Value [indices.Length];
+			var types = new TypeMirror [indices.Length];
+			for (int n = 0; n < indices.Length; n++) {
+				types[n] = ToTypeMirror (ctx, GetValueType (ctx, indices[n]));
+				values[n] = (Value) indices[n];
+			}
+
+			var candidates = new List<MethodMirror> ();
+			var props = new List<PropertyInfoMirror> ();
+			var mirType = type as TypeMirror;
+			while (mirType != null) {
+				foreach (PropertyInfoMirror prop in mirType.GetProperties ()) {
+					MethodMirror met = prop.GetGetMethod (true);
+					if (met != null &&
+						!met.IsStatic &&
+						met.GetParameters ().Length > 0 &&
+						!(met.IsPrivate && met.IsVirtual)) {//Don't use explicit interface implementation
+						candidates.Add (met);
+						props.Add (prop);
+					}
+				}
+				mirType = mirType.BaseType;
+			}
+
+			var idx = OverloadResolve ((SoftEvaluationContext) ctx, mirType, null, null, null, types, candidates, true);
+			int i = candidates.IndexOf (idx);
+
+			var getter = props[i].GetGetMethod (true);
+
+			return getter != null ? new PropertyValueReference (ctx, props[i], target, null, getter, values) : null;
+		}
+
 		public override ValueReference GetIndexerReference (EvaluationContext ctx, object target, object[] indices)
 		{
 			object valueType = GetValueType (ctx, target);
@@ -604,35 +638,8 @@ namespace Mono.Debugging.Soft
 
 				targetType = (TypeMirror) ForceLoadType (ctx, tt.FullName);
 			}
-			
-			var values = new Value [indices.Length];
-			var types = new TypeMirror [indices.Length];
-			for (int n = 0; n < indices.Length; n++) {
-				types[n] = ToTypeMirror (ctx, GetValueType (ctx, indices[n]));
-				values[n] = (Value) indices[n];
-			}
-			
-			var candidates = new List<MethodMirror> ();
-			var props = new List<PropertyInfoMirror> ();
-			
-			var type = targetType;
-			while (type != null) {
-				foreach (PropertyInfoMirror prop in type.GetProperties ()) {
-					MethodMirror met = prop.GetGetMethod (true);
-					if (met != null && !met.IsStatic && met.GetParameters ().Length > 0) {
-						candidates.Add (met);
-						props.Add (prop);
-					}
-				}
-				type = type.BaseType;
-			}
-			
-			var idx = OverloadResolve ((SoftEvaluationContext) ctx, targetType, null, null, null, types, candidates, true);
-			int i = candidates.IndexOf (idx);
 
-			var getter = props[i].GetGetMethod (true);
-			
-			return getter != null ? new PropertyValueReference (ctx, props[i], target, null, getter, values) : null;
+			return GetIndexerReference (ctx, target, targetType, indices);
 		}
 		
 		static bool InGeneratedClosureOrIteratorType (EvaluationContext ctx)
@@ -1004,6 +1011,7 @@ namespace Mono.Debugging.Soft
 				realType = realType.BaseType;
 			}
 
+			bool hasExplicitInterface = false;
 			while (type != null) {
 				var fieldsBatch = new FieldReferenceBatch (co);
 				foreach (var field in type.GetFields ()) {
@@ -1037,13 +1045,19 @@ namespace Mono.Debugging.Soft
 
 					if (!getter.IsStatic && ((bindingFlags & BindingFlags.Instance) == 0))
 						continue;
-
+					
 					if (getter.IsPublic && ((bindingFlags & BindingFlags.Public) == 0))
 						continue;
 
+					//This is only possible in case of explicitly implemented interface property, which we handle later
+					if (getter.IsVirtual && getter.IsPrivate) {
+						hasExplicitInterface = true;
+						continue;
+					}
+
 					if (!getter.IsPublic && ((bindingFlags & BindingFlags.NonPublic) == 0))
 						continue;
-					
+
 					// If a property is overriden, return the override instead of the base property
 					PropertyInfoMirror overridden;
 					if (getter.IsVirtual && subProps.TryGetValue (prop.Name, out overridden)) {
@@ -1061,6 +1075,29 @@ namespace Mono.Debugging.Soft
 					break;
 
 				type = type.BaseType;
+			}
+
+			type = t as TypeMirror;
+			if (type == null ||
+				!hasExplicitInterface ||
+				(bindingFlags & BindingFlags.Instance) == 0 ||
+				(bindingFlags & BindingFlags.Public) == 0) {
+				yield break;
+			}
+
+			var interfaces = type.GetInterfaces ();
+			foreach (var intr in interfaces) {
+				var map = type.GetInterfaceMap (intr);
+				foreach (PropertyInfoMirror prop in intr.GetProperties (bindingFlags)) {
+					var getter = prop.GetGetMethod (true);
+					if (getter == null || getter.GetParameters ().Length != 0)
+						continue;
+					var implementationGetter = map.TargetMethods [Array.IndexOf (map.InterfaceMethods, getter)];
+					//We are only intersted into private(explicit) implementations because public ones are already handled before
+					if (implementationGetter.IsPublic)
+						continue;
+					yield return new PropertyValueReference (ctx, prop, co, type, getter, null);
+				}
 			}
 		}
 
