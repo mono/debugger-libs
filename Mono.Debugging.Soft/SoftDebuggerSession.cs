@@ -875,26 +875,22 @@ namespace Mono.Debugging.Soft
 				var fb = (FunctionBreakpoint) breakEvent;
 				bool resolved = false;
 
-				foreach (var location in FindFunctionLocations (fb.FunctionName, fb.ParamTypes)) {
-					string paramList = string.Empty;
-
-					if (fb.ParamTypes != null)
-						paramList = "(" + string.Join (", ", fb.ParamTypes) + ")";
-
-					OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint for '{0}{1}' to {2}:{3} [0x{4:x5}].\n",
-					                                        fb.FunctionName, paramList, location.SourceFile, location.LineNumber, location.ILOffset));
-
-					bi.FileName = location.SourceFile;
-					bi.Location = location;
-
-					InsertBreakpoint (fb, bi);
-					bi.SetStatus (BreakEventStatus.Bound, null);
-					resolved = true;
+				foreach (var method in FindMethodsByName (fb.FunctionName, fb.ParamTypes)) {
+					if (ResolveFunctionBreakpoint (bi, fb, method)) {
+						resolved = true;
+					}
 				}
 
 				if (!resolved) {
 					// FIXME: handle types like GenericType<>, GenericType<SomeOtherType>, and GenericType<...>+NestedGenricType<...>
-					int dot = fb.FunctionName.LastIndexOf ('.');
+					var bracket = fb.FunctionName.IndexOf ('(');
+					int dot;
+					if (bracket != -1) {
+						//Handle stuff like SomeNamespace.SomeType.Method(SomeOtherNamespace.SomeOtherType)
+						dot = fb.FunctionName.LastIndexOf ('.', bracket);
+					} else {
+						dot = fb.FunctionName.LastIndexOf ('.');
+					}
 					if (dot != -1)
 						bi.TypeName = fb.FunctionName.Substring (0, dot);
 
@@ -1116,15 +1112,20 @@ namespace Mono.Debugging.Soft
 
 		void InsertBreakpoint (Breakpoint bp, BreakInfo bi)
 		{
+			InsertBreakpoint (bp, bi, bi.Location.Method, bi.Location.ILOffset);
+		}
+
+		void InsertBreakpoint (Breakpoint bp, BreakInfo bi, MethodMirror method, int ilOffset)
+		{
 			EventRequest request;
-			
-			request = vm.SetBreakpoint (bi.Location.Method, bi.Location.ILOffset);
+
+			request = vm.SetBreakpoint (method, ilOffset);
 			request.Enabled = bp.Enabled;
 			bi.Requests.Add (request);
-			
-			breakpoints[request] = bi;
-			
-			if (bi.Location.LineNumber != bp.Line || bi.Location.ColumnNumber != bp.Column)
+
+			breakpoints [request] = bi;
+
+			if (bi.Location != null && (bi.Location.LineNumber != bp.Line || bi.Location.ColumnNumber != bp.Column))
 				bi.AdjustBreakpointLocation (bi.Location.LineNumber, bi.Location.ColumnNumber);
 		}
 		
@@ -1273,20 +1274,33 @@ namespace Mono.Debugging.Soft
 		{
 			return vm.Version.AtLeast (2, 12) && method.IsGenericMethod;
 		}
-		
-		IEnumerable<Location> FindFunctionLocations (string function, string[] paramTypes)
+
+		//If paramType == null all overloads are returned
+		IEnumerable<MethodMirror> FindMethodsByName (string function, string[] paramTypes)
 		{
 			if (!started)
 				yield break;
 			
 			if (vm.Version.AtLeast (2, 9)) {
-				int dot = function.LastIndexOf ('.');
+				var bracket = function.IndexOf ('(');
+				int dot;
+				if (bracket != -1) {
+					//Handle stuff like SomeNamespace.SomeType.Method(SomeOtherNamespace.SomeOtherType)
+					dot = function.LastIndexOf ('.', bracket);
+				} else {
+					dot = function.LastIndexOf ('.');
+				}
 				if (dot == -1 || dot + 1 == function.Length)
 					yield break;
 
 				// FIXME: handle types like GenericType<>, GenericType<SomeOtherType>, and GenericType<...>+NestedGenricType<...>
-				string methodName = function.Substring (dot + 1);
+				string methodName;
 				string typeName = function.Substring (0, dot);
+				if (bracket == -1) {
+					methodName = function.Substring (dot + 1);
+				} else {
+					methodName = function.Substring (dot + 1, bracket - (dot + 1));
+				}
 
 				// FIXME: need a way of querying all types so we can substring match typeName (e.g. user may have typed "Console" instead of "System.Console")
 				foreach (var type in vm.GetTypes (typeName, false)) {
@@ -1296,9 +1310,7 @@ namespace Mono.Debugging.Soft
 						if (!CheckMethodParams (method, paramTypes))
 							continue;
 						
-						Location location = GetLocFromMethod (method);
-						if (location != null)
-							yield return location;
+						yield return method;
 					}
 				}
 			}
@@ -2381,30 +2393,10 @@ namespace Mono.Debugging.Soft
 			}
 			foreach (var bi in tempPendingBes) {
 				if (CheckTypeName (type, bi.TypeName)) {
-					var bp = (FunctionBreakpoint) bi.BreakEvent;
-					string methodName;
-
-					if (!string.IsNullOrEmpty (bi.TypeName))
-						methodName = bp.FunctionName.Substring (bi.TypeName.Length + 1);
-					else
-						methodName = bp.FunctionName;
-					
-					foreach (var method in type.GetMethodsByNameFlags (methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static, false)) {
-						if (!CheckMethodParams (method, bp.ParamTypes))
-							continue;
-						
-						loc = GetLocFromMethod (method);
-						if (loc != null) {
-							string paramList = "(" + string.Join (", ", bp.ParamTypes ?? GetParamTypes (method)) + ")";
-							OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint for '{0}{1}' to {2}:{3} [0x{4:x5}].\n",
-							                                        bp.FunctionName, paramList, loc.SourceFile, loc.LineNumber, loc.ILOffset));
-
-							ResolvePendingBreakpoint (bi, loc);
-							
-							// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
-							if (bp.ParamTypes != null && !type.IsGenericType && !IsGenericMethod (method))
-								resolved.Add (bi);
-						}
+					var bp = (FunctionBreakpoint)bi.BreakEvent;
+					foreach (var method in FindMethodsByName (bp.FunctionName, bp.ParamTypes)) {
+						if(ResolveFunctionBreakpoint (bi, bp, method))
+							resolved.Add (bi);
 					}
 				}
 			}
@@ -2471,7 +2463,26 @@ namespace Mono.Debugging.Soft
 					pending_bes.Remove (be);
 				}
 		}
-		
+
+		bool ResolveFunctionBreakpoint (BreakInfo bi, FunctionBreakpoint bp, MethodMirror method)
+		{
+			var loc = method.Locations.FirstOrDefault ();
+			string paramList = "(" + string.Join (", ", bp.ParamTypes ?? GetParamTypes (method)) + ")";
+			if (loc != null) {
+				bi.Location = loc;
+				InsertBreakpoint ((Breakpoint)bi.BreakEvent, bi);
+				OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint for '{0}{1}' to {2}:{3} [0x{4:x5}].\n",
+														bp.FunctionName, paramList, loc.SourceFile, loc.LineNumber, loc.ILOffset));
+			} else {
+				InsertBreakpoint ((Breakpoint)bi.BreakEvent, bi, method, 0);
+				OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint for '{0}{1}' to [0x0](no debug symbols).\n",
+														bp.FunctionName, paramList));
+			}
+			bi.SetStatus (BreakEventStatus.Bound, null);
+			// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
+			return bp.ParamTypes != null && !method.DeclaringType.IsGenericType && !IsGenericMethod (method);
+		}
+
 		internal static string NormalizePath (string path)
 		{
 			if (!IsWindows && path.StartsWith ("\\", StringComparison.Ordinal))
@@ -2552,12 +2563,6 @@ namespace Mono.Debugging.Soft
 			var rp2 = ResolveSymbolicLink (p2);
 
 			return PathComparer.Compare (rp1, rp2) == 0;
-		}
-		
-		static Location GetLocFromMethod (MethodMirror method)
-		{
-			// Return the location of the method.
-			return method.Locations.Count > 0 ? method.Locations[0] : null;
 		}
 
 		bool LoadMdbFile(string mdbFileName)
