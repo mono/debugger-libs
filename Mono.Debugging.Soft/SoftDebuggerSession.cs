@@ -1046,8 +1046,6 @@ namespace Mono.Debugging.Soft
 
 		private Location FindLocationByILOffset (InstructionBreakpoint bp, string filename, out bool isGeneric, out bool insideTypeRange)
 		{
-			var locations = new List<Location> ();
-
 			var typesInFile = new List<TypeMirror> ();
 
 			AddFileToSourceMapping (filename);
@@ -2471,11 +2469,11 @@ namespace Mono.Debugging.Soft
 			string paramList = "(" + string.Join (", ", bp.ParamTypes ?? GetParamTypes (method)) + ")";
 			if (loc != null) {
 				bi.Location = loc;
-				InsertBreakpoint ((Breakpoint)bi.BreakEvent, bi);
+				InsertBreakpoint (bp, bi);
 				OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint for '{0}{1}' to {2}:{3} [0x{4:x5}].\n",
 														bp.FunctionName, paramList, loc.SourceFile, loc.LineNumber, loc.ILOffset));
 			} else {
-				InsertBreakpoint ((Breakpoint)bi.BreakEvent, bi, method, 0);
+				InsertBreakpoint (bp, bi, method, 0);
 				OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint for '{0}{1}' to [0x0](no debug symbols).\n",
 														bp.FunctionName, paramList));
 			}
