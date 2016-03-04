@@ -1141,9 +1141,11 @@ namespace Mono.Debugging.Soft
 			if (vm.Version.AtLeast (2, 25))
 				request.IncludeSubclasses = cp.IncludeSubclasses; // Note: need to set IncludeSubclasses *before* enabling
 			request.Enabled = cp.Enabled;
+			if (assemblyFilters != null && assemblyFilters.Count > 0)
+				request.AssemblyFilter = assemblyFilters;
 			bi.Requests.Add (request);
 
-			breakpoints[request] = bi;
+			breakpoints [request] = bi;
 		}
 		
 		static bool CheckTypeName (string typeName, string name)
@@ -1899,6 +1901,7 @@ namespace Mono.Debugging.Soft
 				int index = assemblyFilters.IndexOf (asm);
 				if (index != -1)
 					assemblyFilters.RemoveAt (index);
+				UpdateExceptionsAssemblyFilters ();
 			}
 			// Mark affected breakpoints as pending again
 			var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => x.Value != null && x.Value.Location != null &&
@@ -1937,6 +1940,20 @@ namespace Mono.Debugging.Soft
 				pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, asm.Location));
 			}
 			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", asm.Location));
+		}
+
+		void UpdateExceptionsAssemblyFilters ()
+		{
+			foreach(var b in breakpoints) {
+				if(b.Key is ExceptionEventRequest) {
+					b.Key.Disable ();
+					if (assemblyFilters != null && assemblyFilters.Count > 0)
+						b.Key.AssemblyFilter = assemblyFilters;
+					else
+						b.Key.AssemblyFilter = null;
+					b.Key.Enable ();
+				}
+			}
 		}
 
 		void HandleVMStartEvents (VMStartEvent[] events)
@@ -2903,6 +2920,7 @@ namespace Mono.Debugging.Soft
 
 			if (found) {
 				assemblyFilters.Add (asm);
+				UpdateExceptionsAssemblyFilters ();
 				return true;
 			}
 
