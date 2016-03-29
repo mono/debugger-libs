@@ -677,7 +677,7 @@ namespace Mono.Debugging.Evaluation
 
 		public virtual ValueReference GetIndexerReference (EvaluationContext ctx, object target, object type, object[] indices)
 		{
-			return null;
+			return GetIndexerReference (ctx, target, indices);
 		}
 
 		public ValueReference GetLocalVariable (EvaluationContext ctx, string name)
