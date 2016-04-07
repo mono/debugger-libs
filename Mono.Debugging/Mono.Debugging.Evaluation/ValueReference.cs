@@ -292,7 +292,7 @@ namespace Mono.Debugging.Evaluation
 			}
 			
 			if (Context.Adapter.IsClassInstance (Context, obj))
-				return Context.Adapter.GetMember (GetChildrenContext (options), this, obj, name);
+				return Context.Adapter.GetMember (GetChildrenContext (options), this, Type, obj, name);
 
 			return null;
 		}

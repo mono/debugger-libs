@@ -189,10 +189,12 @@ namespace Mono.Debugging.Evaluation
 					int.TryParse (match.Groups ["Column"].ToString (), out column);
 				} else {
 					match = regexLine.Match (text);
-					text = match.Groups ["MethodName"].ToString ();
-					file = match.Groups ["FileName"].ToString ();
-					int.TryParse (match.Groups ["LineNumber"].ToString (), out line);
-					int.TryParse (match.Groups ["Column"].ToString (), out column);
+					if (match.Success) {
+						text = match.Groups ["MethodName"].ToString ();
+						file = match.Groups ["FileName"].ToString ();
+						int.TryParse (match.Groups ["LineNumber"].ToString (), out line);
+						int.TryParse (match.Groups ["Column"].ToString (), out column);
+					}
 				}
 
 				var fileVal = ObjectValue.CreatePrimitive (null, new ObjectPath ("File"), "", new EvaluationResult (file), ObjectValueFlags.None);
