@@ -96,6 +96,7 @@ namespace Mono.Debugging.Soft
 		string remoteProcessName;
 		long currentAddress = -1;
 		IAsyncResult connection;
+		int currentStackDepth;
 		ProcessInfo[] procs;
 		Thread eventHandler;
 		VirtualMachine vm;
@@ -834,6 +835,7 @@ namespace Mono.Debugging.Soft
 			try {
 				thread.SetIP (location);
 				currentAddress = location.ILOffset;
+				currentStackDepth = frames.Length;
 			} catch (ArgumentException) {
 				throw new NotSupportedException ();
 			}
@@ -1770,7 +1772,8 @@ namespace Mono.Debugging.Soft
 						if (breakpoints.TryGetValue (be.Request, out binfo)) {
 							if (currentStepRequest != null &&
 							    binfo.Location.ILOffset == currentAddress && 
-							    e.Thread.Id == currentStepRequest.Thread.Id)
+							    e.Thread.Id == currentStepRequest.Thread.Id &&
+								currentStackDepth == e.Thread.GetFrames ().Length)
 								redoCurrentStep = true;
 							
 							breakEvent = binfo.BreakEvent;
@@ -1822,6 +1825,7 @@ namespace Mono.Debugging.Soft
 				if (backtrace.FrameCount > 0) {
 					var frame = backtrace.GetFrame (0) as SoftDebuggerStackFrame;
 					currentAddress = frame != null ? frame.Address : -1;
+					currentStackDepth = backtrace.FrameCount;
 
 					if (frame != null && steppedInto) {
 						if (ContinueOnStepInto (frame.StackFrame.Method)) {
