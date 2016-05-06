@@ -1771,6 +1771,7 @@ namespace Mono.Debugging.Soft
 						
 						if (breakpoints.TryGetValue (be.Request, out binfo)) {
 							if (currentStepRequest != null &&
+							    currentStepRequest.Depth != StepDepth.Out &&
 							    binfo.Location.ILOffset == currentAddress && 
 							    e.Thread.Id == currentStepRequest.Thread.Id &&
 								currentStackDepth == e.Thread.GetFrames ().Length)
