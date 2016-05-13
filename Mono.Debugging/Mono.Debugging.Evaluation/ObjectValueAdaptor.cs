@@ -91,6 +91,8 @@ namespace Mono.Debugging.Evaluation
 				return CreateObjectValueImpl (ctx, source, path, obj, flags);
 			} catch (EvaluatorAbortedException ex) {
 				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
+			} catch (EvaluatorExceptionThrownException ex) {
+				return ObjectValue.CreateEvaluationException (ctx, source, path, ex);
 			} catch (EvaluatorException ex) {
 				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
 			} catch (Exception ex) {
@@ -1111,6 +1113,8 @@ namespace Mono.Debugging.Evaluation
 						return new EvaluationResult ("{" + CallToString (ctx, obj) + "}");
 					} catch (TimeOutException) {
 						// ToString() timed out, fall back to default behavior.
+					} catch (EvaluatorExceptionThrownException e) {
+						// ToString() call thrown exception, fall back to default behavior.
 					}
 				}
 				
