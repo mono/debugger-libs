@@ -351,12 +351,6 @@ namespace Mono.Debugging.Soft
 
 				MethodMirror method;
 
-				if (toType.CSharpName == "string") {
-					method = OverloadResolve (cx, fromType, "ToString", null, new TypeMirror[0], true, false, false);
-					if (method != null)
-						return cx.RuntimeInvoke (method, val, new Value[0]);
-				}
-
 				if (fromType.IsGenericType && fromType.FullName.StartsWith ("System.Nullable`1", StringComparison.Ordinal)) {
 					method = OverloadResolve (cx, fromType, "get_Value", null, new TypeMirror[0], true, false, false);
 					if (method != null) {

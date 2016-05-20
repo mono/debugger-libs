@@ -896,8 +896,12 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitIsExpression (IsExpression isExpression)
 		{
-			// FIXME: we could probably implement this one...
-			throw NotSupported ();
+			var type = isExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
+			if (type == null)
+				throw ParseError ("Invalid type in 'is' expression.");
+
+			var val = isExpression.Expression.AcceptVisitor<ValueReference> (this);
+			return LiteralValueReference.CreateObjectLiteral (ctx, expression, ctx.Adapter.TryCast (ctx, val.Value, type.Type) != null);
 		}
 
 		public ValueReference VisitLambdaExpression (LambdaExpression lambdaExpression)
