@@ -2206,6 +2206,7 @@ namespace Mono.Debugging.Soft
 
 				EvaluationOptions ops = Options.EvaluationOptions.Clone ();
 				ops.AllowTargetInvoke = true;
+				ops.EllipsizedLength = 1000;
 
 				var ctx = new SoftEvaluationContext (this, frames[0], ops);
 
