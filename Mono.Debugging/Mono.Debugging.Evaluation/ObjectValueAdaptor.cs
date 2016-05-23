@@ -350,6 +350,8 @@ namespace Mono.Debugging.Evaluation
 
 			if (!includeObjectClass && bt != null && (tn == "System.Object" || tn == "System.ValueType"))
 				return null;
+			if (tn == "System.Enum")
+				return GetMembers (ctx, type, null, BindingFlags.GetField | BindingFlags.Instance | BindingFlags.Public).FirstOrDefault ()?.Type;
 
 			return bt;
 		}
