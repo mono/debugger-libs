@@ -183,6 +183,9 @@ namespace Mono.Debugging.Evaluation
 
 				if (text.Length == 0)
 					continue;
+				//Ignore entries like "--- End of stack trace from previous location where exception was thrown ---"
+				if (text.StartsWith ("---", StringComparison.Ordinal))
+					continue;
 
 				var match = regex.Match (text);
 				if (match.Success) {
