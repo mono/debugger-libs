@@ -280,7 +280,9 @@ namespace Mono.Debugging.Client
 				throw new ArgumentNullException ("filename");
 
 			var list = new List<Breakpoint> ();
-			
+			if (string.IsNullOrEmpty (filename))
+				return list.AsReadOnly ();
+
 			try {
 				filename = Path.GetFullPath (filename);
 			} catch {
