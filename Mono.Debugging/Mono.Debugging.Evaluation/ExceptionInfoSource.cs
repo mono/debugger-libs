@@ -124,14 +124,12 @@ namespace Mono.Debugging.Evaluation
 				if (inner != null && !ctx.Adapter.IsNull (ctx, inner.Value)) {
 					var obj = inner.GetValue (ctx);
 					var objType = ctx.Adapter.GetValueType (ctx, obj);
-					var enumerator = ctx.Adapter.RuntimeInvoke (ctx, objType, obj, "GetEnumerator", new object [0], new object [0]);
-					var enumeratorType = ctx.Adapter.GetImplementedInterfaces (ctx, ctx.Adapter.GetValueType (ctx, enumerator)).First (f => ctx.Adapter.GetTypeName (ctx, f) == "System.Collections.IEnumerator");
-					var childrenList = new List<ObjectValue> ();
-					while ((bool)ctx.Adapter.TargetObjectToObject (ctx, ctx.Adapter.RuntimeInvoke (ctx, enumeratorType, enumerator, "MoveNext", new object [0], new object [0]))) {
-						var valCurrent = ctx.Adapter.GetMember (ctx, null, enumeratorType, enumerator, "Current");
-						childrenList.Add (new ExceptionInfoSource (ctx, valCurrent).CreateObjectValue (withTimeout, ctx.Options));
+					var count = (int)ctx.Adapter.GetMember(ctx, null, obj, "Count").ObjectValue;
+					var childrenList = new List<ObjectValue>();
+					for (int i = 0; i < count; i++) {
+						childrenList.Add (new ExceptionInfoSource(ctx, ctx.Adapter.GetIndexerReference(ctx, obj, objType, new object[] { ctx.Adapter.CreateValue(ctx, i) })).CreateObjectValue (withTimeout, ctx.Options));
 					}
-					return ObjectValue.CreateObject (null, new ObjectPath ("InnerExceptions"), "", "", ObjectValueFlags.None, childrenList.ToArray ());
+					return ObjectValue.CreateObject (null, new ObjectPath("InnerExceptions"), "", "", ObjectValueFlags.None, childrenList.ToArray ());
 				}
 
 				return ObjectValue.CreateUnknown ("InnerExceptions");
