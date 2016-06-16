@@ -33,11 +33,12 @@ namespace Mono.Debugging.Client
 	/// Represents an object in the process being debugged
 	/// </summary>
 	[Serializable]
-	public class RawValue: IRawObject
+	public class RawValue : IRawObject
 	{
 		IRawValue source;
 		EvaluationOptions options;
-		
+		DebuggerSession session;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Mono.Debugging.Client.RawValue"/> class.
 		/// </summary>
@@ -48,10 +49,11 @@ namespace Mono.Debugging.Client
 		{
 			this.source = source;
 		}
-		
+
 		void IRawObject.Connect (DebuggerSession session, EvaluationOptions options)
 		{
 			this.options = options;
+			this.session = session;
 			source = session.WrapDebuggerObject (source);
 		}
 
@@ -63,7 +65,7 @@ namespace Mono.Debugging.Client
 		/// Full name of the type of the object
 		/// </summary>
 		public string TypeName { get; set; }
-		
+
 		/// <summary>
 		/// Invokes a method on the object
 		/// </summary>
@@ -76,24 +78,30 @@ namespace Mono.Debugging.Client
 		/// <param name='parameters'>
 		/// The parameters (primitive type values, RawValue instances or RawValueArray instances)
 		/// </param>
-		public object CallMethod (string methodName, params object[] parameters)
+		public object CallMethod (string methodName, params object [] parameters)
 		{
 			object res = source.CallMethod (methodName, parameters, options);
 			RawValue val = res as RawValue;
 			if (val != null)
 				val.options = options;
+			IRawObject raw = res as IRawObject;
+			if (raw != null)
+				raw.Connect (session, options);
 			return res;
 		}
 
-		public object CallMethod (string methodName, out object[] outArgs, params object[] parameters)
+		public object CallMethod (string methodName, out object [] outArgs, params object [] parameters)
 		{
 			object res = source.CallMethod (methodName, parameters, out outArgs, options);
 			RawValue val = res as RawValue;
 			if (val != null)
 				val.options = options;
+			IRawObject raw = res as IRawObject;
+			if (raw != null)
+				raw.Connect (session, options);
 			return res;
 		}
-		
+
 		/// <summary>
 		/// Gets the value of a field or property
 		/// </summary>
@@ -109,9 +117,12 @@ namespace Mono.Debugging.Client
 			RawValue val = res as RawValue;
 			if (val != null)
 				val.options = options;
+			IRawObject raw = res as IRawObject;
+			if (raw != null)
+				raw.Connect (session, options);
 			return res;
 		}
-		
+
 		/// <summary>
 		/// Sets the value of a field or property
 		/// </summary>
@@ -126,16 +137,18 @@ namespace Mono.Debugging.Client
 			source.SetMemberValue (name, value, options);
 		}
 	}
-	
+
 	/// <summary>
 	/// Represents an array of objects in the process being debugged
 	/// </summary>
 	[Serializable]
-	public class RawValueArray: IRawObject
+	public class RawValueArray : IRawObject
 	{
 		IRawValueArray source;
-		int[] dimensions;
-		
+		EvaluationOptions options;
+		DebuggerSession session;
+		int [] dimensions;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Mono.Debugging.Client.RawValueArray"/> class.
 		/// </summary>
@@ -146,9 +159,11 @@ namespace Mono.Debugging.Client
 		{
 			this.source = source;
 		}
-		
+
 		void IRawObject.Connect (DebuggerSession session, EvaluationOptions options)
 		{
+			this.options = options;
+			this.session = session;
 			source = session.WrapDebuggerObject (source);
 		}
 
@@ -172,10 +187,10 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public object this [int index] {
 			get {
-				return source.GetValue (new int[] { index });
+				return source.GetValue (new int [] { index });
 			}
 			set {
-				source.SetValue (new int[] { index }, value);
+				source.SetValue (new int [] { index }, value);
 			}
 		}
 
@@ -191,9 +206,9 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public Array GetValues (int index, int count)
 		{
-			return source.GetValues (new int[] { index }, count);
+			return source.GetValues (new int [] { index }, count);
 		}
-		
+
 		/// <summary>
 		/// Returns an array with all items of the RawValueArray
 		/// </summary>
@@ -206,7 +221,14 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public Array ToArray ()
 		{
-			return source.ToArray ();
+			var array = source.ToArray ();
+			for (int i = 0; i < array.Length; i++) {
+				var val = array.GetValue (i) as IRawObject;
+				if (val != null) {
+					val.Connect (session, options);
+				}
+			}
+			return array;
 		}
 
 		/// <summary>
@@ -216,19 +238,19 @@ namespace Mono.Debugging.Client
 			get {
 				if (dimensions == null)
 					dimensions = source.Dimensions;
-				return dimensions[0];
+				return dimensions [0];
 			}
 		}
 	}
-	
+
 	/// <summary>
 	/// Represents a string object in the process being debugged
 	/// </summary>
 	[Serializable]
-	public class RawValueString: IRawObject
+	public class RawValueString : IRawObject
 	{
 		IRawValueString source;
-		
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Mono.Debugging.Client.RawValueString"/> class.
 		/// </summary>
@@ -239,7 +261,7 @@ namespace Mono.Debugging.Client
 		{
 			this.source = source;
 		}
-		
+
 		void IRawObject.Connect (DebuggerSession session, EvaluationOptions options)
 		{
 			source = session.WrapDebuggerObject (source);
@@ -255,7 +277,7 @@ namespace Mono.Debugging.Client
 		public int Length {
 			get { return source.Length; }
 		}
-		
+
 		/// <summary>
 		/// Gets a substring of the string
 		/// </summary>
@@ -269,7 +291,7 @@ namespace Mono.Debugging.Client
 		{
 			return source.Substring (index, length);
 		}
-		
+
 		/// <summary>
 		/// Gets the value.
 		/// </summary>

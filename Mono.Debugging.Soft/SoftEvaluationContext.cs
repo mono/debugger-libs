@@ -28,6 +28,7 @@ using System;
 using Mono.Debugging.Evaluation;
 using Mono.Debugger.Soft;
 using DC = Mono.Debugging.Client;
+using System.Runtime.CompilerServices;
 
 namespace Mono.Debugging.Soft
 {
@@ -40,7 +41,7 @@ namespace Mono.Debugging.Soft
 
 		public ThreadMirror Thread { get; set; }
 		public AppDomainMirror Domain { get; set; }
-		
+
 		public SoftEvaluationContext (SoftDebuggerSession session, StackFrame frame, DC.EvaluationOptions options): base (options)
 		{
 			Frame = frame;
@@ -180,23 +181,23 @@ namespace Mono.Debugging.Soft
 			}
 
 			try {
-				//If method is virtual we can't optimize(execute IL) because it's maybe
-				//overriden... call runtime to invoke overriden version...
-				if (method.IsVirtual)
-					throw new NotSupportedException ();
 				return method.Evaluate (target is TypeMirror ? null : (Value) target, values);
 			} catch (NotSupportedException) {
 				AssertTargetInvokeAllowed ();
 
 				var mc = new MethodCall (this, method, target, values, enableOutArgs);
-				Adapter.AsyncExecute (mc, Options.EvaluationTimeout);
+				//Since runtime is returning NOT_SUSPENDED error if two methods invokes are executed
+				//at same time we have to lock invoking to prevent this...
+				lock (method.VirtualMachine) {
+					Adapter.AsyncExecute (mc, Options.EvaluationTimeout);
+				}
 				if (enableOutArgs) {
 					outArgs = mc.OutArgs;
 				}
 				return mc.ReturnValue;
 			}
 		}
-		
+
 		void UpdateFrame ()
 		{
 			stackVersion = session.StackVersion;

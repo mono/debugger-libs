@@ -171,7 +171,7 @@ namespace Mono.Debugging.Soft
 		
 		public override ISoftDebuggerConnectionProvider ConnectionProvider { get { return null; } }
 	}
-	
+
 	/// <summary>
 	/// Options for the debugger to start a process directly.
 	/// </summary>
@@ -192,11 +192,16 @@ namespace Mono.Debugging.Soft
 		/// Environment variables for the Mono runtime.
 		/// </summary>
 		public Dictionary<string,string> MonoRuntimeEnvironmentVariables { get; private set; }
-		
+
 		/// <summary>
 		/// Launcher for the external console. May be null if the app does not run on an external console.
 		/// </summary>
 		public Mono.Debugger.Soft.LaunchOptions.TargetProcessLauncher ExternalConsoleLauncher { get; set; }
+
+		/// <summary>
+		/// Gets or sets the name of the mono executable file. e.g. "mono", "mono32", "mono64"...
+		/// </summary>
+		public string MonoExecutableFileName { get; set; }
 		
 		public override ISoftDebuggerConnectionProvider ConnectionProvider { get { return null; } }
 	}

@@ -1182,7 +1182,7 @@ namespace Mono.Debugging.Client
 
 				foreach (KeyValuePair<BreakEvent, BreakEventInfo> bps in breakpointsCopy) {
 					Breakpoint bp = bps.Key as Breakpoint;
-					if (bp != null && bps.Value.Status == BreakEventStatus.NotBound) {
+					if (bp != null) {
 						StringComparer comparer;
 
 						if (System.IO.Path.DirectorySeparatorChar == '\\')

@@ -350,6 +350,8 @@ namespace Mono.Debugging.Evaluation
 
 			if (!includeObjectClass && bt != null && (tn == "System.Object" || tn == "System.ValueType"))
 				return null;
+			if (tn == "System.Enum")
+				return GetMembers (ctx, type, null, BindingFlags.GetField | BindingFlags.Instance | BindingFlags.Public).FirstOrDefault ()?.Type;
 
 			return bt;
 		}
@@ -673,6 +675,11 @@ namespace Mono.Debugging.Evaluation
 		public virtual ValueReference GetIndexerReference (EvaluationContext ctx, object target, object[] indices)
 		{
 			return null;
+		}
+
+		public virtual ValueReference GetIndexerReference (EvaluationContext ctx, object target, object type, object[] indices)
+		{
+			return GetIndexerReference (ctx, target, indices);
 		}
 
 		public ValueReference GetLocalVariable (EvaluationContext ctx, string name)
