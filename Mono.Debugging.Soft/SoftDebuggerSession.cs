@@ -2739,7 +2739,7 @@ namespace Mono.Debugging.Soft
 
 					if ((entry.Row >= line && (entry.Row - line) < foundDelta))
 						return true;
-					if (entry.Row == line && column >= entry.Column && entry.Column > found.ColumnNumber)
+					if (entry.Row == line && column >= entry.Column && entry.Column > found.ColumnNumber && found.ColumnNumber > 0)
 						return true;
 				}
 			}
@@ -3280,3 +3280,4 @@ namespace Mono.Debugging.Soft
 		}
 	}
 }
+
