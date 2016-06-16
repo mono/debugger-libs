@@ -67,5 +67,10 @@ namespace Mono.Debugging.Client
 		void LogError (string message, System.Exception ex);
 		void LogAndShowException (string message, System.Exception ex);
 		void LogMessage (string messageFormat, params object[] args);
+		/// <summary>
+		/// Gets the new debugger log filename. It may return null which means disable logging.
+		/// </summary>
+		/// <returns>The new debugger log filename or null.</returns>
+		string GetNewDebuggerLogFilename ();
 	}
 }

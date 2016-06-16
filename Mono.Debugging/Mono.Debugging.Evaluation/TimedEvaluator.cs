@@ -33,18 +33,21 @@ namespace Mono.Debugging.Evaluation
 {
 	public class TimedEvaluator
 	{
-		int maxThreads = 1;
+		const int maxThreads = 1;
 
 		object runningLock = new object ();
 		Queue<Task> pendingTasks = new Queue<Task> ();
-		AutoResetEvent newTaskEvent = new AutoResetEvent (false);
-		Task currentTask;
+		ManualResetEvent newTaskEvent = new ManualResetEvent (false);
+		AutoResetEvent threadNotBusyEvent = new AutoResetEvent (false);
+		ManualResetEvent disposedEvent = new ManualResetEvent (false);
+		List<Task> executingTasks = new List<Task> ();
 		int runningThreads;
-		bool mainThreadBusy;
+		int busyThreads;
 		bool useTimeout;
 		bool disposed;
-		
-		public TimedEvaluator (): this (true)
+		static int threadNameId;
+
+		public TimedEvaluator () : this (true)
 		{
 		}
 
@@ -59,23 +62,11 @@ namespace Mono.Debugging.Evaluation
 		public bool IsEvaluating {
 			get {
 				lock (runningLock) {
-					return pendingTasks.Count > 0 || mainThreadBusy;
+					return pendingTasks.Count > 0 || busyThreads > 0;
 				}
 			}
 		}
-		
-		void OnStartEval ()
-		{
-//			Console.WriteLine ("Eval Started");
-		}
-		
-		void OnEndEval ()
-		{
-//			lock (runningLock) {
-//				Console.WriteLine ("Eval Finished ({0} pending)", pendingTasks.Count);
-//			}
-		}
-		
+
 		/// <summary>
 		/// Executes the provided evaluator. If a result is obtained before RunTimeout milliseconds,
 		/// the method ends returning True.
@@ -89,45 +80,36 @@ namespace Mono.Debugging.Evaluation
 				SafeRun (evaluator);
 				return true;
 			}
-			
+
 			Task task = new Task ();
 			task.Evaluator = evaluator;
 			task.FinishedCallback = delayedDoneCallback;
-			
+
 			lock (runningLock) {
 				if (disposed)
 					return false;
-				if (mainThreadBusy || runningThreads == 0) {
-					if (runningThreads < maxThreads) {
-						runningThreads++;
-						Thread tr = new Thread (Runner);
-						tr.Name = "Debugger evaluator";
-						tr.IsBackground = true;
-						tr.Start ();
-					} else {
-						// The main thread is busy evaluating and we can't tell
-						// how much time it will take, so we can't wait for it.
-						task.TimedOut = true;
-						pendingTasks.Enqueue (task);
-						return false;
-					}
+				if (busyThreads == runningThreads && runningThreads < maxThreads) {
+					runningThreads++;
+					var tr = new Thread (Runner);
+					tr.Name = "Debugger evaluator " + threadNameId++;
+					tr.IsBackground = true;
+					tr.Start ();
 				}
-				mainThreadBusy = true;
-				currentTask = task;
-			}
-			
-			OnStartEval ();
-			newTaskEvent.Set ();
-			task.RunningEvent.WaitOne ();
-			
-			lock (task) {
-				if (!task.RunFinishedEvent.WaitOne (RunTimeout, false)) {
+				pendingTasks.Enqueue (task);
+				if (busyThreads == runningThreads) {
 					task.TimedOut = true;
 					return false;
-				} else {
-					lock (runningLock) {
-						mainThreadBusy = false;
-						Monitor.PulseAll (runningLock);
+				}
+				newTaskEvent.Set ();
+			}
+			WaitHandle.WaitAny (new WaitHandle [] { task.RunningEvent, disposedEvent });
+			if (WaitHandle.WaitAny (new WaitHandle [] { task.RunFinishedEvent, disposedEvent }, TimeSpan.FromMilliseconds (RunTimeout), false) != 0) {
+				lock (task) {
+					if (task.Processed) {
+						return true;
+					} else {
+						task.TimedOut = true;
+						return false;
 					}
 				}
 			}
@@ -137,98 +119,80 @@ namespace Mono.Debugging.Evaluation
 		void Runner ()
 		{
 			Task threadTask = null;
-			
+
 			while (!disposed) {
 
 				if (threadTask == null) {
-					newTaskEvent.WaitOne ();
-					
 					lock (runningLock) {
 						if (disposed) {
 							runningThreads--;
 							return;
 						}
-						threadTask = currentTask;
-						currentTask = null;
+						if (pendingTasks.Count > 0) {
+							threadTask = pendingTasks.Dequeue ();
+							executingTasks.Add (threadTask);
+							busyThreads++;
+						} else if (busyThreads + 1 < runningThreads) {
+							runningThreads--;//If we got extra non-busy threads, close this one...
+							return;
+						}
+						if (threadTask == null) {
+							newTaskEvent.Reset ();
+						}
 					}
+					//No pending task, wait for it
+					if (threadTask == null) {
+						WaitHandle.WaitAny (new WaitHandle [] { newTaskEvent, disposedEvent });
+						continue;
+					}
+				} else {
+					lock (runningLock) {
+						executingTasks.Remove (threadTask);
+						busyThreads--;
+					}
+					threadNotBusyEvent.Set ();
+					threadTask = null;
+					continue;
 				}
-				
+
 				threadTask.RunningEvent.Set ();
 				SafeRun (threadTask.Evaluator);
 				threadTask.RunFinishedEvent.Set ();
-
-				Task curTask = threadTask;
-				threadTask = null;
-				
-				OnEndEval ();
-
-				lock (runningLock) {
-					if (disposed) {
-						runningThreads--;
-						return;
-					}
-				}
-				
-				lock (curTask) {
-					if (!curTask.TimedOut)
-						continue; // Done. Keep waiting for more tasks.
-					
-					SafeRun (curTask.FinishedCallback);
-				}
-
-				// The task timed out, so more threads may already have
-				// been created while this one was busy.
-				
-				lock (runningLock) {
-					Monitor.PulseAll (runningLock);
-					if (pendingTasks.Count > 0) {
-						// There is pending work to do.
-						OnStartEval ();
-						threadTask = pendingTasks.Dequeue ();
-					}
-					else if (mainThreadBusy) {
-						// More threads have been created and all are busy.
-						// This will now be the main thread.
-						mainThreadBusy = false;
-					}
-					else {
-						// More threads have been created and one of them is waiting for tasks
-						// This thread is not needed anymore, die
-						runningThreads--;
-						break;
+				lock (threadTask) {
+					threadTask.Processed = true;
+					if (threadTask.TimedOut && !disposed) {
+						SafeRun (threadTask.FinishedCallback);
 					}
 				}
 			}
 		}
-		
+
 		public void Dispose ()
 		{
 			lock (runningLock) {
 				disposed = true;
 				CancelAll ();
-				newTaskEvent.Set ();
+				disposedEvent.Set ();
 			}
 		}
 
 		public void CancelAll ()
 		{
 			lock (runningLock) {
+				pendingTasks.Clear ();
 				// If there is a task waiting the be picked by the runner,
 				// set the task wait events to avoid deadlocking the caller.
-				if (currentTask != null) {
-					currentTask.RunningEvent.Set ();
-					currentTask.RunFinishedEvent.Set ();
-				}
-				pendingTasks.Clear ();
-				Monitor.PulseAll (runningLock);
+				executingTasks.ForEach (t => {
+					t.RunningEvent.Set ();
+					t.RunFinishedEvent.Set ();
+				});
 			}
 		}
 
 		public void WaitForStopped ()
 		{
-			lock (runningLock) {
-				while (mainThreadBusy)
-					Monitor.Wait (runningLock);
+			while (busyThreads > 0) {
+				threadNotBusyEvent.WaitOne (1000);
 			}
 		}
 
@@ -239,14 +203,15 @@ namespace Mono.Debugging.Evaluation
 			} catch {
 			}
 		}
-		
+
 		class Task
 		{
-			public AutoResetEvent RunningEvent = new AutoResetEvent (false);
-			public AutoResetEvent RunFinishedEvent = new AutoResetEvent (false);
+			public ManualResetEvent RunningEvent = new ManualResetEvent (false);
+			public ManualResetEvent RunFinishedEvent = new ManualResetEvent (false);
 			public EvaluatorDelegate Evaluator;
 			public EvaluatorDelegate FinishedCallback;
 			public bool TimedOut;
+			public bool Processed;
 		}
 	}
 

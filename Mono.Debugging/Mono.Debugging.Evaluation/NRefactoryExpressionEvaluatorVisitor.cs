@@ -558,7 +558,7 @@ namespace Mono.Debugging.Evaluation
 			if (result == null)
 				return new NullValueReference (ctx, type.Type);
 
-			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, result);
+			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, result, type.Type);
 		}
 
 		public ValueReference VisitAssignmentExpression (AssignmentExpression assignmentExpression)
@@ -623,7 +623,7 @@ namespace Mono.Debugging.Evaluation
 			if (result == null)
 				throw ParseError ("Invalid cast.");
 
-			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, result);
+			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, result, type.Type);
 		}
 
 		public ValueReference VisitCheckedExpression (CheckedExpression checkedExpression)
@@ -747,7 +747,7 @@ namespace Mono.Debugging.Evaluation
 			foreach (var arg in indexerExpression.Arguments)
 				args[n++] = arg.AcceptVisitor<ValueReference> (this).Value;
 
-			var indexer = ctx.Adapter.GetIndexerReference (ctx, target.Value, args);
+			var indexer = ctx.Adapter.GetIndexerReference (ctx, target.Value, target.Type, args);
 			if (indexer == null)
 				throw NotSupported ();
 
@@ -896,8 +896,12 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitIsExpression (IsExpression isExpression)
 		{
-			// FIXME: we could probably implement this one...
-			throw NotSupported ();
+			var type = isExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
+			if (type == null)
+				throw ParseError ("Invalid type in 'is' expression.");
+
+			var val = isExpression.Expression.AcceptVisitor<ValueReference> (this);
+			return LiteralValueReference.CreateObjectLiteral (ctx, expression, ctx.Adapter.TryCast (ctx, val.Value, type.Type) != null);
 		}
 
 		public ValueReference VisitLambdaExpression (LambdaExpression lambdaExpression)
@@ -1011,7 +1015,7 @@ namespace Mono.Debugging.Evaluation
 			if (result == null)
 				throw NotSupported ();
 
-			return LiteralValueReference.CreateTargetObjectLiteral (ctx, name, result);
+			return LiteralValueReference.CreateTargetObjectLiteral (ctx, name, result, type);
 		}
 
 		public ValueReference VisitTypeReferenceExpression (TypeReferenceExpression typeReferenceExpression)
