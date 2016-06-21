@@ -143,13 +143,18 @@ namespace Mono.Debugging.Client
 		
 		public Catchpoint AddCatchpoint (string exceptionName)
 		{
+			return AddCatchpoint (exceptionName, true);
+		}
+
+		public Catchpoint AddCatchpoint (string exceptionName, bool includeSubclasses)
+		{
 			if (exceptionName == null)
 				throw new ArgumentNullException ("exceptionName");
 
 			if (IsReadOnly)
 				return null;
 
-			var cp = new Catchpoint (exceptionName);
+			var cp = new Catchpoint (exceptionName, includeSubclasses);
 			Add (cp);
 
 			return cp;
