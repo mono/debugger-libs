@@ -34,6 +34,7 @@
     <DefineConstants>MONO_DATACONVERTER_STATIC_METHODS</DefineConstants>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
+  <Import Project="..\Mono.Debugging.settings" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Compile Include="Mono.Debugger.Soft\AbsentInformationException.cs" />
