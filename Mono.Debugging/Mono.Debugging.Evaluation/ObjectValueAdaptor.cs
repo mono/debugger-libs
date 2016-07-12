@@ -1319,7 +1319,7 @@ namespace Mono.Debugging.Evaluation
 				i = expr.IndexOf ('{', last);
 			}
 
-			display.Append (expr.Substring (last));
+			display.Append (expr, last, expr.Length - last);
 
 			return display.ToString ();
 		}
