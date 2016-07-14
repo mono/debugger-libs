@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- This optional import allows products that distribute the debugger libs to tweak settings that will affect its 
+       build, without having to fork the project unnecessarily. The Mono.Debugging.overrides file is a plain 
+       MSBuild file with additional properties, and can exist anywhere upwards from the current debugger-libs repo 
+       clone path, making it very flexible even if the project is submoduled. 
+  -->
+  <PropertyGroup>
+    <DebuggerLibsOverrides Condition="'$(DebuggerLibsOverrides)' == ''">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), Mono.Debugging.overrides))\Mono.Debugging.overrides</DebuggerLibsOverrides>
+  </PropertyGroup>  
+  <Import Project="$(DebuggerLibsOverrides)" Condition="Exists('$(DebuggerLibsOverrides)')" />
+  
+  <!-- This is an example of a custom override file -->
+  <!--
+	<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	  <PropertyGroup>
+		<AssemblyName>$(AssemblyName.Replace('Mono', 'MyCompany'))</AssemblyName>
+		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MyCompany.snk</AssemblyOriginatorKeyFile>
+	  </PropertyGroup>
+	</Project>
+  -->
+</Project>
+

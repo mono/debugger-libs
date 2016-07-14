@@ -2151,7 +2151,7 @@ namespace Mono.Debugging.Soft
 			int i = exp.IndexOf ('{');
 			while (i != -1) {
 				if (i < exp.Length - 1 && exp [i+1] == '{') {
-					sb.Append (exp.Substring (last, i - last + 1));
+					sb.Append (exp, last, i - last + 1);
 					last = i + 2;
 					i = exp.IndexOf ('{', i + 2);
 					continue;
@@ -2161,12 +2161,12 @@ namespace Mono.Debugging.Soft
 					break;
 				string se = exp.Substring (i + 1, j - i - 1);
 				se = EvaluateExpression (thread, se, null);
-				sb.Append (exp.Substring (last, i - last));
+				sb.Append (exp, last, i - last);
 				sb.Append (se);
 				last = j + 1;
 				i = exp.IndexOf ('{', last);
 			}
-			sb.Append (exp.Substring (last, exp.Length - last));
+			sb.Append (exp, last, exp.Length - last);
 			return sb.ToString ();
 		}
 

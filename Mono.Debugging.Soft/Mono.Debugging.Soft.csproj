@@ -78,6 +78,7 @@
     <Reference Include="System.Core" />
     <Reference Include="Mono.Posix" />
   </ItemGroup>
+  <Import Project="..\Mono.Debugging.settings" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <None Include="Makefile.am" />

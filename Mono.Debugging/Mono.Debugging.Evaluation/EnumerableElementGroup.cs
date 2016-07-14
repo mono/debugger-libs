@@ -67,7 +67,7 @@ namespace Mono.Debugging.Evaluation
 				var val = valCurrent.Value;
 				values.Add (val);
 				if (val != null) {
-					elements.Add (ctx.Adapter.CreateObjectValue (ctx, this, new ObjectPath ("[" + currentIndex + "]"), val, ObjectValueFlags.ReadOnly));
+					elements.Add (ctx.Adapter.CreateObjectValue (ctx, valCurrent, new ObjectPath ("[" + currentIndex + "]"), val, ObjectValueFlags.ReadOnly));
 				} else {
 					elements.Add (Mono.Debugging.Client.ObjectValue.CreateNullObject (this, "[" + currentIndex + "]", ctx.Adapter.GetDisplayTypeName (ctx.Adapter.GetTypeName (ctx, valCurrent.Type)), ObjectValueFlags.ReadOnly));
 				}
@@ -114,7 +114,9 @@ namespace Mono.Debugging.Evaluation
 		{
 			int idx;
 			if (int.TryParse (path.LastName.Replace ("[", "").Replace ("]", ""), out idx)) {
-				return elements [idx];
+				var element = elements [idx];
+				element.Refresh (options);
+				return element;
 			}
 			return null;
 		}
