@@ -133,6 +133,7 @@ namespace Mono.Debugging.Soft
 			
 			var dsi = (SoftDebuggerStartInfo) startInfo;
 			if (dsi.StartArgs is SoftDebuggerLaunchArgs) {
+				remoteProcessName = Path.GetFileNameWithoutExtension (dsi.Command);
 				StartLaunching (dsi);
 			} else if (dsi.StartArgs is SoftDebuggerConnectArgs) {
 				StartConnecting (dsi);
@@ -714,11 +715,13 @@ namespace Mono.Debugging.Soft
 		protected override ProcessInfo[] OnGetProcesses ()
 		{
 			if (procs == null) {
-				if (remoteProcessName != null || vm.TargetProcess == null) {
+				if (vm == null)//process didn't start yet
+					return new ProcessInfo [0];
+				if (vm.TargetProcess == null) {
 					procs = new [] { new ProcessInfo (0, remoteProcessName ?? "mono") };
 				} else {
 					try {
-						procs = new [] { new ProcessInfo (vm.TargetProcess.Id, vm.TargetProcess.ProcessName) };
+						procs = new [] { new ProcessInfo (vm.TargetProcess.Id, remoteProcessName ?? vm.TargetProcess.ProcessName) };
 					} catch (Exception ex) {
 						if (!loggedSymlinkedRuntimesBug) {
 							loggedSymlinkedRuntimesBug = true;
