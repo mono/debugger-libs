@@ -104,7 +104,7 @@ namespace Mono.Debugging.Client
 			ThreadInfo ot = obj as ThreadInfo;
 			if (ot == null)
 				return false;
-			return id == ot.id && processId == ot.processId;
+			return id == ot.id && processId == ot.processId && session == ot.session;
 		}
 		
 		public override int GetHashCode ()
