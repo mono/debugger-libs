@@ -42,7 +42,7 @@ namespace Mono.Debugging.Client
 	public delegate string TypeResolverHandler (string identifier, SourceLocation location);
 	public delegate void BreakpointTraceHandler (BreakEvent be, string trace);
 	public delegate IExpressionEvaluator GetExpressionEvaluatorHandler (string extension);
-	public delegate IConnectionDialog ConnectionDialogCreator ();
+	public delegate IConnectionDialog ConnectionDialogCreator (DebuggerStartInfo dsi);
 	
 	public abstract class DebuggerSession: IDisposable
 	{
