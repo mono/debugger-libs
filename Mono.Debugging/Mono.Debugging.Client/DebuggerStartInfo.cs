@@ -76,5 +76,7 @@ namespace Mono.Debugging.Client
 		public bool UseExternalConsole { get; set; }
 		
 		public bool CloseExternalConsoleOnExit { get; set; }
+
+		public bool RequiresManualStart { get; set; }
 	}
 }

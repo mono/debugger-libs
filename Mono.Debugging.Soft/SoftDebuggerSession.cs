@@ -380,7 +380,7 @@ namespace Mono.Debugging.Soft
 			connection = connectionHandle;
 			
 			if (ConnectionDialogCreator != null && attemptNumber == 0) {
-				connectionDialog = ConnectionDialogCreator ();
+				connectionDialog = ConnectionDialogCreator (dsi);
 				connectionDialog.UserCancelled += delegate {
 					EndSession ();
 				};
