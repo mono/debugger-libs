@@ -42,7 +42,8 @@ namespace Mono.Debugging.Client
 	public delegate string TypeResolverHandler (string identifier, SourceLocation location);
 	public delegate void BreakpointTraceHandler (BreakEvent be, string trace);
 	public delegate IExpressionEvaluator GetExpressionEvaluatorHandler (string extension);
-	public delegate IConnectionDialog ConnectionDialogCreator (DebuggerStartInfo dsi);
+	public delegate IConnectionDialog ConnectionDialogCreatorExtended (DebuggerStartInfo dsi);
+	public delegate IConnectionDialog ConnectionDialogCreator ();
 	
 	public abstract class DebuggerSession: IDisposable
 	{
@@ -168,6 +169,11 @@ namespace Mono.Debugging.Client
 		/// Gets or sets the connection dialog creator callback.
 		/// </summary>
 		public ConnectionDialogCreator ConnectionDialogCreator { get; set; }
+
+		/// <summary>
+		/// Gets or sets the connection dialog creator callback.
+		/// </summary>
+		public ConnectionDialogCreatorExtended ConnectionDialogCreatorExtended { get; set; }
 
 		/// <summary>
 		/// Gets or sets the breakpoint trace handler.
