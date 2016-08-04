@@ -377,12 +377,18 @@ namespace Mono.Debugging.Soft
 				throw new InvalidOperationException ("Already connecting");
 			
 			connection = connectionHandle;
-			
-			if (ConnectionDialogCreator != null && attemptNumber == 0) {
-				connectionDialog = ConnectionDialogCreator (dsi);
-				connectionDialog.UserCancelled += delegate {
-					EndSession ();
-				};
+
+			if (attemptNumber == 0) {
+				if (ConnectionDialogCreatorExtended != null)
+					connectionDialog = ConnectionDialogCreatorExtended (dsi);
+				else if (ConnectionDialogCreator != null)
+					connectionDialog = ConnectionDialogCreator ();
+
+				if (connectionDialog != null) {
+					connectionDialog.UserCancelled += delegate {
+						EndSession ();
+					};
+				}
 			}
 
 			if (connectionDialog != null)
