@@ -129,7 +129,7 @@ namespace Mono.Debugging.Client
 			return true;
 		}
 		
-		internal FunctionBreakpoint (XmlElement elem) : base (elem)
+		internal FunctionBreakpoint (XmlElement elem, string baseDir) : base (elem, baseDir)
 		{
 			FunctionName = elem.GetAttribute ("function");
 			
@@ -152,9 +152,9 @@ namespace Mono.Debugging.Client
 			FileName = null;
 		}
 		
-		internal override XmlElement ToXml (XmlDocument doc)
+		internal override XmlElement ToXml (XmlDocument doc, string baseDir)
 		{
-			XmlElement elem = base.ToXml (doc);
+			XmlElement elem = base.ToXml (doc, baseDir);
 			
 			elem.SetAttribute ("function", FunctionName);
 			elem.SetAttribute ("language", Language);

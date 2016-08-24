@@ -50,7 +50,7 @@ namespace Mono.Debugging.Client
 		{
 		}
 		
-		internal BreakEvent (XmlElement elem)
+		internal BreakEvent (XmlElement elem, string baseDir)
 		{
 			string s = elem.GetAttribute ("enabled");
 			if (s.Length > 0)
@@ -85,7 +85,7 @@ namespace Mono.Debugging.Client
 				breakIfConditionChanges = false;
 		}
 		
-		internal virtual XmlElement ToXml (XmlDocument doc)
+		internal virtual XmlElement ToXml (XmlDocument doc, string baseDir)
 		{
 			XmlElement elem = doc.CreateElement (GetType().Name);
 			if (!enabled)
@@ -108,14 +108,14 @@ namespace Mono.Debugging.Client
 			return elem;
 		}
 		
-		internal static BreakEvent FromXml (XmlElement elem)
+		internal static BreakEvent FromXml (XmlElement elem, string baseDir)
 		{
 			if (elem.Name == "FunctionBreakpoint")
-				return new FunctionBreakpoint (elem);
+				return new FunctionBreakpoint (elem, baseDir);
 			if (elem.Name == "Breakpoint")
-				return new Breakpoint (elem);
+				return new Breakpoint (elem, baseDir);
 			if (elem.Name == "Catchpoint")
-				return new Catchpoint (elem);
+				return new Catchpoint (elem, baseDir);
 
 			return null;
 		}

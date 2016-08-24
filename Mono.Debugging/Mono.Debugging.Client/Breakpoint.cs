@@ -27,6 +27,7 @@
 
 using System;
 using System.Xml;
+using System.IO;
 
 namespace Mono.Debugging.Client
 {
@@ -50,11 +51,16 @@ namespace Mono.Debugging.Client
 		{
 		}
 		
-		internal Breakpoint (XmlElement elem): base (elem)
+		internal Breakpoint (XmlElement elem, string baseDir) : base (elem, baseDir)
 		{
-			string s = elem.GetAttribute ("file");
-			if (!string.IsNullOrEmpty (s))
-				fileName = s;
+			string s = elem.GetAttribute ("relfile");
+			if (!string.IsNullOrEmpty (s) && baseDir != null) {
+				fileName = Path.Combine (baseDir, s);
+			} else {
+				s = elem.GetAttribute ("file");
+				if (!string.IsNullOrEmpty (s))
+					fileName = s;
+			}
 			
 			s = elem.GetAttribute ("line");
 			if (string.IsNullOrEmpty (s) || !int.TryParse (s, out line))
@@ -64,17 +70,22 @@ namespace Mono.Debugging.Client
 			if (string.IsNullOrEmpty (s) || !int.TryParse (s, out column))
 				column = 1;
 		}
-		
-		internal override XmlElement ToXml (XmlDocument doc)
+
+		internal override XmlElement ToXml (XmlDocument doc, string baseDir)
 		{
-			XmlElement elem = base.ToXml (doc);
-			
-			if (!string.IsNullOrEmpty (fileName))
+			XmlElement elem = base.ToXml (doc, baseDir);
+
+			if (!string.IsNullOrEmpty (fileName)) {
 				elem.SetAttribute ("file", fileName);
-			
+				if (baseDir != null) {
+					if (fileName.StartsWith (baseDir, StringComparison.Ordinal))
+						elem.SetAttribute ("relfile", fileName.Substring (baseDir.Length).TrimStart (Path.DirectorySeparatorChar));
+				}
+			}
+
 			elem.SetAttribute ("line", line.ToString ());
 			elem.SetAttribute ("column", column.ToString ());
-			
+
 			return elem;
 		}
 		

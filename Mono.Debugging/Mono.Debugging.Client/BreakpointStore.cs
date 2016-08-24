@@ -393,27 +393,27 @@ namespace Mono.Debugging.Client
 			}
 		}
 		
-		public XmlElement Save ()
+		public XmlElement Save (string baseDir = null)
 		{
 			XmlDocument doc = new XmlDocument ();
 			XmlElement elem = doc.CreateElement ("BreakpointStore");
 			foreach (BreakEvent ev in this) {
 				if (ev.NonUserBreakpoint)
 					continue;
-				XmlElement be = ev.ToXml (doc);
+				XmlElement be = ev.ToXml (doc, baseDir);
 				elem.AppendChild (be);
 			}
 			return elem;
 		}
 		
-		public void Load (XmlElement rootElem)
+		public void Load (XmlElement rootElem, string baseDir = null)
 		{
 			Clear ();
 			foreach (XmlNode n in rootElem.ChildNodes) {
 				XmlElement elem = n as XmlElement;
 				if (elem == null)
 					continue;
-				BreakEvent ev = BreakEvent.FromXml (elem);
+				BreakEvent ev = BreakEvent.FromXml (elem, baseDir);
 				if (ev != null)
 					Add (ev);
 			}

@@ -46,7 +46,7 @@ namespace Mono.Debugging.Client
 			this.includeSubclasses = includeSubclasses;
 		}
 		
-		internal Catchpoint (XmlElement elem): base (elem)
+		internal Catchpoint (XmlElement elem, string baseDir): base (elem, baseDir)
 		{
 			exceptionName = elem.GetAttribute ("exceptionName");
 
@@ -57,9 +57,9 @@ namespace Mono.Debugging.Client
 			}
 		}
 
-		internal override XmlElement ToXml (XmlDocument doc)
+		internal override XmlElement ToXml (XmlDocument doc, string baseDir)
 		{
-			XmlElement elem = base.ToXml (doc);
+			XmlElement elem = base.ToXml (doc, baseDir);
 			elem.SetAttribute ("exceptionName", exceptionName);
 			elem.SetAttribute ("includeSubclasses", includeSubclasses.ToString ());
 			return elem;
