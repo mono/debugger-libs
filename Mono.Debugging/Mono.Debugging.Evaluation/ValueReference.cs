@@ -93,22 +93,28 @@ namespace Mono.Debugging.Evaluation
 
 			return CreateObjectValue (options);
 		}
-		
+
 		public ObjectValue CreateObjectValue (EvaluationOptions options)
 		{
 			if (!CanEvaluate (options))
 				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), Context.Adapter.GetDisplayTypeName (GetContext (options), Type), Flags);
-			
 			Connect ();
 			try {
 				return OnCreateObjectValue (options);
-			} catch (ImplicitEvaluationDisabledException) {
+			}
+			catch (ImplicitEvaluationDisabledException) {
 				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), Context.Adapter.GetDisplayTypeName (GetContext (options), Type), Flags);
-			} catch (NotSupportedExpressionException ex) {
+			}
+			catch (NotSupportedExpressionException ex) {
 				return DC.ObjectValue.CreateNotSupported (this, new ObjectPath (Name), Context.Adapter.GetDisplayTypeName (GetContext (options), Type), ex.Message, Flags);
-			} catch (EvaluatorException ex) {
+			}
+			catch (EvaluatorExceptionThrownException ex) {
+				return DC.ObjectValue.CreateEvaluationException (Context, Context.ExpressionValueSource, new ObjectPath (Name), ex);
+			}
+			catch (EvaluatorException ex) {
 				return DC.ObjectValue.CreateError (this, new ObjectPath (Name), "", ex.Message, Flags);
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Context.WriteDebuggerError (ex);
 				return DC.ObjectValue.CreateUnknown (Name);
 			}

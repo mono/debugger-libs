@@ -26,9 +26,10 @@
     </Execution>
     <NoWarn>1591;1573</NoWarn>
     <DocumentationFile>bin\Debug\Mono.Debugging.xml</DocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
+    <DebugType>full</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
@@ -124,6 +125,7 @@
     <Compile Include="Mono.Debugging.Client\DebuggerLoggingService.cs" />
     <Compile Include="Mono.Debugging.Client\RunToCursorBreakpoint.cs" />
     <Compile Include="Mono.Debugging.Evaluation\EnumerableElementGroup.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="..\Mono.Debugging.settings" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

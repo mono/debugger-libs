@@ -195,22 +195,35 @@ namespace Mono.Debugging.Evaluation
 			return ctx.Adapter.GetCurrentException (ctx);
 		}
 	}
-	
+
 	[Serializable]
-	public class EvaluatorException: Exception
+	public class EvaluatorException : Exception
 	{
 		protected EvaluatorException (SerializationInfo info, StreamingContext context)
 			: base (info, context)
 		{
 		}
-		
-		public EvaluatorException (string msg, params object[] args): base (string.Format (msg, args))
+
+		public EvaluatorException (string msg, params object[] args) : base (string.Format (msg, args))
 		{
 		}
 	}
 
 	[Serializable]
-	public class EvaluatorAbortedException: EvaluatorException
+	public class EvaluatorExceptionThrownException : EvaluatorException
+	{
+		public EvaluatorExceptionThrownException (object exception, string exceptionTypeName) : base ("Exception is thrown")
+		{
+			Exception = exception;
+			ExceptionTypeName = exceptionTypeName;
+		}
+
+		public object Exception { get; private set; }
+		public string ExceptionTypeName { get; private set; }
+	}
+
+	[Serializable]
+	public class EvaluatorAbortedException : EvaluatorException
 	{
 		protected EvaluatorAbortedException (SerializationInfo info, StreamingContext context)
 			: base (info, context)
@@ -224,13 +237,13 @@ namespace Mono.Debugging.Evaluation
 	}
 
 	[Serializable]
-	public class NotSupportedExpressionException: EvaluatorException
+	public class NotSupportedExpressionException : EvaluatorException
 	{
 		protected NotSupportedExpressionException (SerializationInfo info, StreamingContext context)
 			: base (info, context)
 		{
 		}
-		
+
 		public NotSupportedExpressionException ()
 			: base ("Expression not supported.")
 		{
@@ -238,13 +251,13 @@ namespace Mono.Debugging.Evaluation
 	}
 
 	[Serializable]
-	public class ImplicitEvaluationDisabledException: EvaluatorException
+	public class ImplicitEvaluationDisabledException : EvaluatorException
 	{
 		protected ImplicitEvaluationDisabledException (SerializationInfo info, StreamingContext context)
 			: base (info, context)
 		{
 		}
-		
+
 		public ImplicitEvaluationDisabledException ()
 			: base ("Implicit property and method evaluation is disabled.")
 		{
