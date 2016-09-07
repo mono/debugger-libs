@@ -197,7 +197,7 @@ namespace Mono.Debugging.Soft
 			RegisterUserAssemblies (dsi);
 			
 			var psi = new System.Diagnostics.ProcessStartInfo (runtime) {
-				Arguments = string.Format ("\"{0}\" {1}", dsi.Command, dsi.Arguments),
+				Arguments = string.Format ("{2} \"{0}\" {1}", dsi.Command, dsi.Arguments, dsi.RuntimeArguments),
 				WorkingDirectory = dsi.WorkingDirectory,
 				RedirectStandardOutput = true,
 				RedirectStandardError = true,

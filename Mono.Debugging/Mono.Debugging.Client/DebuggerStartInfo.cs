@@ -35,6 +35,7 @@ namespace Mono.Debugging.Client
 	{
 		string command;
 		string arguments;
+		string runtimeArguments;
 		string workingDirectory;
 		Dictionary<string, string> environmentVariables;
 		
@@ -53,6 +54,15 @@ namespace Mono.Debugging.Client
 			}
 			set {
 				arguments = value;
+			}
+		}
+
+		public string RuntimeArguments {
+			get {
+				return runtimeArguments;
+			}
+			set {
+				runtimeArguments = value;
 			}
 		}
 
