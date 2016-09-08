@@ -75,8 +75,8 @@ namespace Mono.Debugging.Soft
 		readonly Dictionary<EventRequest, BreakInfo> breakpoints = new Dictionary<EventRequest, BreakInfo> ();
 		readonly Dictionary<TypeMirror, string[]> type_to_source = new Dictionary<TypeMirror, string[]> ();
 		readonly Dictionary<string, long> symbolFilesTimestamps = new Dictionary<string, long>();
-		readonly Dictionary<string, TypeMirror> aliases = new Dictionary<string, TypeMirror>();
-		readonly Dictionary<string, TypeMirror> types = new Dictionary<string, TypeMirror> ();
+		readonly Dictionary<string, List<TypeMirror>> aliases = new Dictionary<string, List<TypeMirror>> ();
+		readonly Dictionary<string, List<TypeMirror>> types = new Dictionary<string, List<TypeMirror>> ();
 		readonly LinkedList<List<Event>> queuedEventSets = new LinkedList<List<Event>> ();
 		readonly Dictionary<long,long> localThreadIds = new Dictionary<long, long> ();
 		readonly List<BreakInfo> pending_bes = new List<BreakInfo> ();
@@ -562,17 +562,23 @@ namespace Mono.Debugging.Soft
 		
 		public TypeMirror GetType (string fullName)
 		{
-			TypeMirror tm;
+			List<TypeMirror> typesList;
 
-			if (!types.TryGetValue (fullName, out tm))
-				aliases.TryGetValue (fullName, out tm);
-
-			return tm;
+			if (!types.TryGetValue (fullName, out typesList))
+				aliases.TryGetValue (fullName, out typesList);
+			if (typesList == null)
+				return null;
+			if (typesList.Count == 1)
+				return typesList [0];
+			//Idea here is... If we have multiple types with same name... they must be in different .dlls
+			//so find 1st matching assembly with stackframes and then return type that belongs to that assembly
+			var assembly = current_thread.GetFrames ().Select (f => f.Method.DeclaringType.Assembly).FirstOrDefault (asm => typesList.Select (t => t.Assembly).Contains (asm));
+			return typesList.FirstOrDefault (t => t.Assembly == assembly) ?? typesList.FirstOrDefault ();
 		}
-		
+
 		public IEnumerable<TypeMirror> GetAllTypes ()
 		{
-			return types.Values;
+			return types.Values.SelectMany (l => l);
 		}
 
 		protected override bool AllowBreakEventChanges {
@@ -981,9 +987,8 @@ namespace Mono.Debugging.Soft
 				}
 			} else if (breakEvent is Catchpoint) {
 				var cp = (Catchpoint) breakEvent;
-				TypeMirror type;
 
-				if (!types.TryGetValue (cp.ExceptionName, out type)) {
+				if (!types.ContainsKey (cp.ExceptionName)) {
 					//
 					// Same as in FindLocationByFile (), fetch types matching the type name
 					if (vm.Version.AtLeast (2, 9)) {
@@ -992,8 +997,10 @@ namespace Mono.Debugging.Soft
 					}
 				}
 
-				if (types.TryGetValue (cp.ExceptionName, out type)) {
-					InsertCatchpoint (cp, bi, type);
+				List<TypeMirror> typesList;
+				if (types.TryGetValue (cp.ExceptionName, out typesList)) {
+					foreach (var type in typesList)
+						InsertCatchpoint (cp, bi, type);
 					bi.SetStatus (BreakEventStatus.Bound, null);
 				} else {
 					bi.TypeName = cp.ExceptionName;
@@ -1932,18 +1939,21 @@ namespace Mono.Debugging.Soft
 			}
 
 			// Remove affected types from the loaded types list
-			var affectedTypes = new List<string> (from pair in types
-				 where PathComparer.Equals (pair.Value.Assembly.Location, asm.Location)
-				 select pair.Key);
+			var affectedTypes = types.SelectMany (l => l.Value).Where (t => t.Assembly == asm).ToArray ();
 
-			foreach (string typeName in affectedTypes) {
-				TypeMirror tm;
-
-				if (types.TryGetValue (typeName, out tm)) {
-					if (tm.IsNested)
-						aliases.Remove (NestedTypeNameToAlias (typeName));
-
-					types.Remove (typeName);
+			foreach (var tm in affectedTypes) {
+				List<TypeMirror> typesList;
+				if (tm.IsNested) {
+					if (aliases.TryGetValue (NestedTypeNameToAlias (tm.FullName), out typesList)) {
+						typesList.Remove (tm);
+						if (typesList.Count == 0)
+							aliases.Remove (NestedTypeNameToAlias (tm.FullName));
+					}
+				}
+				if (types.TryGetValue (tm.FullName, out typesList)) {
+					typesList.Remove (tm);
+					if (typesList.Count == 0)
+						types.Remove (tm.FullName);
 				}
 			}
 
@@ -1972,8 +1982,9 @@ namespace Mono.Debugging.Soft
 			var type = events [0].Type;
 			if (events.Length > 1 && events.Any (a => a.Type != type))
 				throw new InvalidOperationException ("Simultaneous TypeLoadEvents for multiple types");
-			
-			if (!types.ContainsKey (type.FullName))
+
+			List<TypeMirror> typesList;
+			if (!(types.TryGetValue (type.FullName, out typesList) && typesList.Contains (type)))
 				ResolveBreakpoints (type);
 		}
 
@@ -2294,13 +2305,21 @@ namespace Mono.Debugging.Soft
 		{
 			string typeName = t.FullName;
 
-			if (types.ContainsKey (typeName))
+			List<TypeMirror> typesList;
+			if (types.TryGetValue (typeName, out typesList) && typesList.Contains (t))
 				return;
 
-			if (t.IsNested)
-				aliases[NestedTypeNameToAlias (typeName)] = t;
-
-			types[typeName] = t;
+			if (t.IsNested) {
+				var alias = NestedTypeNameToAlias (typeName);
+				List<TypeMirror> aliasesList;
+				if (aliases.TryGetValue (alias, out aliasesList)) {
+					aliasesList.Add (t);
+				} else {
+					aliases [alias] = new List<TypeMirror> (new [] { t });
+				}
+			}
+			types [typeName] = typesList ?? new List<TypeMirror> ();
+			types [typeName].Add (t);
 
 			//get the source file paths
 			//full paths, from GetSourceFiles (true), are only supported by sdb protocol 2.2 and later
@@ -2324,8 +2343,6 @@ namespace Mono.Debugging.Soft
 				sourceFiles[n] = NormalizePath (sourceFiles[n]);
 
 			foreach (string s in sourceFiles) {
-				List<TypeMirror> typesList;
-				
 				if (source_to_type.TryGetValue (s, out typesList)) {
 					typesList.Add (t);
 				} else {
