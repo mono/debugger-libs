@@ -710,16 +710,29 @@ namespace Mono.Debugging.Soft
 			return local.Name != null && (local.Name.StartsWith ("CS$", StringComparison.Ordinal) || local.Name.StartsWith ("<>t__", StringComparison.Ordinal));
 		}
 		
-		static string GetHoistedIteratorLocalName (FieldInfoMirror field)
+		static string GetHoistedIteratorLocalName (FieldInfoMirror field, SoftEvaluationContext cx)
 		{
 			//mcs captured args, of form <$>name
 			if (field.Name.StartsWith ("<$>", StringComparison.Ordinal)) {
 				return field.Name.Substring (3);
 			}
-			
-			// csc, mcs locals of form <name>__0
-			if (field.Name[0] == '<') {
-				int i = field.Name.IndexOf ('>');
+
+			// csc, mcs locals of form <name>__#, where # represents index of scope
+			if (field.Name [0] == '<') {
+				var i = field.Name.IndexOf (">__", StringComparison.Ordinal);
+				if (i != -1 && field.VirtualMachine.Version.AtLeast (2, 43)) {
+					int scopeIndex;
+					if (int.TryParse (field.Name.Substring (i + 3), out scopeIndex)) {
+						scopeIndex--;//Scope index is 1 based(not zero)
+						var scopes = cx.Frame.Method.GetScopes ();
+						if (scopeIndex < scopes.Length) {
+							var scope = scopes [scopeIndex];
+							if (scope.LiveRangeStart > cx.Frame.Location.ILOffset || scope.LiveRangeEnd < cx.Frame.Location.ILOffset)
+								return null;
+						}
+					}
+				}
+				i = field.Name.IndexOf ('>');
 				if (i > 1) {
 					return field.Name.Substring (1, i - 1);
 				}
@@ -758,7 +771,7 @@ namespace Mono.Debugging.Soft
 
 				if (field.Name[0] == '<') {
 					if (isIterator) {
-						var name = GetHoistedIteratorLocalName (field);
+						var name = GetHoistedIteratorLocalName (field, cx);
 
 						if (!string.IsNullOrEmpty (name))
 							list.Add (new FieldValueReference (cx, field, val, type, name, ObjectValueFlags.Variable));

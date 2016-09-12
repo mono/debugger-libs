@@ -111,6 +111,7 @@
     <Compile Include="Mono.Debugger.Soft\AssemblyLoadEventRequest.cs" />
     <Compile Include="Locale.cs" />
     <Compile Include="Mono.Debugger.Soft\PointerValue.cs" />
+    <Compile Include="Mono.Debugger.Soft\LocalScope.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile.am" />
