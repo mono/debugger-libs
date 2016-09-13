@@ -34,7 +34,9 @@ namespace Mono.Debugging.Evaluation
 {
 	public class AsyncOperationManager: IDisposable
 	{
-		List<AsyncOperation> operationsToCancel = new List<AsyncOperation> ();
+		readonly List<AsyncOperation> operationsToCancel = new List<AsyncOperation> ();
+		readonly object operationsSync = new object ();
+
 		internal bool Disposing;
 
 		public void Invoke (AsyncOperation methodCall, int timeout)
@@ -42,7 +44,7 @@ namespace Mono.Debugging.Evaluation
 			methodCall.Aborted = false;
 			methodCall.Manager = this;
 
-			lock (operationsToCancel) {
+			lock (operationsSync) {
 				operationsToCancel.Add (methodCall);
 				methodCall.Invoke ();
 			}
@@ -51,9 +53,8 @@ namespace Mono.Debugging.Evaluation
 				if (!methodCall.WaitForCompleted (timeout)) {
 					bool wasAborted = methodCall.Aborted;
 					methodCall.InternalAbort ();
-					lock (operationsToCancel) {
+					lock (operationsSync) {
 						operationsToCancel.Remove (methodCall);
-						ST.Monitor.PulseAll (operationsToCancel);
 					}
 					if (wasAborted)
 						throw new EvaluatorAbortedException ();
@@ -65,9 +66,8 @@ namespace Mono.Debugging.Evaluation
 				methodCall.WaitForCompleted (System.Threading.Timeout.Infinite);
 			}
 
-			lock (operationsToCancel) {
+			lock (operationsSync) {
 				operationsToCancel.Remove (methodCall);
-				ST.Monitor.PulseAll (operationsToCancel);
 				if (methodCall.Aborted) {
 					throw new EvaluatorAbortedException ();
 				}
@@ -81,7 +81,7 @@ namespace Mono.Debugging.Evaluation
 		public void Dispose ()
 		{
 			Disposing = true;
-			lock (operationsToCancel) {
+			lock (operationsSync) {
 				foreach (AsyncOperation op in operationsToCancel) {
 					op.InternalShutdown ();
 				}
@@ -91,7 +91,7 @@ namespace Mono.Debugging.Evaluation
 
 		public void AbortAll ()
 		{
-			lock (operationsToCancel) {
+			lock (operationsSync) {
 				foreach (AsyncOperation op in operationsToCancel)
 					op.InternalAbort ();
 			}
