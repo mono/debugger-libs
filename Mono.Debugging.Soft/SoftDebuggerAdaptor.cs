@@ -774,10 +774,14 @@ namespace Mono.Debugging.Soft
 						var name = GetHoistedIteratorLocalName (field, cx);
 
 						if (!string.IsNullOrEmpty (name))
-							list.Add (new FieldValueReference (cx, field, val, type, name, ObjectValueFlags.Variable));
+							list.Add (new FieldValueReference (cx, field, val, type, name, ObjectValueFlags.Variable) {
+								ParentSource = vthis
+							});
 					}
 				} else if (!field.Name.Contains ("$")) {
-					list.Add (new FieldValueReference (cx, field, val, type, field.Name, ObjectValueFlags.Variable));
+					list.Add (new FieldValueReference (cx, field, val, type, field.Name, ObjectValueFlags.Variable) {
+						ParentSource = vthis
+					});
 				}
 			}
 

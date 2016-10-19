@@ -243,7 +243,7 @@ namespace Mono.Debugging.Evaluation
 			return new ValueReference [0];
 		}
 		
-		public IObjectSource ParentSource { get; internal set; }
+		public IObjectSource ParentSource { get; set; }
 
 		protected EvaluationContext GetChildrenContext (EvaluationOptions options)
 		{

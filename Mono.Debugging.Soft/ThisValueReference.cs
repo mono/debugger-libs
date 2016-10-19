@@ -60,7 +60,10 @@ namespace Mono.Debugging.Soft
 				return value;
 			}
 			set {
-				throw new NotSupportedException ();
+				if (frame.VirtualMachine.Version.AtLeast (2, 44)) {
+					this.value = (Value)value;
+					frame.SetThis ((Value)value);
+				}
 			}
 		}
 
