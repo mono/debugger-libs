@@ -2606,16 +2606,19 @@ namespace Mono.Debugging.Soft
 
 			using(MonoSymbolFile mdb = MonoSymbolFile.ReadSymbolFile(mdbFileName))
 			{
-				foreach (var src in mdb.Sources) 
+				foreach (var cu in mdb.CompileUnits)
 				{
 					MdbSourceFileInfo info = new MdbSourceFileInfo ();
 
+					var src = cu.SourceFile;
 					info.Hash = src.Checksum;
 					info.FileID = src.Index;
 					info.FullFilePath = src.FileName;
 
-					foreach (var method in mdb.Methods) 
-						info.Methods.Add (new MethodMdbInfo{ SequencePoints = method.GetLineNumberTable ().LineNumbers });
+					foreach (var method in mdb.Methods) {
+						if (method.CompileUnitIndex == cu.Index)
+							info.Methods.Add (new MethodMdbInfo { SequencePoints = method.GetLineNumberTable ().LineNumbers });
+					}
 
 					fileToSourceFileInfos [src.FileName] = new List<MdbSourceFileInfo> ();
 
