@@ -61,6 +61,11 @@ namespace Mono.Debugging.Soft
 			{
 				Methods = new List<MethodMdbInfo>();
 			}
+
+			public MdbSourceFileInfo(List<MethodMdbInfo> methods)
+			{
+				Methods = methods;
+			}
 		}
 
 		class MethodMdbInfo
@@ -2606,19 +2611,29 @@ namespace Mono.Debugging.Soft
 
 			using(MonoSymbolFile mdb = MonoSymbolFile.ReadSymbolFile(mdbFileName))
 			{
+				// Create a mapping by CompileUnitIndex.
+				var methodMapping = new Dictionary<int, List<MethodMdbInfo>> (mdb.CompileUnitCount);
+				foreach (var method in mdb.Methods) {
+					List<MethodMdbInfo> list;
+					if (!methodMapping.TryGetValue(method.CompileUnitIndex, out list))
+						methodMapping[method.CompileUnitIndex] = list = new List<MethodMdbInfo> ();
+
+					list.Add (new MethodMdbInfo { SequencePoints = method.GetLineNumberTable ().LineNumbers });
+				}
+
 				foreach (var cu in mdb.CompileUnits)
 				{
-					MdbSourceFileInfo info = new MdbSourceFileInfo ();
+					// A CompileUnit may not have methods, so guard against this.
+					List<MethodMdbInfo> list;
+					if (!methodMapping.TryGetValue (cu.Index, out list))
+						list = new List<MethodMdbInfo> ();
+
+					MdbSourceFileInfo info = new MdbSourceFileInfo (list);
 
 					var src = cu.SourceFile;
 					info.Hash = src.Checksum;
 					info.FileID = src.Index;
 					info.FullFilePath = src.FileName;
-
-					foreach (var method in mdb.Methods) {
-						if (method.CompileUnitIndex == cu.Index)
-							info.Methods.Add (new MethodMdbInfo { SequencePoints = method.GetLineNumberTable ().LineNumbers });
-					}
 
 					fileToSourceFileInfos [src.FileName] = new List<MdbSourceFileInfo> ();
 
