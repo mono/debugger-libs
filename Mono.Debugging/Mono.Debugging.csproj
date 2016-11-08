@@ -82,10 +82,12 @@
     <Compile Include="Mono.Debugging.Evaluation\ArrayElementGroup.cs" />
     <Compile Include="Mono.Debugging.Evaluation\ArrayValueReference.cs" />
     <Compile Include="Mono.Debugging.Evaluation\AsyncEvaluationTracker.cs" />
+    <Compile Include="Mono.Debugging.Evaluation\AsyncOperationBase.cs" />
     <Compile Include="Mono.Debugging.Evaluation\AsyncOperationManager.cs" />
     <Compile Include="Mono.Debugging.Evaluation\EvaluationContext.cs" />
     <Compile Include="Mono.Debugging.Evaluation\ExpressionEvaluator.cs" />
     <Compile Include="Mono.Debugging.Evaluation\FilteredMembersSource.cs" />
+    <Compile Include="Mono.Debugging.Evaluation\IAsyncOperation.cs" />
     <Compile Include="Mono.Debugging.Evaluation\ICollectionAdaptor.cs" />
     <Compile Include="Mono.Debugging.Evaluation\LiteralValueReference.cs" />
     <Compile Include="Mono.Debugging.Evaluation\NamespaceValueReference.cs" />

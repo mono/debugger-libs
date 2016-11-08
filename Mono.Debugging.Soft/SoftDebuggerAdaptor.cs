@@ -33,7 +33,7 @@ using System.Reflection.Emit;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
-
+using System.Threading.Tasks;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Backend;
 using Mono.Debugging.Evaluation;
@@ -2145,30 +2145,36 @@ namespace Mono.Debugging.Soft
 		}
 	}
 
-	class MethodCall: AsyncOperation
+	internal class SoftOperationResult : OperationResult<Value>
+	{
+		public SoftOperationResult (Value result, bool resultIsException, Value[] outArgs) : base (result, resultIsException)
+		{
+			OutArgs = outArgs;
+		}
+
+		public Value[] OutArgs { get; private set; }
+	}
+
+	internal class SoftMethodCall: AsyncOperationBase<Value>
 	{
 		readonly InvokeOptions options = InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded;
-
-		readonly ManualResetEvent shutdownEvent = new ManualResetEvent (false);
 		readonly SoftEvaluationContext ctx;
 		readonly MethodMirror function;
 		readonly Value[] args;
-		readonly object obj;
-		IAsyncResult handle;
-		Exception exception;
-		IInvokeResult result;
-		
-		public MethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args, bool enableOutArgs)
+		readonly IInvocableMethodOwnerMirror obj;
+		IInvokeAsyncResult invokeAsyncResult;
+
+		public SoftMethodCall (SoftEvaluationContext ctx, MethodMirror function, IInvocableMethodOwnerMirror obj, Value[] args, bool enableOutArgs)
 		{
 			this.ctx = ctx;
 			this.function = function;
 			this.obj = obj;
 			this.args = args;
 			if (enableOutArgs) {
-				this.options |= InvokeOptions.ReturnOutArgs;
+				options |= InvokeOptions.ReturnOutArgs;
 			}
 			if (function.VirtualMachine.Version.AtLeast (2, 40)) {
-				this.options |= InvokeOptions.Virtual;
+				options |= InvokeOptions.Virtual;
 			}
 		}
 		
@@ -2178,113 +2184,60 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-		public override void Invoke ()
+		protected override void AfterCancelledImpl (int elapsedAfterCancelMs)
+		{
+		}
+
+		protected override Task<OperationResult<Value>> InvokeAsyncImpl (CancellationToken token)
 		{
 			try {
-				var invocableMirror = obj as IInvocableMethodOwnerMirror;
-				if (invocableMirror != null) {
-					var optionsToInvoke = options;
-					if (obj is StructMirror) {
-						optionsToInvoke |= InvokeOptions.ReturnOutThis;
+				var optionsToInvoke = options;
+				if (obj is StructMirror) {
+					optionsToInvoke |= InvokeOptions.ReturnOutThis;
+				}
+				var tcs = new TaskCompletionSource<OperationResult<Value>> ();
+				invokeAsyncResult = (IInvokeAsyncResult)obj.BeginInvokeMethod (ctx.Thread, function, args, optionsToInvoke, ar => {
+					try {
+						var endInvokeResult = obj.EndInvokeMethodWithResult (ar);
+						token.ThrowIfCancellationRequested ();
+						tcs.SetResult (new SoftOperationResult (endInvokeResult.Result, false, endInvokeResult.OutArgs));
 					}
-					handle = invocableMirror.BeginInvokeMethod (ctx.Thread, function, args, optionsToInvoke, null, null);
-				}
-				else
-					throw new ArgumentException ("Soft debugger method calls cannot be invoked on objects of type " + obj.GetType ().Name);
-			} catch (InvocationException ex) {
-				ctx.Session.StackVersion++;
-				exception = ex;
-			} catch (Exception ex) {
-				ctx.Session.StackVersion++;
-				DebuggerLoggingService.LogError ("Error in soft debugger method call thread on " + GetInfo (), ex);
-				exception = ex;
+					catch (InvocationException ex) {
+						// throw OCE if cancelled
+						token.ThrowIfCancellationRequested ();
+						if (ex.Exception != null) {
+							tcs.SetResult (new SoftOperationResult (ex.Exception, true, null));
+						}
+						else {
+							tcs.SetException (new EvaluatorException ("Target method has thrown an exception but the exception object is inaccessible"));
+						}
+					}
+					catch (Exception e) {
+						tcs.SetException (e);
+					}
+					finally {
+						UpdateSessionState ();
+					}
+				}, null);
+				return tcs.Task;
+			} catch (Exception) {
+				UpdateSessionState ();
+				throw;
 			}
 		}
 
-		public override void Abort ()
+		void UpdateSessionState ()
 		{
-			if (handle is IInvokeAsyncResult) {
-				var info = GetInfo ();
-				DebuggerLoggingService.LogMessage ("Aborting invocation of " + info);
-				((IInvokeAsyncResult) handle).Abort ();
-				// Don't wait for the abort to finish. The engine will do it.
-			} else {
-				throw new NotSupportedException ();
-			}
-		}
-		
-		public override void Shutdown ()
-		{
-			shutdownEvent.Set ();
-		}
-		
-		void EndInvoke ()
-		{
-			try {
-				result = ((IInvocableMethodOwnerMirror) obj).EndInvokeMethodWithResult (handle);
-			} catch (InvocationException ex) {
-				if (!Aborting && ex.Exception != null) {
-					string ename = ctx.Adapter.GetValueTypeName (ctx, ex.Exception);
-					var vref = ctx.Adapter.GetMember (ctx, null, ex.Exception, "Message");
-
-					exception = vref != null ? new Exception (ename + ": " + (string) vref.ObjectValue) : new Exception (ename);
-					return;
-				}
-				exception = ex;
-			} catch (Exception ex) {
-				DebuggerLoggingService.LogError ("Error in soft debugger method call thread on " + GetInfo (), ex);
-				exception = ex;
-			} finally {
-				ctx.Session.StackVersion++;
-			}
-		}
-		
-		string GetInfo ()
-		{
-			try {
-				TypeMirror type = null;
-				if (obj is ObjectMirror)
-					type = ((ObjectMirror)obj).Type;
-				else if (obj is TypeMirror)
-					type = (TypeMirror)obj;
-				else if (obj is StructMirror)
-					type = ((StructMirror)obj).Type;
-				return string.Format ("method {0} on object {1}",
-				                      function == null? "[null]" : function.FullName,
-				                      type == null? "[null]" : type.FullName);
-			} catch (Exception ex) {
-				DebuggerLoggingService.LogError ("Error getting info for SDB MethodCall", ex);
-				return "";
-			}
+			ctx.Session.StackVersion++;
 		}
 
-		public override bool WaitForCompleted (int timeout)
+		protected override void CancelImpl ()
 		{
-			if (handle == null)
-				return true;
-			int res = WaitHandle.WaitAny (new WaitHandle[] { handle.AsyncWaitHandle, shutdownEvent }, timeout); 
-			if (res == 0) {
-				EndInvoke ();
-				return true;
+			if (invokeAsyncResult == null) {
+				DebuggerLoggingService.LogError ("invokeAsyncResult is null", new ArgumentNullException ("invokeAsyncResult"));
+				return;
 			}
-			// Return true if shut down.
-			return res == 1;
-		}
-
-		public Value ReturnValue {
-			get {
-				if (exception != null)
-					throw new EvaluatorException (exception.Message);
-				return result.Result;
-			}
-		}
-
-		public Value[] OutArgs {
-			get {
-				if (exception != null)
-					throw new EvaluatorException (exception.Message);
-				return result.OutArgs;
-			}
+			invokeAsyncResult.Abort ();
 		}
 	}
 }

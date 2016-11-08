@@ -1328,9 +1328,9 @@ namespace Mono.Debugging.Evaluation
 			return display.ToString ();
 		}
 
-		public void AsyncExecute (AsyncOperation operation, int timeout)
+		public OperationResult<TValue> InvokeSync<TValue> (AsyncOperationBase<TValue> operation, int timeout)
 		{
-			asyncOperationManager.Invoke (operation, timeout);
+			return asyncOperationManager.Invoke (operation, timeout);
 		}
 
 		public ObjectValue CreateObjectValueAsync (string name, ObjectValueFlags flags, ObjectEvaluatorDelegate evaluator)
@@ -1364,7 +1364,7 @@ namespace Mono.Debugging.Evaluation
 			} catch (EvaluatorException ex) {
 				return ObjectValue.CreateError (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message, ObjectValueFlags.None);
 			} catch (Exception ex) {
-				ctx.WriteDebuggerError (ex);
+				DebuggerLoggingService.LogError ("Exception in GetExpressionValue()", ex);
 				return ObjectValue.CreateUnknown (exp);
 			}
 		}

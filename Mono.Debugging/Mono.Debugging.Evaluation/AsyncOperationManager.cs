@@ -27,215 +27,172 @@
 
 using System;
 using System.Collections.Generic;
-using ST = System.Threading;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Evaluation
 {
-	public class AsyncOperationManager: IDisposable
+	public class AsyncOperationManager : IDisposable
 	{
-		readonly List<AsyncOperation> operationsToCancel = new List<AsyncOperation> ();
-		readonly object operationsSync = new object ();
-
-		internal bool Disposing;
-
-		public void Invoke (AsyncOperation methodCall, int timeout)
+		class OperationData
 		{
-			methodCall.Aborted = false;
-			methodCall.Manager = this;
+			public IAsyncOperationBase Operation { get; private set; }
+			public CancellationTokenSource TokenSource { get; private set; }
 
-			lock (operationsSync) {
-				operationsToCancel.Add (methodCall);
-				methodCall.Invoke ();
+			public OperationData (IAsyncOperationBase operation, CancellationTokenSource tokenSource)
+			{
+				Operation = operation;
+				TokenSource = tokenSource;
 			}
+		}
 
-			if (timeout > 0) {
-				if (!methodCall.WaitForCompleted (timeout)) {
-					bool wasAborted = methodCall.Aborted;
-					methodCall.InternalAbort ();
-					lock (operationsSync) {
-						operationsToCancel.Remove (methodCall);
-					}
-					if (wasAborted)
-						throw new EvaluatorAbortedException ();
-					else
-						throw new TimeOutException ();
+		readonly HashSet<OperationData> currentOperations = new HashSet<OperationData> ();
+		bool disposed = false;
+		const int ShortCancelTimeout = 100;
+		const int LongCancelTimeout = 1000;
+
+		static bool IsOperationCancelledException (Exception e, int depth = 4)
+		{
+			if (e is OperationCanceledException)
+				return true;
+			var aggregateException = e as AggregateException;
+
+			if (depth > 0 && aggregateException != null) {
+				foreach (var innerException in aggregateException.InnerExceptions) {
+					if (IsOperationCancelledException (innerException, depth - 1))
+						return true;
 				}
 			}
-			else {
-				methodCall.WaitForCompleted (System.Threading.Timeout.Infinite);
+			return false;
+		}
+
+		public OperationResult<TValue> Invoke<TValue> (AsyncOperationBase<TValue> mc, int timeout)
+		{
+			if (timeout <= 0)
+				throw new ArgumentOutOfRangeException("timeout", timeout, "timeout must be greater than 0");
+
+			Task<OperationResult<TValue>> task;
+			var description = mc.Description;
+			var cts = new CancellationTokenSource ();
+			var operationData = new OperationData (mc, cts);
+			lock (currentOperations) {
+				if (disposed)
+					throw new ObjectDisposedException ("Already disposed");
+				DebuggerLoggingService.LogMessage (string.Format("Starting invoke for {0}", description));
+				task = mc.InvokeAsync (cts.Token);
+				currentOperations.Add (operationData);
 			}
 
-			lock (operationsSync) {
-				operationsToCancel.Remove (methodCall);
-				if (methodCall.Aborted) {
+			bool cancelledAfterTimeout = false;
+			try {
+				if (task.Wait (timeout)) {
+					DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} succeeded in {1} ms", description, timeout));
+					return task.Result;
+				}
+				DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} timed out after {1} ms. Cancelling.", description, timeout));
+				cts.Cancel ();
+				try {
+					WaitAfterCancel (mc);
+				}
+				catch (Exception e) {
+					if (IsOperationCancelledException (e)) {
+						DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} was cancelled after timeout", description));
+						cancelledAfterTimeout = true;
+					}
+					throw;
+				}
+				DebuggerLoggingService.LogMessage (string.Format ("{0} cancelling timed out", description));
+				throw new TimeOutException ();
+			}
+			catch (Exception e) {
+				if (IsOperationCancelledException (e)) {
+					if (cancelledAfterTimeout)
+						throw new TimeOutException ();
+					DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} was cancelled outside before timeout", description));
 					throw new EvaluatorAbortedException ();
 				}
+				throw;
 			}
-
-			if (!string.IsNullOrEmpty (methodCall.ExceptionMessage)) {
-				throw new Exception (methodCall.ExceptionMessage);
-			}
-		}
-		
-		public void Dispose ()
-		{
-			Disposing = true;
-			lock (operationsSync) {
-				foreach (AsyncOperation op in operationsToCancel) {
-					op.InternalShutdown ();
+			finally {
+				lock (currentOperations) {
+					currentOperations.Remove (operationData);
 				}
-				operationsToCancel.Clear ();
 			}
 		}
+
+
+		public event EventHandler<BusyStateEventArgs> BusyStateChanged = delegate {  };
+
+		void WaitAfterCancel (IAsyncOperationBase op)
+		{
+			var desc = op.Description;
+			DebuggerLoggingService.LogMessage (string.Format ("Waiting for cancel of invoke {0}", desc));
+			try {
+				if (!op.RawTask.Wait (ShortCancelTimeout)) {
+					try {
+						BusyStateChanged (this, new BusyStateEventArgs {IsBusy = true, Description = desc});
+						op.RawTask.Wait (LongCancelTimeout);
+					}
+					finally {
+						BusyStateChanged (this, new BusyStateEventArgs {IsBusy = false, Description = desc});
+					}
+				}
+			}
+			finally {
+				DebuggerLoggingService.LogMessage (string.Format ("Calling AfterCancelled() for {0}", desc));
+				op.AfterCancelled (ShortCancelTimeout + LongCancelTimeout);
+			}
+		}
+
 
 		public void AbortAll ()
 		{
-			lock (operationsSync) {
-				foreach (AsyncOperation op in operationsToCancel)
-					op.InternalAbort ();
+			DebuggerLoggingService.LogMessage ("Aborting all the current invocations");
+			List<OperationData> copy;
+			lock (currentOperations) {
+				if (disposed) throw new ObjectDisposedException ("Already disposed");
+				copy = currentOperations.ToList ();
+				currentOperations.Clear ();
 			}
-		}
-		
-		public void EnterBusyState (AsyncOperation oper)
-		{
-			BusyStateEventArgs args = new BusyStateEventArgs ();
-			args.IsBusy = true;
-			args.Description = oper.Description;
-			if (BusyStateChanged != null)
-				BusyStateChanged (this, args);
-		}
-		
-		public void LeaveBusyState (AsyncOperation oper)
-		{
-			BusyStateEventArgs args = new BusyStateEventArgs ();
-			args.IsBusy = false;
-			args.Description = oper.Description;
-			if (BusyStateChanged != null)
-				BusyStateChanged (this, args);
-		}
-		
-		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
-	}
 
-	public abstract class AsyncOperation
-	{
-		internal bool Aborted;
-		internal AsyncOperationManager Manager;
-		
-		public bool Aborting { get; internal set; }
-		
-		internal void InternalAbort ()
+			CancelOperations (copy, true);
+		}
+
+		void CancelOperations (List<OperationData> operations, bool wait)
 		{
-			ST.Monitor.Enter (this);
-			if (Aborted) {
-				ST.Monitor.Exit (this);
-				return;
-			}
-			
-			if (Aborting) {
-				// Somebody else is aborting this. Just wait for it to finish.
-				ST.Monitor.Exit (this);
-				WaitForCompleted (ST.Timeout.Infinite);
-				return;
-			}
-			
-			Aborting = true;
-			
-			int abortState = 0;
-			int abortRetryWait = 100;
-			bool abortRequested = false;
-			
-			do {
-				if (abortState > 0)
-					ST.Monitor.Enter (this);
-				
+			foreach (var operationData in operations) {
+				var taskDescription = operationData.Operation.Description;
 				try {
-					if (!Aborted && !abortRequested) {
-						// The Abort() call doesn't block. WaitForCompleted is used below to wait for the abort to succeed
-						Abort ();
-						abortRequested = true;
-					}
-					// Short wait for the Abort to finish. If this wait is not enough, it will wait again in the next loop
-					if (WaitForCompleted (100)) {
-						ST.Monitor.Exit (this);
-						break;
-					}
-				} catch {
-					// If abort fails, try again after a short wait
-				}
-				abortState++;
-				if (abortState == 6) {
-					// Several abort calls have failed. Inform the user that the debugger is busy
-					abortRetryWait = 500;
-					try {
-						Manager.EnterBusyState (this);
-					} catch (Exception ex) {
-						Console.WriteLine (ex);
+					operationData.TokenSource.Cancel ();
+					if (wait) {
+						WaitAfterCancel (operationData.Operation);
 					}
 				}
-				ST.Monitor.Exit (this);
-			} while (!Aborted && !WaitForCompleted (abortRetryWait) && !Manager.Disposing);
-			
-			if (Manager.Disposing) {
-				InternalShutdown ();
-			}
-			else {
-				lock (this) {
-					Aborted = true;
-					if (abortState >= 6)
-						Manager.LeaveBusyState (this);
+				catch (Exception e) {
+					if (IsOperationCancelledException (e)) {
+						DebuggerLoggingService.LogMessage (string.Format ("Invocation of {0} cancelled in CancelOperations()", taskDescription));
+					}
+					else {
+						DebuggerLoggingService.LogError (string.Format ("Invocation of {0} thrown an exception in CancelOperations()", taskDescription), e);
+					}
 				}
 			}
 		}
-		
-		internal void InternalShutdown ()
+
+
+		public void Dispose ()
 		{
-			lock (this) {
-				if (Aborted)
-					return;
-				try {
-					Aborted = true;
-					Shutdown ();
-				} catch {
-					// Ignore
-				}
+			List<OperationData> copy;
+			lock (currentOperations) {
+				if (disposed) throw new ObjectDisposedException ("Already disposed");
+				disposed = true;
+				copy = currentOperations.ToList ();
+				currentOperations.Clear ();
 			}
+			// don't wait on dispose
+			CancelOperations (copy, wait: false);
 		}
-		
-		/// <summary>
-		/// Message of the exception, if the execution failed. 
-		/// </summary>
-		public string ExceptionMessage { get; set; }
-
-		/// <summary>
-		/// Returns a short description of the operation, to be shown in the Debugger Busy Dialog
-		/// when it blocks the execution of the debugger. 
-		/// </summary>
-		public abstract string Description { get; }
-		
-		/// <summary>
-		/// Called to invoke the operation. The execution must be asynchronous (it must return immediatelly).
-		/// </summary>
-		public abstract void Invoke ( );
-
-		/// <summary>
-		/// Called to abort the execution of the operation. It has to throw an exception
-		/// if the operation can't be aborted. This operation must not block. The engine
-		/// will wait for the operation to be aborted by calling WaitForCompleted.
-		/// </summary>
-		public abstract void Abort ();
-
-		/// <summary>
-		/// Waits until the operation has been completed or aborted.
-		/// </summary>
-		public abstract bool WaitForCompleted (int timeout);
-		
-		/// <summary>
-		/// Called when the debugging session has been disposed.
-		/// I must cause any call to WaitForCompleted to exit, even if the operation
-		/// has not been completed or can't be aborted.
-		/// </summary>
-		public abstract void Shutdown ();
 	}
 }

@@ -41,7 +41,7 @@ namespace Mono.Debugging.Evaluation
 	/// will then be made asynchronous and the Run method will immediately return an ObjectValue
 	/// with the Evaluating state.
 	/// </summary>
-	public class AsyncEvaluationTracker: RemoteFrameObject, IObjectValueUpdater, IDisposable
+	public class AsyncEvaluationTracker: IObjectValueUpdater, IDisposable
 	{
 		Dictionary<string, UpdateCallback> asyncCallbacks = new Dictionary<string, UpdateCallback> ();
 		Dictionary<string, ObjectValue> asyncResults = new Dictionary<string, ObjectValue> ();
