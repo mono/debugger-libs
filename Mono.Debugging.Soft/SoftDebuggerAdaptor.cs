@@ -1705,7 +1705,7 @@ namespace Mono.Debugging.Soft
 
 			try {
 				lock (cctor.VirtualMachine) {
-					tm.InvokeMethod (soft.Thread, cctor, new Value [0], InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded);
+					ObjectMirror.InvokeMethod(tm, soft.Thread, cctor, new Value [0], InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded);
 				}
 			} catch {
 				return false;
@@ -2118,7 +2118,7 @@ namespace Mono.Debugging.Soft
 
 						try {
 							lock (method.VirtualMachine) {
-								array = sm.Type.InvokeMethod (soft.Thread, method, new [] { sm }, InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded) as ArrayMirror;
+								array =  ObjectMirror.InvokeMethod(sm.Type, soft.Thread, method, new [] { sm }, InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded) as ArrayMirror;
 							}
 						} catch {
 							array = null;
@@ -2202,14 +2202,14 @@ namespace Mono.Debugging.Soft
 		public override void Invoke ()
 		{
 			try {
-				if (obj is ObjectMirror)
-					handle = ((ObjectMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
-				else if (obj is TypeMirror)
-					handle = ((TypeMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
-				else if (obj is StructMirror)
-					handle = ((StructMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options | InvokeOptions.ReturnOutThis, null, null);
-				else if (obj is PrimitiveValue)
-					handle = ((PrimitiveValue)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
+				var invocableMirror = obj as IInvocableMethodOwnerMirror;
+				if (invocableMirror != null) {
+					var optionsToInvoke = options;
+					if (obj is StructMirror) {
+						optionsToInvoke |= InvokeOptions.ReturnOutThis;
+					}
+					handle = ObjectMirror.BeginInvokeMethod (invocableMirror, ctx.Thread, function, args, optionsToInvoke, null, null);
+				}
 				else
 					throw new ArgumentException ("Soft debugger method calls cannot be invoked on objects of type " + obj.GetType ().Name);
 			} catch (InvocationException ex) {
@@ -2242,14 +2242,7 @@ namespace Mono.Debugging.Soft
 		void EndInvoke ()
 		{
 			try {
-				if (obj is ObjectMirror)
-					result = ((ObjectMirror)obj).EndInvokeMethodWithResult (handle);
-				else if (obj is TypeMirror)
-					result = ((TypeMirror)obj).EndInvokeMethodWithResult (handle);
-				else if (obj is StructMirror)
-					result = ((StructMirror)obj).EndInvokeMethodWithResult (handle);
-				else
-					result = ((PrimitiveValue)obj).EndInvokeMethodWithResult (handle);
+				result = ObjectMirror.EndInvokeMethodWithResult ((IInvocableMethodOwnerMirror) obj, handle);
 			} catch (InvocationException ex) {
 				if (!Aborting && ex.Exception != null) {
 					string ename = ctx.Adapter.GetValueTypeName (ctx, ex.Exception);
