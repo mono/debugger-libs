@@ -1705,7 +1705,7 @@ namespace Mono.Debugging.Soft
 
 			try {
 				lock (cctor.VirtualMachine) {
-					ObjectMirror.InvokeMethod(tm, soft.Thread, cctor, new Value [0], InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded);
+					tm.InvokeMethod(soft.Thread, cctor, new Value [0], InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded);
 				}
 			} catch {
 				return false;
@@ -2118,7 +2118,7 @@ namespace Mono.Debugging.Soft
 
 						try {
 							lock (method.VirtualMachine) {
-								array =  ObjectMirror.InvokeMethod(sm.Type, soft.Thread, method, new [] { sm }, InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded) as ArrayMirror;
+								array =  sm.Type.InvokeMethod(soft.Thread, method, new [] { sm }, InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded) as ArrayMirror;
 							}
 						} catch {
 							array = null;
@@ -2208,7 +2208,7 @@ namespace Mono.Debugging.Soft
 					if (obj is StructMirror) {
 						optionsToInvoke |= InvokeOptions.ReturnOutThis;
 					}
-					handle = ObjectMirror.BeginInvokeMethod (invocableMirror, ctx.Thread, function, args, optionsToInvoke, null, null);
+					handle = invocableMirror.BeginInvokeMethod (ctx.Thread, function, args, optionsToInvoke, null, null);
 				}
 				else
 					throw new ArgumentException ("Soft debugger method calls cannot be invoked on objects of type " + obj.GetType ().Name);
@@ -2242,7 +2242,7 @@ namespace Mono.Debugging.Soft
 		void EndInvoke ()
 		{
 			try {
-				result = ObjectMirror.EndInvokeMethodWithResult ((IInvocableMethodOwnerMirror) obj, handle);
+				result = ((IInvocableMethodOwnerMirror) obj).EndInvokeMethodWithResult (handle);
 			} catch (InvocationException ex) {
 				if (!Aborting && ex.Exception != null) {
 					string ename = ctx.Adapter.GetValueTypeName (ctx, ex.Exception);

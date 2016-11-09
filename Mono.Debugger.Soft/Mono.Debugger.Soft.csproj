@@ -70,6 +70,7 @@
     <Compile Include="Mono.Debugger.Soft\InterfaceMappingMirror.cs" />
     <Compile Include="Mono.Debugger.Soft\InvalidStackFrameException.cs" />
     <Compile Include="Mono.Debugger.Soft\InvocationException.cs" />
+    <Compile Include="Mono.Debugger.Soft\InvocationsAPI.cs" />
     <Compile Include="Mono.Debugger.Soft\InvokeOptions.cs" />
     <Compile Include="Mono.Debugger.Soft\ITargetProcess.cs" />
     <Compile Include="Mono.Debugger.Soft\LocalVariable.cs" />
