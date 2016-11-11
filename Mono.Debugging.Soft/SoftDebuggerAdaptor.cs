@@ -722,7 +722,7 @@ namespace Mono.Debugging.Soft
 				var i = field.Name.IndexOf (">__", StringComparison.Ordinal);
 				if (i != -1 && field.VirtualMachine.Version.AtLeast (2, 43)) {
 					int scopeIndex;
-					if (int.TryParse (field.Name.Substring (i + 3), out scopeIndex)) {
+					if (int.TryParse (field.Name.Substring (i + 3), out scopeIndex) && scopeIndex > 0) {//0 means whole method scope
 						scopeIndex--;//Scope index is 1 based(not zero)
 						var scopes = cx.Frame.Method.GetScopes ();
 						if (scopeIndex < scopes.Length) {
