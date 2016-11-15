@@ -148,10 +148,16 @@ namespace Mono.Debugging.Evaluation
 			ObjectValue stackTraceValue;
 			if (withTimeout) {
 				stackTraceValue = ctx.Adapter.CreateObjectValueAsync ("StackTrace", ObjectValueFlags.None, delegate {
-					return GetStackTrace (options, exceptionType);
+					var stackTrace = ctx.Adapter.GetMember (ctx, Exception, exceptionType, Exception.Value, "StackTrace");
+					if (stackTrace == null)
+						return ObjectValue.CreateUnknown ("StackTrace");
+					return GetStackTrace (stackTrace.ObjectValue as string);
 				});
 			} else {
-				stackTraceValue = GetStackTrace (options, exceptionType);
+				var stackTrace = ctx.Adapter.GetMember (ctx, Exception, exceptionType, Exception.Value, "StackTrace");
+				if (stackTrace == null)
+					return ObjectValue.CreateUnknown ("StackTrace");
+				stackTraceValue = GetStackTrace (stackTrace.ObjectValue as string);
 			}
 
 			var children = new ObjectValue [] { excInstance, messageValue, stackTraceValue, childExceptionValue, childExceptionsValue };
@@ -159,13 +165,8 @@ namespace Mono.Debugging.Evaluation
 			return ObjectValue.CreateObject (null, new ObjectPath ("InnerException"), type, "", ObjectValueFlags.None, children);
 		}
 
-		ObjectValue GetStackTrace (EvaluationOptions options, object exceptionType)
+		public static ObjectValue GetStackTrace (string trace)
 		{
-			var stackTrace = ctx.Adapter.GetMember (ctx, Exception, exceptionType, Exception.Value, "StackTrace");
-			if (stackTrace == null)
-				return ObjectValue.CreateUnknown ("StackTrace");
-
-			string trace = stackTrace.ObjectValue as string;
 			if (trace == null)
 				return ObjectValue.CreateUnknown ("StackTrace");
 
@@ -174,7 +175,7 @@ namespace Mono.Debugging.Evaluation
 			var frames = new List<ObjectValue> ();
 
 			foreach (var sframe in trace.Split ('\n')) {
-				string text = sframe.Trim (' ', '\r', '\t');
+				string text = sframe.Trim (' ', '\r', '\t', '"');
 				string file = "";
 				int column = 0;
 				int line = 0;
