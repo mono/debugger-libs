@@ -61,6 +61,7 @@
     <Compile Include="Mono.Debugger.Soft\ExceptionEvent.cs" />
     <Compile Include="Mono.Debugger.Soft\ExceptionEventRequest.cs" />
     <Compile Include="Mono.Debugger.Soft\FieldInfoMirror.cs" />
+    <Compile Include="Mono.Debugger.Soft\IInvocableMethodOwnerMirror.cs" />
     <Compile Include="Mono.Debugger.Soft\IInvokeAsyncResult.cs" />
     <Compile Include="Mono.Debugger.Soft\ILExceptionHandler.cs" />
     <Compile Include="Mono.Debugger.Soft\ILInstruction.cs" />
@@ -69,6 +70,7 @@
     <Compile Include="Mono.Debugger.Soft\InterfaceMappingMirror.cs" />
     <Compile Include="Mono.Debugger.Soft\InvalidStackFrameException.cs" />
     <Compile Include="Mono.Debugger.Soft\InvocationException.cs" />
+    <Compile Include="Mono.Debugger.Soft\InvocationsAPI.cs" />
     <Compile Include="Mono.Debugger.Soft\InvokeOptions.cs" />
     <Compile Include="Mono.Debugger.Soft\ITargetProcess.cs" />
     <Compile Include="Mono.Debugger.Soft\LocalVariable.cs" />
