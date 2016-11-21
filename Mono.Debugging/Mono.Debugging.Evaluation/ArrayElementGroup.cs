@@ -226,7 +226,7 @@ namespace Mono.Debugging.Evaluation
 				var list = new List<ObjectValue> ();
 				while (i < len) {
 					int end = i + div - 1;
-					if (end > len)
+					if (end >= len)
 						end = len - 1;
 					ArrayElementGroup grp = new ArrayElementGroup (cctx, array, baseIndices, i, end);
 					list.Add (grp.CreateObjectValue ());
