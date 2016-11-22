@@ -590,7 +590,7 @@ namespace Mono.Debugging.Evaluation
 						values.Add (oval);
 					}
 				} catch (Exception ex) {
-					ctx.WriteDebuggerError (ex);
+					DebuggerLoggingService.LogError ("Exception in GetObjectValueChildren()", ex);
 					values.Add (ObjectValue.CreateError (null, new ObjectPath (val.Name), GetDisplayTypeName (GetTypeName (ctx, val.Type)), ex.Message, val.Flags));
 				}
 			}
