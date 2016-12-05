@@ -154,7 +154,10 @@ namespace Mono.Debugging.Client
 		
 		public static ObjectValue CreateImplicitNotSupported (IObjectValueSource source, ObjectPath path, string typeName, ObjectValueFlags flags)
 		{
-			return CreateNotSupported (source, path, typeName, "Implicit evaluation is disabled", flags);
+			var val = Create (source, path, typeName);
+			val.flags = flags | ObjectValueFlags.ImplicitNotSupported;
+			val.value = "Implicit evaluation is disabled";
+			return val;
 		}
 		
 		public static ObjectValue CreateNotSupported (IObjectValueSource source, ObjectPath path, string typeName, string message, ObjectValueFlags flags)
@@ -681,19 +684,23 @@ namespace Mono.Debugging.Client
 		public bool IsUnknown {
 			get { return HasFlag (ObjectValueFlags.Unknown); }
 		}
-		
+
 		public bool IsNotSupported {
 			get { return HasFlag (ObjectValueFlags.NotSupported); }
+		}
+
+		public bool IsImplicitNotSupported {
+			get { return HasFlag (ObjectValueFlags.ImplicitNotSupported); }
 		}
 		
 		public bool IsError {
 			get { return HasFlag (ObjectValueFlags.Error); }
 		}
-		
+
 		public bool IsEvaluating {
 			get { return HasFlag (ObjectValueFlags.Evaluating); }
 		}
-		
+
 		public bool IsEvaluatingGroup {
 			get { return HasFlag (ObjectValueFlags.EvaluatingGroup); }
 		}

@@ -39,6 +39,7 @@ namespace Mono.Debugging.Client
 		Error = 1 << 4,         // The expression evaluation returned an error
 		NotSupported = 1 << 5,  // The expression is valid but its evaluation is not supported
 		Evaluating = 1 << 6,    // The expression is being evaluated. The value will be updated when done.
+		ImplicitNotSupported = 1 << 7,    // The expression is valid but it can't be performed implicitly.
 		KindMask = 0x000000ff,
 		
 		Field = 1 << 8,
