@@ -564,7 +564,7 @@ namespace Mono.Debugging.Evaluation
 		public ValueReference VisitAssignmentExpression (AssignmentExpression assignmentExpression)
 		{
 			if (!options.AllowMethodEvaluation)
-				throw NotSupported ();
+				throw new ImplicitEvaluationDisabledException ();
 
 			var left = assignmentExpression.Left.AcceptVisitor<ValueReference> (this);
 
@@ -793,7 +793,7 @@ namespace Mono.Debugging.Evaluation
 		public ValueReference VisitInvocationExpression (InvocationExpression invocationExpression)
 		{
 			if (!options.AllowMethodEvaluation)
-				throw NotSupported ();
+				throw new ImplicitEvaluationDisabledException ();
 
 			bool invokeBaseMethod = false;
 			ValueReference target = null;
