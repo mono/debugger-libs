@@ -1442,7 +1442,13 @@ namespace Mono.Debugging.Soft
 						req.Filter |= StepFilter.DebuggerNonUserCode;
 					if (assemblyFilters != null && assemblyFilters.Count > 0)
 						req.AssemblyFilter = assemblyFilters;
-					req.Enabled = true;
+					try {
+						req.Enabled = true;
+					}
+					catch (NotSupportedException e) {
+						if (vm.Version.AtLeast (2, 19)) //catch NotSupportedException thrown by old version of protocol
+							throw e;
+					}
 					currentStepRequest = req;
 					OnResumed ();
 					vm.Resume ();
