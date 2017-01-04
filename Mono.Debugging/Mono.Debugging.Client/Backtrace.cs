@@ -21,9 +21,9 @@ namespace Mono.Debugging.Client
 			
 			count = serverBacktrace.FrameCount;
 
-			// Get some initial frames
+			// Get first frame, which is most used(for thread location)
 			if (count > 0)
-				GetFrame (0);
+				GetFrame (0, 1);
 		}
 		
 		internal void Attach (DebuggerSession session)
@@ -45,11 +45,16 @@ namespace Mono.Debugging.Client
 
 		public StackFrame GetFrame (int n)
 		{
+			return GetFrame (n, 20);
+		}
+
+		private StackFrame GetFrame(int index, int fetchMultipleCount)
+		{
 			if (frames == null)
 				frames = new List<StackFrame>();
 
-			if (n >= frames.Count) {
-				StackFrame[] newSet = serverBacktrace.GetStackFrames(frames.Count, n + 20);
+			if (index >= frames.Count) {
+				StackFrame[] newSet = serverBacktrace.GetStackFrames(frames.Count, index + fetchMultipleCount);
 				foreach (StackFrame sf in newSet) {
 					sf.SourceBacktrace = serverBacktrace;
 					sf.Index = frames.Count;
@@ -59,7 +64,7 @@ namespace Mono.Debugging.Client
 			}
 			
 			if (frames.Count > 0)
-				return frames[System.Math.Min (System.Math.Max (0, n), frames.Count - 1)];
+				return frames[System.Math.Min (System.Math.Max (0, index), frames.Count - 1)];
 
 			return null;
 		}

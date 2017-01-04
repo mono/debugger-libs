@@ -33,9 +33,9 @@ namespace Mono.Debugging.Client
 	{
 		bool allowMethodEvaluation;
 		bool allowToStringCalls;
-		
-		public static readonly char Ellipsis = '…';
-		
+
+		public const char Ellipsis = '…';
+
 		public static EvaluationOptions DefaultOptions {
 			get {
 				EvaluationOptions ops = new EvaluationOptions ();
@@ -53,57 +53,94 @@ namespace Mono.Debugging.Client
 				ops.EllipsizeStrings = true;
 				ops.EllipsizedLength = 100;
 				ops.ChunkRawStrings = false;
+				ops.StackFrameFormat = new StackFrameFormat ();
 				return ops;
 			}
 		}
-		
+
 		public EvaluationOptions Clone ()
 		{
-			return (EvaluationOptions) MemberwiseClone ();
+			var clone = (EvaluationOptions)MemberwiseClone ();
+			clone.StackFrameFormat = new StackFrameFormat (StackFrameFormat);
+			return clone;
 		}
-		
+
 		public bool ChunkRawStrings { get; set; }
-		
+
 		public bool EllipsizeStrings { get; set; }
 		public int EllipsizedLength { get; set; }
-		
+
 		public int EvaluationTimeout { get; set; }
 		public int MemberEvaluationTimeout { get; set; }
 		public bool AllowTargetInvoke { get; set; }
-		
+
 		public bool AllowMethodEvaluation {
 			get { return allowMethodEvaluation && AllowTargetInvoke; }
 			set { allowMethodEvaluation = value; }
 		}
-		
+
 		public bool AllowToStringCalls {
 			get { return allowToStringCalls && AllowTargetInvoke; }
 			set { allowToStringCalls = value; }
 		}
-		
+
 		public bool AllowDisplayStringEvaluation {
 			get { return AllowTargetInvoke; }
 		}
-		
+
 		public bool AllowDebuggerProxy {
 			get { return AllowTargetInvoke; }
 		}
-		
+
 		public bool FlattenHierarchy { get; set; }
-		
+
 		public bool GroupPrivateMembers { get; set; }
-		
+
 		public bool GroupStaticMembers { get; set; }
-		
+
 		public bool UseExternalTypeResolver { get; set; }
-		
+
 		public IntegerDisplayFormat IntegerDisplayFormat { get; set; }
-		
+
 		public string CurrentExceptionTag { get; set; }
 
 		public bool IEnumerable { get; set; }
+
+		public StackFrameFormat StackFrameFormat { get; set; }
 	}
-	
+
+	public class StackFrameFormat
+	{
+		public bool Line { get; set; } = true;
+
+		public bool Module { get; set; } = false;
+
+		public bool ParameterNames { get; set; } = true;
+
+		public bool ParameterTypes { get; set; } = true;
+
+		public bool ParameterValues { get; set; } = false;
+
+		/// <summary>
+		/// Default is null. Which means do same as "ProjectAssembliesOnly" setting.
+		/// </summary>
+		public bool? ExternalCode { get; set; } = null;
+
+		public StackFrameFormat ()
+		{
+		}
+
+		public StackFrameFormat (StackFrameFormat copy)
+		{
+			Line = copy.Line;
+			Module = copy.Module;
+			ParameterNames = copy.ParameterNames;
+			ParameterTypes = copy.ParameterTypes;
+			ParameterValues = copy.ParameterValues;
+			ExternalCode = copy.ExternalCode;
+		}
+	}
+
 	public enum IntegerDisplayFormat
 	{
 		Decimal,

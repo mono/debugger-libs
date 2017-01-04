@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Mono.Debugging.Backend;
 
 namespace Mono.Debugging.Client
@@ -114,6 +115,57 @@ namespace Mono.Debugging.Client
 		
 		public string FullTypeName {
 			get { return fullTypeName; }
+		}
+
+		/// <summary>
+		/// Gets the full name of the stackframe. Which respects Session.EvaluationOptions.StackFrameFormat
+		/// </summary>
+		public virtual string FullStackframeText {
+			get {
+				var methodNameBuilder = new StringBuilder (this.SourceLocation.MethodName);
+				var options = session.EvaluationOptions.Clone ();
+				if (options.StackFrameFormat.ParameterValues) {
+					options.AllowMethodEvaluation = true;
+					options.AllowToStringCalls = true;
+					options.AllowTargetInvoke = true;
+				} else {
+					options.AllowMethodEvaluation = false;
+					options.AllowToStringCalls = false;
+					options.AllowTargetInvoke = false;
+				}
+
+				var args = this.GetParameters (options);
+
+				//MethodName starting with "["... it's something like [ExternalCode]
+				if (!this.SourceLocation.MethodName.StartsWith ("[", StringComparison.Ordinal)) {
+					if (options.StackFrameFormat.Module && !string.IsNullOrEmpty (this.FullModuleName)) {
+						methodNameBuilder.Insert (0, System.IO.Path.GetFileName (this.FullModuleName) + "!");
+					}
+					if (options.StackFrameFormat.ParameterTypes || options.StackFrameFormat.ParameterNames || options.StackFrameFormat.ParameterValues) {
+						methodNameBuilder.Append ("(");
+						for (int n = 0; n < args.Length; n++) {
+							if (n > 0)
+								methodNameBuilder.Append (", ");
+							if (options.StackFrameFormat.ParameterTypes) {
+								methodNameBuilder.Append (args [n].TypeName);
+								if (options.StackFrameFormat.ParameterNames)
+									methodNameBuilder.Append (" ");
+							}
+							if (options.StackFrameFormat.ParameterNames)
+								methodNameBuilder.Append (args [n].Name);
+							if (options.StackFrameFormat.ParameterValues) {
+								if (options.StackFrameFormat.ParameterTypes || options.StackFrameFormat.ParameterNames)
+									methodNameBuilder.Append (" = ");
+								var val = args [n].Value ?? "";
+								methodNameBuilder.Append (val.Replace ("\r\n", " ").Replace ("\n", " "));
+							}
+						}
+						methodNameBuilder.Append (")");
+					}
+				}
+
+				return methodNameBuilder.ToString ();
+			}
 		}
 		
 		public ObjectValue[] GetLocalVariables ()
