@@ -1920,7 +1920,16 @@ namespace Mono.Debugging.Soft
 			var asm = events [0].Assembly;
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyUnloadEvents for multiple assemblies");
-			
+
+			string assemblyLocation;
+			try {
+				assemblyLocation = asm.Location;
+			} catch (CommandException ex) {
+				if (ex.ErrorCode != ErrorCode.ERR_UNLOADED)
+					throw ex;
+				assemblyLocation = null;
+			}
+
 			if (assemblyFilters != null) {
 				int index = assemblyFilters.IndexOf (asm);
 				if (index != -1)
@@ -1962,10 +1971,12 @@ namespace Mono.Debugging.Soft
 				}
 			}
 
-			foreach (var pair in source_to_type) {
-				pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, asm.Location));
+			if (assemblyLocation != null) {
+				foreach (var pair in source_to_type) {
+					pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, assemblyLocation));
+				}
 			}
-			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", asm.Location));
+			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", assemblyLocation ?? "<unknown>"));
 		}
 
 		void HandleVMStartEvents (VMStartEvent[] events)
