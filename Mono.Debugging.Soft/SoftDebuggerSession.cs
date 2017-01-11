@@ -647,7 +647,7 @@ namespace Mono.Debugging.Soft
 
 		protected override void OnDetach ()
 		{
-			throw new NotSupportedException ();
+			vm.Detach ();
 		}
 
 		protected override void OnExit ()
