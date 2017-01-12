@@ -35,6 +35,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 
 using Mono.Debugger.Soft;
+using Mono.Debugging.Backend;
 using Mono.Debugging.Evaluation;
 using Mono.Debugging.Client;
 
@@ -1239,6 +1240,16 @@ namespace Mono.Debugging.Soft
 			
 			childTypes = new string [types.Count];
 			types.CopyTo (childTypes);
+		}
+
+		protected override ObjectValue CreateObjectValueImpl (EvaluationContext ctx, IObjectValueSource source, ObjectPath path, object obj, ObjectValueFlags flags)
+		{
+			try {
+				return base.CreateObjectValueImpl (ctx, source, path, obj, flags);
+			}
+			catch (NotSupportedException e) {
+				throw new EvaluatorException ("Evaluation failed: {0}", e.Message);
+			}
 		}
 
 		protected override IEnumerable<ValueReference> OnGetParameters (EvaluationContext ctx)
