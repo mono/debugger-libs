@@ -2796,6 +2796,10 @@ namespace Mono.Debugging.Soft
 						return true;
 					if (entry.Row == line && column >= entry.Column && entry.Column > found.ColumnNumber)
 						return true;
+					if (vm.Version.AtLeast (2, 19)) { //if version is less then 2.19, found Location will not contain info about columns
+						if (entry.Row == line && column >= entry.Column && entry.Column > found.ColumnNumber)
+							return true;
+					}
 				}
 			}
 
