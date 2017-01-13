@@ -2177,6 +2177,10 @@ namespace Mono.Debugging.Soft
 				return binfo.RunCustomBreakpointAction (bp.CustomActionId);
 			}
 
+			if ((bp.HitAction & HitAction.PrintTrace) != HitAction.None) {
+				OnTargetDebug (0, "", "Breakpoint reached: " + binfo.FileName + ":" + binfo.Location.LineNumber + Environment.NewLine);
+			}
+
 			if ((bp.HitAction & HitAction.PrintExpression) != HitAction.None) {
 				string exp = EvaluateTrace (thread, bp.TraceExpression);
 				binfo.UpdateLastTraceValue (exp);

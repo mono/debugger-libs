@@ -194,7 +194,8 @@ namespace Mono.Debugging.Client
 		None = 0x0,
 		Break = 0x1,
 		PrintExpression = 0x2,
-		CustomAction = 0x4
+		CustomAction = 0x4,
+		PrintTrace = 0x8
 	}
 	
 	public delegate bool BreakEventHitHandler (string actionId, BreakEvent be);
