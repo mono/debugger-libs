@@ -377,12 +377,18 @@ namespace Mono.Debugging.Client
 		public void Detach ()
 		{
 			lock (slock) {
-				try {
-					OnDetach ();
-				} catch (Exception ex) {
-					if (!HandleException (ex))
-						throw;
-				}
+				Dispatch (delegate {
+					try {
+						OnDetach ();
+					}
+					catch (Exception ex) {
+						if (!HandleException (ex))
+							throw;
+					}
+					finally {
+						IsConnected = false;
+					}
+				});
 			}
 		}
 		
