@@ -365,8 +365,10 @@ namespace Mono.Debugging.Client
 						OnAttachToProcess (proc.Id);
 						attached = true;
 					} catch (Exception ex) {
+						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
+						var exceptionHandled = HandleException (ex);
 						ForceExit ();
-						if (!HandleException (ex))
+						if (!exceptionHandled)
 							throw;
 					}
 				});
@@ -511,8 +513,10 @@ namespace Mono.Debugging.Client
 					try {
 						OnFinish ();
 					} catch (Exception ex) {
+						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
+						var exceptionHandled = HandleException (ex);
 						ForceExit ();
-						if (!HandleException (ex))
+						if (!exceptionHandled)
 							throw;
 					}
 				});
