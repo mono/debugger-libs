@@ -880,6 +880,8 @@ namespace Mono.Debugging.Soft
 
 			try {
 				thread.SetIP (location);
+				StackVersion++;
+				RaiseStopEvent ();
 			} catch (ArgumentException) {
 				throw new NotSupportedException ();
 			}

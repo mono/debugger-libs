@@ -960,7 +960,13 @@ namespace Mono.Debugging.Client
 			return result.Evaluator;
 		}
 		
-		
+		protected void RaiseStopEvent ()
+		{
+			EventHandler<TargetEventArgs> targetEvent = TargetEvent;
+			if (targetEvent != null)
+				targetEvent (this, new TargetEventArgs (TargetEventType.TargetStopped));
+		}
+
 		/// <summary>
 		/// Called when an expression needs to be resolved
 		/// </summary>
