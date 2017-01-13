@@ -186,7 +186,7 @@ namespace Mono.Debugging.Soft
 			} catch (NotSupportedException) {
 				AssertTargetInvokeAllowed ();
 				var threadState = Thread.ThreadState;
-				if (threadState == ThreadState.WaitSleepJoin) {
+				if ((threadState & ThreadState.WaitSleepJoin) == ThreadState.WaitSleepJoin) {
 					DC.DebuggerLoggingService.LogMessage ("Thread state before evaluation is {0}", threadState);
 					throw new EvaluatorException ("Evaluation is not allowed when the thread is in 'Wait' state");
 				}
