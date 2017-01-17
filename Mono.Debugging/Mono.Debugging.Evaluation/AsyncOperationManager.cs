@@ -51,7 +51,6 @@ namespace Mono.Debugging.Evaluation
 		readonly HashSet<OperationData> currentOperations = new HashSet<OperationData> ();
 		bool disposed = false;
 		const int ShortCancelTimeout = 100;
-		const int LongCancelTimeout = 1000;
 
 		static bool IsOperationCancelledException (Exception e, int depth = 4)
 		{
@@ -125,6 +124,16 @@ namespace Mono.Debugging.Evaluation
 
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged = delegate {  };
 
+		void ChangeBusyState (bool busy, string description)
+		{
+			try {
+				BusyStateChanged (this, new BusyStateEventArgs {IsBusy = true, Description = description});
+			}
+			catch (Exception e) {
+				DebuggerLoggingService.LogError ("Exception during ChangeBusyState", e);
+			}
+		}
+
 		void WaitAfterCancel (IAsyncOperationBase op)
 		{
 			var desc = op.Description;
@@ -132,17 +141,17 @@ namespace Mono.Debugging.Evaluation
 			try {
 				if (!op.RawTask.Wait (ShortCancelTimeout)) {
 					try {
-						BusyStateChanged (this, new BusyStateEventArgs {IsBusy = true, Description = desc});
-						op.RawTask.Wait (LongCancelTimeout);
+						ChangeBusyState (true, desc);
+						op.RawTask.Wait (Timeout.Infinite);
 					}
 					finally {
-						BusyStateChanged (this, new BusyStateEventArgs {IsBusy = false, Description = desc});
+						ChangeBusyState (false, desc);
 					}
 				}
 			}
 			finally {
 				DebuggerLoggingService.LogMessage (string.Format ("Calling AfterCancelled() for {0}", desc));
-				op.AfterCancelled (ShortCancelTimeout + LongCancelTimeout);
+				op.AfterCancelled (ShortCancelTimeout);
 			}
 		}
 

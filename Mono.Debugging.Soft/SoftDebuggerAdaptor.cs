@@ -2212,8 +2212,29 @@ namespace Mono.Debugging.Soft
 							tcs.SetException (new EvaluatorException ("Target method has thrown an exception but the exception object is inaccessible"));
 						}
 					}
+					catch (CommandException e) {
+						if (e.ErrorCode == ErrorCode.INVOKE_ABORTED) {
+							tcs.TrySetCanceled ();
+							token.ThrowIfCancellationRequested ();
+						}
+						else {
+							tcs.SetException (new EvaluatorException (e.Message));
+						}
+					}
 					catch (Exception e) {
-						tcs.SetException (e);
+						if (e is ObjectCollectedException ||
+							e is InvalidStackFrameException ||
+							e is VMNotSuspendedException ||
+							e is NotSupportedException ||
+							e is AbsentInformationException ||
+							e is ArgumentException) {
+							// user meaningfull evaluation exception -> wrap with EvaluatorException that will be properly shown in value viewer
+							tcs.SetException (new EvaluatorException (e.Message));
+						}
+						else {
+							DebuggerLoggingService.LogError ("Unexpected exception has thrown in Invocation", e);
+							tcs.SetException (e);
+						}
 					}
 					finally {
 						UpdateSessionState ();
