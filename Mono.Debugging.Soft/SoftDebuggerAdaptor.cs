@@ -2179,8 +2179,15 @@ namespace Mono.Debugging.Soft
 		}
 		
 		public override string Description {
-			get {
-				return function.DeclaringType.FullName + "." + function.Name;
+			get
+			{
+				try {
+					return function.DeclaringType.FullName + "." + function.Name;
+				}
+				catch (Exception e) {
+					DebuggerLoggingService.LogError ("Exception during getting description of method", e);
+					return "[Unknown method]";
+				}
 			}
 		}
 
@@ -2232,7 +2239,7 @@ namespace Mono.Debugging.Soft
 							tcs.SetException (new EvaluatorException (e.Message));
 						}
 						else {
-							DebuggerLoggingService.LogError ("Unexpected exception has thrown in Invocation", e);
+							DebuggerLoggingService.LogError (string.Format ("Unexpected exception has thrown when ending invocation of {0}", GetInfo ()), e);
 							tcs.SetException (e);
 						}
 					}
@@ -2241,9 +2248,29 @@ namespace Mono.Debugging.Soft
 					}
 				}, null);
 				return tcs.Task;
-			} catch (Exception) {
+			} catch (Exception e) {
 				UpdateSessionState ();
+				DebuggerLoggingService.LogError (string.Format ("Unexpected exception has thrown when invoking {0}", GetInfo ()), e);
 				throw;
+			}
+		}
+
+		string GetInfo ()
+		{
+			try {
+				TypeMirror type = null;
+				if (obj is ObjectMirror)
+					type = ((ObjectMirror)obj).Type;
+				else if (obj is TypeMirror)
+					type = (TypeMirror)obj;
+				else if (obj is StructMirror)
+					type = ((StructMirror)obj).Type;
+				return string.Format ("method {0} on object {1}",
+					function.FullName,
+					type == null? "[null]" : type.FullName);
+			} catch (Exception ex) {
+				DebuggerLoggingService.LogError ("Error getting info for SDB MethodCall", ex);
+				return "[Unknown method]";
 			}
 		}
 
