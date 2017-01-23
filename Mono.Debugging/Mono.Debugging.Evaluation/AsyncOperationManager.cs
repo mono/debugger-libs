@@ -35,16 +35,7 @@ namespace Mono.Debugging.Evaluation
 {
 	public class AsyncOperationManager : IDisposable
 	{
-		class OperationData
-		{
-			public IAsyncOperationBase Operation { get; private set; }
-			public OperationData (IAsyncOperationBase operation)
-			{
-				Operation = operation;
-			}
-		}
-
-		readonly HashSet<OperationData> currentOperations = new HashSet<OperationData> ();
+		readonly HashSet<IAsyncOperationBase> currentOperations = new HashSet<IAsyncOperationBase> ();
 		bool disposed = false;
 		const int ShortCancelTimeout = 100;
 
@@ -70,13 +61,12 @@ namespace Mono.Debugging.Evaluation
 
 			Task<OperationResult<TValue>> task;
 			var description = mc.Description;
-			var operationData = new OperationData (mc);
 			lock (currentOperations) {
 				if (disposed)
 					throw new ObjectDisposedException ("Already disposed");
 				DebuggerLoggingService.LogMessage (string.Format("Starting invoke for {0}", description));
 				task = mc.InvokeAsync ();
-				currentOperations.Add (operationData);
+				currentOperations.Add (mc);
 			}
 
 			bool cancelledAfterTimeout = false;
@@ -111,7 +101,7 @@ namespace Mono.Debugging.Evaluation
 			}
 			finally {
 				lock (currentOperations) {
-					currentOperations.Remove (operationData);
+					currentOperations.Remove (mc);
 				}
 			}
 		}
@@ -151,7 +141,7 @@ namespace Mono.Debugging.Evaluation
 		public void AbortAll ()
 		{
 			DebuggerLoggingService.LogMessage ("Aborting all the current invocations");
-			List<OperationData> copy;
+			List<IAsyncOperationBase> copy;
 			lock (currentOperations) {
 				if (disposed) throw new ObjectDisposedException ("Already disposed");
 				copy = currentOperations.ToList ();
@@ -161,14 +151,14 @@ namespace Mono.Debugging.Evaluation
 			CancelOperations (copy, true);
 		}
 
-		void CancelOperations (List<OperationData> operations, bool wait)
+		void CancelOperations (List<IAsyncOperationBase> operations, bool wait)
 		{
-			foreach (var operationData in operations) {
-				var taskDescription = operationData.Operation.Description;
+			foreach (var operation in operations) {
+				var taskDescription = operation.Description;
 				try {
-					operationData.Operation.Abort ();
+					operation.Abort ();
 					if (wait) {
-						WaitAfterCancel (operationData.Operation);
+						WaitAfterCancel (operation);
 					}
 				}
 				catch (Exception e) {
@@ -185,7 +175,7 @@ namespace Mono.Debugging.Evaluation
 
 		public void Dispose ()
 		{
-			List<OperationData> copy;
+			List<IAsyncOperationBase> copy;
 			lock (currentOperations) {
 				if (disposed) throw new ObjectDisposedException ("Already disposed");
 				disposed = true;
