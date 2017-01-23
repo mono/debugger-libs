@@ -32,7 +32,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Threading.Tasks;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Backend;
@@ -2191,11 +2190,7 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-		protected override void AfterCancelledImpl (int elapsedAfterCancelMs)
-		{
-		}
-
-		protected override Task<OperationResult<Value>> InvokeAsyncImpl (CancellationToken token)
+		protected override Task<OperationResult<Value>> InvokeAsyncImpl ()
 		{
 			try {
 				var optionsToInvoke = options;
@@ -2204,14 +2199,15 @@ namespace Mono.Debugging.Soft
 				}
 				var tcs = new TaskCompletionSource<OperationResult<Value>> ();
 				invokeAsyncResult = (IInvokeAsyncResult)obj.BeginInvokeMethod (ctx.Thread, function, args, optionsToInvoke, ar => {
+					if (Token.IsCancellationRequested) {
+						tcs.SetCanceled ();
+						return;
+					}
 					try {
 						var endInvokeResult = obj.EndInvokeMethodWithResult (ar);
-						token.ThrowIfCancellationRequested ();
 						tcs.SetResult (new SoftOperationResult (endInvokeResult.Result, false, endInvokeResult.OutArgs));
 					}
 					catch (InvocationException ex) {
-						// throw OCE if cancelled
-						token.ThrowIfCancellationRequested ();
 						if (ex.Exception != null) {
 							tcs.SetResult (new SoftOperationResult (ex.Exception, true, null));
 						}
@@ -2222,7 +2218,6 @@ namespace Mono.Debugging.Soft
 					catch (CommandException e) {
 						if (e.ErrorCode == ErrorCode.INVOKE_ABORTED) {
 							tcs.TrySetCanceled ();
-							token.ThrowIfCancellationRequested ();
 						}
 						else {
 							tcs.SetException (new EvaluatorException (e.Message));
@@ -2279,7 +2274,7 @@ namespace Mono.Debugging.Soft
 			ctx.Session.StackVersion++;
 		}
 
-		protected override void CancelImpl ()
+		protected override void AbortImpl (int abortCallTimes)
 		{
 			if (invokeAsyncResult == null) {
 				DebuggerLoggingService.LogError ("invokeAsyncResult is null", new ArgumentNullException ("invokeAsyncResult"));

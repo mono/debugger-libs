@@ -28,7 +28,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Mono.Debugging.Client;
 
@@ -39,12 +38,9 @@ namespace Mono.Debugging.Evaluation
 		class OperationData
 		{
 			public IAsyncOperationBase Operation { get; private set; }
-			public CancellationTokenSource TokenSource { get; private set; }
-
-			public OperationData (IAsyncOperationBase operation, CancellationTokenSource tokenSource)
+			public OperationData (IAsyncOperationBase operation)
 			{
 				Operation = operation;
-				TokenSource = tokenSource;
 			}
 		}
 
@@ -74,13 +70,12 @@ namespace Mono.Debugging.Evaluation
 
 			Task<OperationResult<TValue>> task;
 			var description = mc.Description;
-			var cts = new CancellationTokenSource ();
-			var operationData = new OperationData (mc, cts);
+			var operationData = new OperationData (mc);
 			lock (currentOperations) {
 				if (disposed)
 					throw new ObjectDisposedException ("Already disposed");
 				DebuggerLoggingService.LogMessage (string.Format("Starting invoke for {0}", description));
-				task = mc.InvokeAsync (cts.Token);
+				task = mc.InvokeAsync ();
 				currentOperations.Add (operationData);
 			}
 
@@ -91,7 +86,7 @@ namespace Mono.Debugging.Evaluation
 					return task.Result;
 				}
 				DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} timed out after {1} ms. Cancelling.", description, timeout));
-				cts.Cancel ();
+				mc.Abort ();
 				try {
 					WaitAfterCancel (mc);
 				}
@@ -127,7 +122,7 @@ namespace Mono.Debugging.Evaluation
 		void ChangeBusyState (bool busy, string description)
 		{
 			try {
-				BusyStateChanged (this, new BusyStateEventArgs {IsBusy = true, Description = description});
+				BusyStateChanged (this, new BusyStateEventArgs {IsBusy = busy, Description = description});
 			}
 			catch (Exception e) {
 				DebuggerLoggingService.LogError ("Exception during ChangeBusyState", e);
@@ -138,23 +133,20 @@ namespace Mono.Debugging.Evaluation
 		{
 			var desc = op.Description;
 			DebuggerLoggingService.LogMessage (string.Format ("Waiting for cancel of invoke {0}", desc));
-			try {
-				if (!op.RawTask.Wait (ShortCancelTimeout)) {
-					try {
-						ChangeBusyState (true, desc);
-						op.RawTask.Wait (Timeout.Infinite);
-					}
-					finally {
-						ChangeBusyState (false, desc);
+			if (!op.RawTask.Wait (ShortCancelTimeout)) {
+				try {
+					ChangeBusyState (true, desc);
+					while (true) {
+						op.Abort ();
+						if (op.RawTask.Wait (ShortCancelTimeout))
+							break;
 					}
 				}
-			}
-			finally {
-				DebuggerLoggingService.LogMessage (string.Format ("Calling AfterCancelled() for {0}", desc));
-				op.AfterCancelled (ShortCancelTimeout);
+				finally {
+					ChangeBusyState (false, desc);
+				}
 			}
 		}
-
 
 		public void AbortAll ()
 		{
@@ -174,7 +166,7 @@ namespace Mono.Debugging.Evaluation
 			foreach (var operationData in operations) {
 				var taskDescription = operationData.Operation.Description;
 				try {
-					operationData.TokenSource.Cancel ();
+					operationData.Operation.Abort ();
 					if (wait) {
 						WaitAfterCancel (operationData.Operation);
 					}
