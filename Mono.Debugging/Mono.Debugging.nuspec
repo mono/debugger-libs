@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>Mono.Debugging</id>
+    <version>$Version$</version>
+    <title>Mono.Debugging</title>
+    <authors>MonoDevelop team</authors>
+    <owners>MonoDevelop team</owners>
+    <licenseUrl>http://opensource.org/licenses/mit-license.php</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectUrl>https://github.com/mono/debugger-libs</projectUrl>
+    <summary>A set of base classes to implement different debuggers</summary>
+    <description>A set of base classes to implement different debuggers</description>
+    <language>en-US</language>
+    <tags>mono debug debugger debugging api</tags>
+    <dependencies>
+      <dependency id="ICSharpCode.NRefactory" version="[5.5.1]"/>
+    </dependencies>
+  </metadata>
+</package>

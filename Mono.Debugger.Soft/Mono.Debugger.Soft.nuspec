@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>Mono.Debugger.Soft</id>
+    <version>$Version$</version>
+    <title>Mono.Debugger.Soft</title>
+    <authors>Mono team</authors>
+    <owners>Mono team</owners>
+    <licenseUrl>http://opensource.org/licenses/mit-license.php</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectUrl>https://github.com/mono/debugger-libs</projectUrl>
+    <summary>Mono soft debugger protocol</summary>
+    <dependencies>
+      <dependency id="Mono.Cecil" version="[0.9.6]"/>
+    </dependencies>
+    <description>Mono soft debugger protocol typed implementation</description>
+    <language>en-US</language>
+    <tags>mono debug debugger debugging api</tags>
+  </metadata>
+</package>
