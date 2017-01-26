@@ -2,7 +2,7 @@
 <package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <id>Mono.Debugger.Soft</id>
-    <version>$Version$</version>
+    <version>$buildver$</version>
     <title>Mono.Debugger.Soft</title>
     <authors>Mono team</authors>
     <owners>Mono team</owners>
