@@ -42,8 +42,19 @@ namespace Mono.Debugging.Evaluation
 		readonly Dictionary<string, TypeDisplayData> typeDisplayData = new Dictionary<string, TypeDisplayData> ();
 
 		// Time to wait while evaluating before switching to async mode
-		public int DefaultEvaluationWaitTime { get; set; }
-		
+		public int DefaultEvaluationWaitTime {
+			get { return asyncEvaluationTracker.WaitTime; }
+			set { asyncEvaluationTracker.WaitTime = value; }
+		}
+
+		/// <summary>
+		/// Enables or disables async evaluation
+		/// </summary>
+		public bool UseTimeout {
+			get { return asyncEvaluationTracker.UseTimeout; }
+			set { asyncEvaluationTracker.UseTimeout = value; }
+		}
+
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
 
 		static readonly Dictionary<string, string> CSharpTypeNames = new Dictionary<string, string> ();
@@ -74,9 +85,7 @@ namespace Mono.Debugging.Evaluation
 		protected ObjectValueAdaptor ()
 		{
 			DefaultEvaluationWaitTime = 100;
-			
 			asyncOperationManager.BusyStateChanged += (sender, e) => OnBusyStateChanged (e);
-			asyncEvaluationTracker.WaitTime = DefaultEvaluationWaitTime;
 		}
 		
 		public void Dispose ()

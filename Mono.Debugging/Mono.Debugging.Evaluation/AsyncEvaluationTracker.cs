@@ -48,7 +48,12 @@ namespace Mono.Debugging.Evaluation
 		int asyncCounter = 0;
 		int cancelTimestamp = 0;
 		TimedEvaluator runner = new TimedEvaluator ();
-		
+
+		public bool UseTimeout {
+			get { return runner.UseTimeout; }
+			set { runner.UseTimeout = value; }
+		}
+
 		public int WaitTime {
 			get { return runner.RunTimeout; }
 			set { runner.RunTimeout = value; }
