@@ -2,7 +2,7 @@
 <package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <id>Mono.Debugging.Soft</id>
-    <version>$Version$</version>
+    <version>$buildver$</version>
     <title>Mono.Debugging.Soft</title>
     <authors>MonoDevelop team</authors>
     <owners>MonoDevelop team</owners>
@@ -15,8 +15,8 @@
     <tags>mono debug debugger soft</tags>
     <dependencies>
       <dependency id="Mono.Cecil" version="[0.9.6]" />
-      <dependency id="Mono.Debugging" version="$Version$" />
-      <dependency id="Mono.Debugger.Soft" version="$Version$" />
+      <dependency id="Mono.Debugging" version="$buildver$" />
+      <dependency id="Mono.Debugger.Soft" version="$buildver$" />
     </dependencies>
   </metadata>
 </package>
