@@ -2199,11 +2199,11 @@ namespace Mono.Debugging.Soft
 				}
 				var tcs = new TaskCompletionSource<OperationResult<Value>> ();
 				invokeAsyncResult = (IInvokeAsyncResult)obj.BeginInvokeMethod (ctx.Thread, function, args, optionsToInvoke, ar => {
-					if (Token.IsCancellationRequested) {
-						tcs.SetCanceled ();
-						return;
-					}
 					try {
+						if (Token.IsCancellationRequested) {
+							tcs.SetCanceled ();
+							return;
+						}
 						var endInvokeResult = obj.EndInvokeMethodWithResult (ar);
 						tcs.SetResult (new SoftOperationResult (endInvokeResult.Result, false, endInvokeResult.OutArgs));
 					}
