@@ -106,6 +106,10 @@ namespace Mono.Debugging.Evaluation
 
 		static Type GetCommonType (object v1, object v2)
 		{
+			if (v1 is double || v2 is double)
+				return typeof (double);
+			if (v1 is float || v2 is float)
+				return typeof (float);
 			int s1 = Marshal.SizeOf (v1);
 			if (IsUnsigned (s1))
 				s1 += 8;
