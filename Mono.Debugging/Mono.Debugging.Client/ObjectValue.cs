@@ -229,6 +229,9 @@ namespace Mono.Debugging.Client
 		/// <exception cref='InvalidOperationException'>
 		/// Is thrown when trying to set a value on a read-only ObjectValue
 		/// </exception>
+		/// <exception cref="ValueModificationException">
+		/// When value settings was failed. This exception should be shown to user.
+		/// </exception>
 		/// <remarks>
 		/// This value is a string representation of the ObjectValue. The content depends on several evaluation
 		/// options. For example, if ToString calls are enabled, this value will be the result of calling
@@ -238,20 +241,13 @@ namespace Mono.Debugging.Client
 		/// will include the quotation marks and chars like '\' will be properly escaped.
 		/// If you need to get the real CLR value of the object, use GetRawValue.
 		/// </remarks>
+		/// <seealso cref="IObjectValueSource.SetValue"/>
 		public virtual string Value {
 			get {
 				return value;
 			}
 			set {
-				if (IsReadOnly || source == null)
-					throw new InvalidOperationException ("Value is not editable");
-
-				EvaluationResult res = source.SetValue (path, value, null);
-				if (res != null) {
-					this.value = res.Value;
-					displayValue = res.DisplayValue;
-					isNull = value == null;
-				}
+				SetValue (value);
 			}
 		}
 
@@ -291,6 +287,10 @@ namespace Mono.Debugging.Client
 		/// <exception cref='InvalidOperationException'>
 		/// Is thrown if the value is read-only
 		/// </exception>
+		/// <exception cref="ValueModificationException">
+		/// When value settings was failed. This exception should be shown to user.
+		/// </exception>
+		/// <seealso cref="IObjectValueSource.SetValue"/>
 		public void SetValue (string value, EvaluationOptions options)
 		{
 			if (IsReadOnly || source == null)
@@ -299,6 +299,7 @@ namespace Mono.Debugging.Client
 			if (res != null) {
 				this.value = res.Value;
 				displayValue = res.DisplayValue;
+				isNull = value == null;
 			}
 		}
 		
