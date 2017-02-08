@@ -277,37 +277,18 @@ namespace Mono.Debugging.Evaluation
 
 			return sb.ToString ();
 		}
-		
-		public EvaluationResult SetValue (ObjectPath path, string value, EvaluationOptions options)
+
+		EvaluationResult IObjectValueSource.SetValue (ObjectPath path, string value, EvaluationOptions options)
 		{
 			if (path.Length != 2)
-				throw new NotSupportedException ();
+				throw new InvalidOperationException (string.Format ("ObjectPath for array element is invalid: {0}", path));
 			
 			int[] idx = StringToIndices (path [1]);
-			
-			object val;
-			try {
-				EvaluationContext cctx = ctx.Clone ();
-				EvaluationOptions ops = options ?? cctx.Options;
-				ops.AllowMethodEvaluation = true;
-				ops.AllowTargetInvoke = true;
-				cctx.Options = ops;
-				ValueReference var = ctx.Evaluator.Evaluate (ctx, value, array.ElementType);
-				val = var.Value;
-				val = ctx.Adapter.Convert (ctx, val, array.ElementType);
-				array.SetElement (idx, val);
-			} catch {
-				val = array.GetElement (idx);
-			}
-			try {
-				return ctx.Evaluator.TargetObjectToExpression (ctx, val);
-			} catch (Exception ex) {
-				ctx.WriteDebuggerError (ex);
-				return new EvaluationResult ("? (" + ex.Message + ")");
-			}
+			var cctx = ctx.WithOptions (options);
+			return ValueModificationUtil.ModifyValue (cctx, value, array.ElementType, newVal => array.SetElement (idx, newVal));
 		}
-		
-		public ObjectValue GetValue (ObjectPath path, EvaluationOptions options)
+
+		ObjectValue IObjectValueSource.GetValue (ObjectPath path, EvaluationOptions options)
 		{
 			if (path.Length != 2)
 				throw new NotSupportedException ();

@@ -148,29 +148,9 @@ namespace Mono.Debugging.Evaluation
 		
 		EvaluationResult IObjectValueSource.SetValue (ObjectPath path, string value, EvaluationOptions options)
 		{
-			try {
-				Context.WaitRuntimeInvokes ();
-
-				var ctx = GetContext (options);
-				ctx.Options.AllowMethodEvaluation = true;
-				ctx.Options.AllowTargetInvoke = true;
-
-				var vref = ctx.Evaluator.Evaluate (ctx, value, Type);
-				var newValue = ctx.Adapter.Convert (ctx, vref.Value, Type);
-				SetValue (ctx, newValue);
-			} catch (Exception ex) {
-				Context.WriteDebuggerError (ex);
-				Context.WriteDebuggerOutput ("Value assignment failed: {0}: {1}\n", ex.GetType (), ex.Message);
-			}
-			
-			try {
-				return Context.Evaluator.TargetObjectToExpression (Context, Value);
-			} catch (Exception ex) {
-				Context.WriteDebuggerError (ex);
-				Context.WriteDebuggerOutput ("Value assignment failed: {0}: {1}\n", ex.GetType (), ex.Message);
-			}
-			
-			return null;
+			Context.WaitRuntimeInvokes ();
+			var ctx = GetContext (options);
+			return ValueModificationUtil.ModifyValue (ctx, value, Type, newVal => SetValue (ctx, newVal));
 		}
 		
 		object IObjectValueSource.GetRawValue (ObjectPath path, EvaluationOptions options)
