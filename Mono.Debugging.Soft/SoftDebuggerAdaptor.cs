@@ -391,46 +391,7 @@ namespace Mono.Debugging.Soft
 							if (val == null)
 								return null;
 
-							object res;
-
-							try {
-								if (tt == typeof (bool))
-									res = System.Convert.ToBoolean (val);
-								else if (tt == typeof (byte))
-									res = System.Convert.ToByte (val);
-								else if (tt == typeof (sbyte))
-									res = System.Convert.ToSByte (val);
-								else if (tt == typeof (char))
-									res = System.Convert.ToChar (val);
-								else if (tt == typeof (short))
-									res = System.Convert.ToInt16 (val);
-								else if (tt == typeof (ushort))
-									res = System.Convert.ToUInt16 (val);
-								else if (tt == typeof (int))
-									res = System.Convert.ToInt32 (val);
-								else if (tt == typeof (uint))
-									res = System.Convert.ToUInt32 (val);
-								else if (tt == typeof (long))
-									res = System.Convert.ToInt64 (val);
-								else if (tt == typeof (ulong))
-									res = System.Convert.ToUInt64 (val);
-								else if (tt == typeof (float))
-									res = System.Convert.ToSingle (val);
-								else if (tt == typeof (double))
-									res = System.Convert.ToDouble (val);
-								else if (tt == typeof (decimal))
-									res = System.Convert.ToDecimal (val);
-								else if (tt == typeof (string))
-									res = System.Convert.ToString (val);
-								else if (tt == typeof (DateTime))
-									res = System.Convert.ToDateTime (val);
-								else
-									res = val;
-							} catch {
-								res = DynamicCast (val, tt);
-							}
-
-							return CreateValue (ctx, res);
+							return CreateValue (ctx, DynamicCast (val, tt));
 						}
 
 						fromType = (TypeMirror) ForceLoadType (ctx, ((Type) valueType).FullName);
