@@ -108,6 +108,21 @@ namespace Mono.Debugging.Client
 			}
 		}
 
+		ObjectValue helpLinkObject;
+		public string HelpLink {
+			get {
+				if (helpLinkObject == null) {
+					helpLinkObject = exception.GetChild ("HelpLink");
+					if (helpLinkObject != null && helpLinkObject.IsEvaluating) {
+						helpLinkObject.ValueChanged += delegate {
+							NotifyChanged ();
+						};
+					}
+				}
+				return helpLinkObject != null ? helpLinkObject.Value : null;
+			}
+		}
+
 		public ObjectValue Instance {
 			get {
 				if (instance == null)
@@ -149,6 +164,10 @@ namespace Mono.Debugging.Client
 
 				if (stackTrace.TypeName == "string") {
 					stackTrace = Debugging.Evaluation.ExceptionInfoSource.GetStackTrace (stackTrace.Value);
+				}
+
+				if (!stackTrace.IsArray) {
+					return frames = new ExceptionStackFrame [0];
 				}
 
 				var list = new List<ExceptionStackFrame> ();

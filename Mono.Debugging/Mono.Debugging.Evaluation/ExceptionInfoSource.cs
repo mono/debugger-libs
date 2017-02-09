@@ -60,6 +60,7 @@ namespace Mono.Debugging.Evaluation
 			excInstance.Name = "Instance";
 
 			ObjectValue messageValue = null;
+			ObjectValue helpLinkValue = null;
 			var exceptionType = ctx.Adapter.GetValueType (ctx, Exception.Value);
 
 			// Get the message
@@ -86,6 +87,31 @@ namespace Mono.Debugging.Evaluation
 				messageValue = ObjectValue.CreateUnknown ("Message");
 
 			messageValue.Name = "Message";
+
+			// Get the help link
+
+			if (withTimeout) {
+				helpLinkValue = ctx.Adapter.CreateObjectValueAsync ("HelpLink", ObjectValueFlags.None, delegate {
+					var mref = ctx.Adapter.GetMember (ctx, Exception, exceptionType, Exception.Value, "HelpLink");
+					if (mref != null) {
+						string val = (string)mref.ObjectValue;
+						return ObjectValue.CreatePrimitive (null, new ObjectPath ("HelpLink"), "string", new EvaluationResult (val), ObjectValueFlags.Literal);
+					}
+
+					return ObjectValue.CreateUnknown ("HelpLink");
+				});
+			} else {
+				var mref = ctx.Adapter.GetMember (ctx, Exception, exceptionType, Exception.Value, "HelpLink");
+				if (mref != null) {
+					string val = (string)mref.ObjectValue;
+					helpLinkValue = ObjectValue.CreatePrimitive (null, new ObjectPath ("HelpLink"), "string", new EvaluationResult (val), ObjectValueFlags.Literal);
+				}
+			}
+
+			if (helpLinkValue == null)
+				helpLinkValue = ObjectValue.CreateUnknown ("HelpLink");
+
+			helpLinkValue.Name = "HelpLink";
 
 			// Inner exception
 
@@ -160,7 +186,7 @@ namespace Mono.Debugging.Evaluation
 				stackTraceValue = GetStackTrace (stackTrace.ObjectValue as string);
 			}
 
-			var children = new ObjectValue [] { excInstance, messageValue, stackTraceValue, childExceptionValue, childExceptionsValue };
+			var children = new ObjectValue [] { excInstance, messageValue, helpLinkValue, stackTraceValue, childExceptionValue, childExceptionsValue };
 
 			return ObjectValue.CreateObject (null, new ObjectPath ("InnerException"), type, "", ObjectValueFlags.None, children);
 		}
