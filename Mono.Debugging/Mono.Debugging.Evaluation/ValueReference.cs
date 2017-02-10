@@ -169,7 +169,7 @@ namespace Mono.Debugging.Evaluation
 		{
 			var ctx = GetContext (options);
 
-			SetValue (ctx, Context.Adapter.FromRawValue (ctx, value));
+			ValueModificationUtil.ModifyValueFromRaw (ctx, value, val => SetValue (ctx, val));
 		}
 
 		ObjectValue[] IObjectValueSource.GetChildren (ObjectPath path, int index, int count, EvaluationOptions options)

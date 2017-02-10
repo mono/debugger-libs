@@ -36,15 +36,25 @@ namespace Mono.Debugging.Evaluation
 				throw new ValueModificationException(string.Format ("Cannot get real object of {0}", value), e);
 			}
 			var convertedValue = ConvertRightHandValue (context, val, expectedType);
-			try {
-				valueSetter (convertedValue);
-			} catch (Exception e) {
-				throw new ValueModificationException(string.Format ("Error while assigning new value to object: {0}", e.Message), e);
-			}
+			ModifyValue (convertedValue, valueSetter);
 			// don't wrap with try-catch it, this call normally should not throw exceptions produced by wrong user input.
 			// If exception was occured this means something has gone wrong in we have to report it in log
 			return context.Evaluator.TargetObjectToExpression (context, convertedValue);
 		}
 
+		internal static void ModifyValueFromRaw (EvaluationContext context, object rawValue, Action<object> valueSetter)
+		{
+			object val = context.Adapter.FromRawValue (context, rawValue);
+			ModifyValue (val, valueSetter);
+		}
+
+		static void ModifyValue (object value, Action<object> valueSetter)
+		{
+			try {
+				valueSetter (value);
+			} catch (Exception e) {
+				throw new ValueModificationException (string.Format ("Error while assigning new value to object: {0}", e.Message), e);
+			}
+		}
 	}
 }

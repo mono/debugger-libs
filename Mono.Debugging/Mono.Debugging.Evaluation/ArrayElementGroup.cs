@@ -329,8 +329,7 @@ namespace Mono.Debugging.Evaluation
 			int[] idx = StringToIndices (path [1]);
 			
 			EvaluationContext cctx = ctx.WithOptions (options);
-			object val = cctx.Adapter.FromRawValue (cctx, value);
-			array.SetElement (idx, val);
+			ValueModificationUtil.ModifyValueFromRaw (cctx, value, val => array.SetElement (idx, val));
 		}
 	}
 	
