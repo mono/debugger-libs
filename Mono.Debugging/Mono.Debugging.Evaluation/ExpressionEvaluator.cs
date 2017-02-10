@@ -208,6 +208,10 @@ namespace Mono.Debugging.Evaluation
 		public EvaluatorException (string msg, params object[] args): base (string.Format(msg, args))
 		{
 		}
+
+		public EvaluatorException (string message, Exception innerException) : base (message, innerException)
+		{
+		}
 	}
 
 	[Serializable]

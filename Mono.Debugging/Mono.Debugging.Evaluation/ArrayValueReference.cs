@@ -44,7 +44,11 @@ namespace Mono.Debugging.Evaluation
 
 		public override object Value {
 			get {
-				return adaptor.GetElement (indices);
+				try {
+					return adaptor.GetElement (indices);
+				} catch (Exception e) {
+					throw new EvaluatorException (string.Format ("Failed to get array element: {0}", e.Message), e);
+				}
 			}
 			set {
 				adaptor.SetElement (indices, value);
