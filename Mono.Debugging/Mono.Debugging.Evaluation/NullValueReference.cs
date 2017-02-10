@@ -50,7 +50,7 @@ namespace Mono.Debugging.Evaluation
 				return obj;
 			}
 			set {
-				throw new NotSupportedException ();
+				throw new NotSupportedException ("Assignment to the null literal is not possible");
 			}
 		}
 		
