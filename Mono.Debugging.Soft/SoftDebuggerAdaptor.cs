@@ -202,53 +202,60 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 
+		static Dictionary<string, TypeCastDelegate> typeCastDelegatesCache = new Dictionary<string, TypeCastDelegate> ();
 		static TypeCastDelegate GenerateTypeCastDelegate (string methodName, Type fromType, Type toType)
 		{
-			var argTypes = new [] { typeof (object) };
-			var method = new DynamicMethod (methodName, typeof (object), argTypes, true);
-			ILGenerator il = method.GetILGenerator ();
-			ConstructorInfo ctorInfo;
-			MethodInfo methodInfo;
-			OpCode conv;
+			lock(typeCastDelegatesCache) {
+				TypeCastDelegate cached;
+				if (typeCastDelegatesCache.TryGetValue (methodName, out cached))
+					return cached;
+				var argTypes = new [] { typeof (object) };
+				var method = new DynamicMethod (methodName, typeof (object), argTypes, true);
+				ILGenerator il = method.GetILGenerator ();
+				ConstructorInfo ctorInfo;
+				MethodInfo methodInfo;
+				OpCode conv;
 
-			il.Emit (OpCodes.Ldarg_0);
-			il.Emit (OpCodes.Unbox_Any, fromType);
+				il.Emit (OpCodes.Ldarg_0);
+				il.Emit (OpCodes.Unbox_Any, fromType);
 
-			if (fromType.IsSubclassOf (typeof (Nullable))) {
-				PropertyInfo propInfo = fromType.GetProperty ("Value");
-				methodInfo = propInfo.GetGetMethod ();
+				if (fromType.IsSubclassOf (typeof (Nullable))) {
+					PropertyInfo propInfo = fromType.GetProperty ("Value");
+					methodInfo = propInfo.GetGetMethod ();
 
-				il.Emit (OpCodes.Stloc_0);
-				il.Emit (OpCodes.Ldloca_S);
-				il.Emit (OpCodes.Call, methodInfo);
-
-				fromType = methodInfo.ReturnType;
-			}
-
-			if (!convertOps.TryGetValue (toType, out conv)) {
-				argTypes = new [] { fromType };
-
-				if (toType == typeof (string)) {
-					methodInfo = fromType.GetMethod ("ToString", new Type[0]);
+					il.Emit (OpCodes.Stloc_0);
+					il.Emit (OpCodes.Ldloca_S);
 					il.Emit (OpCodes.Call, methodInfo);
-				} else if ((methodInfo = toType.GetMethod ("op_Explicit", argTypes)) != null) {
-					il.Emit (OpCodes.Call, methodInfo);
-				} else if ((methodInfo = toType.GetMethod ("op_Implicit", argTypes)) != null) {
-					il.Emit (OpCodes.Call, methodInfo);
-				} else if ((ctorInfo = toType.GetConstructor (argTypes)) != null) {
-					il.Emit (OpCodes.Call, ctorInfo);
-				} else {
-					// No idea what else to try...
-					throw new InvalidCastException ();
+
+					fromType = methodInfo.ReturnType;
 				}
-			} else {
-				il.Emit (conv);
+
+				if (!convertOps.TryGetValue (toType, out conv)) {
+					argTypes = new [] { fromType };
+
+					if (toType == typeof (string)) {
+						methodInfo = fromType.GetMethod ("ToString", new Type [0]);
+						il.Emit (OpCodes.Call, methodInfo);
+					} else if ((methodInfo = toType.GetMethod ("op_Explicit", argTypes)) != null) {
+						il.Emit (OpCodes.Call, methodInfo);
+					} else if ((methodInfo = toType.GetMethod ("op_Implicit", argTypes)) != null) {
+						il.Emit (OpCodes.Call, methodInfo);
+					} else if ((ctorInfo = toType.GetConstructor (argTypes)) != null) {
+						il.Emit (OpCodes.Call, ctorInfo);
+					} else {
+						// No idea what else to try...
+						throw new InvalidCastException ();
+					}
+				} else {
+					il.Emit (conv);
+				}
+
+				il.Emit (OpCodes.Box, toType);
+				il.Emit (OpCodes.Ret);
+				cached = (TypeCastDelegate)method.CreateDelegate (typeof (TypeCastDelegate));
+				typeCastDelegatesCache [methodName] = cached;
+				return cached;
 			}
-
-			il.Emit (OpCodes.Box, toType);
-			il.Emit (OpCodes.Ret);
-
-			return (TypeCastDelegate) method.CreateDelegate (typeof (TypeCastDelegate));
 		}
 
 		static object DynamicCast (object value, Type target)
