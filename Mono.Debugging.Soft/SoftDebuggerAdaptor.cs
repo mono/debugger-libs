@@ -202,53 +202,60 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 
+		static Dictionary<string, TypeCastDelegate> typeCastDelegatesCache = new Dictionary<string, TypeCastDelegate> ();
 		static TypeCastDelegate GenerateTypeCastDelegate (string methodName, Type fromType, Type toType)
 		{
-			var argTypes = new [] { typeof (object) };
-			var method = new DynamicMethod (methodName, typeof (object), argTypes, true);
-			ILGenerator il = method.GetILGenerator ();
-			ConstructorInfo ctorInfo;
-			MethodInfo methodInfo;
-			OpCode conv;
+			lock(typeCastDelegatesCache) {
+				TypeCastDelegate cached;
+				if (typeCastDelegatesCache.TryGetValue (methodName, out cached))
+					return cached;
+				var argTypes = new [] { typeof (object) };
+				var method = new DynamicMethod (methodName, typeof (object), argTypes, true);
+				ILGenerator il = method.GetILGenerator ();
+				ConstructorInfo ctorInfo;
+				MethodInfo methodInfo;
+				OpCode conv;
 
-			il.Emit (OpCodes.Ldarg_0);
-			il.Emit (OpCodes.Unbox_Any, fromType);
+				il.Emit (OpCodes.Ldarg_0);
+				il.Emit (OpCodes.Unbox_Any, fromType);
 
-			if (fromType.IsSubclassOf (typeof (Nullable))) {
-				PropertyInfo propInfo = fromType.GetProperty ("Value");
-				methodInfo = propInfo.GetGetMethod ();
+				if (fromType.IsSubclassOf (typeof (Nullable))) {
+					PropertyInfo propInfo = fromType.GetProperty ("Value");
+					methodInfo = propInfo.GetGetMethod ();
 
-				il.Emit (OpCodes.Stloc_0);
-				il.Emit (OpCodes.Ldloca_S);
-				il.Emit (OpCodes.Call, methodInfo);
-
-				fromType = methodInfo.ReturnType;
-			}
-
-			if (!convertOps.TryGetValue (toType, out conv)) {
-				argTypes = new [] { fromType };
-
-				if (toType == typeof (string)) {
-					methodInfo = fromType.GetMethod ("ToString", new Type[0]);
+					il.Emit (OpCodes.Stloc_0);
+					il.Emit (OpCodes.Ldloca_S);
 					il.Emit (OpCodes.Call, methodInfo);
-				} else if ((methodInfo = toType.GetMethod ("op_Explicit", argTypes)) != null) {
-					il.Emit (OpCodes.Call, methodInfo);
-				} else if ((methodInfo = toType.GetMethod ("op_Implicit", argTypes)) != null) {
-					il.Emit (OpCodes.Call, methodInfo);
-				} else if ((ctorInfo = toType.GetConstructor (argTypes)) != null) {
-					il.Emit (OpCodes.Call, ctorInfo);
-				} else {
-					// No idea what else to try...
-					throw new InvalidCastException ();
+
+					fromType = methodInfo.ReturnType;
 				}
-			} else {
-				il.Emit (conv);
+
+				if (!convertOps.TryGetValue (toType, out conv)) {
+					argTypes = new [] { fromType };
+
+					if (toType == typeof (string)) {
+						methodInfo = fromType.GetMethod ("ToString", new Type [0]);
+						il.Emit (OpCodes.Call, methodInfo);
+					} else if ((methodInfo = toType.GetMethod ("op_Explicit", argTypes)) != null) {
+						il.Emit (OpCodes.Call, methodInfo);
+					} else if ((methodInfo = toType.GetMethod ("op_Implicit", argTypes)) != null) {
+						il.Emit (OpCodes.Call, methodInfo);
+					} else if ((ctorInfo = toType.GetConstructor (argTypes)) != null) {
+						il.Emit (OpCodes.Call, ctorInfo);
+					} else {
+						// No idea what else to try...
+						throw new InvalidCastException ();
+					}
+				} else {
+					il.Emit (conv);
+				}
+
+				il.Emit (OpCodes.Box, toType);
+				il.Emit (OpCodes.Ret);
+				cached = (TypeCastDelegate)method.CreateDelegate (typeof (TypeCastDelegate));
+				typeCastDelegatesCache [methodName] = cached;
+				return cached;
 			}
-
-			il.Emit (OpCodes.Box, toType);
-			il.Emit (OpCodes.Ret);
-
-			return (TypeCastDelegate) method.CreateDelegate (typeof (TypeCastDelegate));
 		}
 
 		static object DynamicCast (object value, Type target)
@@ -391,46 +398,7 @@ namespace Mono.Debugging.Soft
 							if (val == null)
 								return null;
 
-							object res;
-
-							try {
-								if (tt == typeof (bool))
-									res = System.Convert.ToBoolean (val);
-								else if (tt == typeof (byte))
-									res = System.Convert.ToByte (val);
-								else if (tt == typeof (sbyte))
-									res = System.Convert.ToSByte (val);
-								else if (tt == typeof (char))
-									res = System.Convert.ToChar (val);
-								else if (tt == typeof (short))
-									res = System.Convert.ToInt16 (val);
-								else if (tt == typeof (ushort))
-									res = System.Convert.ToUInt16 (val);
-								else if (tt == typeof (int))
-									res = System.Convert.ToInt32 (val);
-								else if (tt == typeof (uint))
-									res = System.Convert.ToUInt32 (val);
-								else if (tt == typeof (long))
-									res = System.Convert.ToInt64 (val);
-								else if (tt == typeof (ulong))
-									res = System.Convert.ToUInt64 (val);
-								else if (tt == typeof (float))
-									res = System.Convert.ToSingle (val);
-								else if (tt == typeof (double))
-									res = System.Convert.ToDouble (val);
-								else if (tt == typeof (decimal))
-									res = System.Convert.ToDecimal (val);
-								else if (tt == typeof (string))
-									res = System.Convert.ToString (val);
-								else if (tt == typeof (DateTime))
-									res = System.Convert.ToDateTime (val);
-								else
-									res = val;
-							} catch {
-								res = DynamicCast (val, tt);
-							}
-
-							return CreateValue (ctx, res);
+							return CreateValue (ctx, DynamicCast (val, tt));
 						}
 
 						fromType = (TypeMirror) ForceLoadType (ctx, ((Type) valueType).FullName);
