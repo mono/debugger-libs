@@ -77,7 +77,7 @@
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\external\debugger-libs\Mono.Debugging\Mono.Debugging.csproj">
+    <ProjectReference Include="..\Mono.Debugging\Mono.Debugging.csproj">
       <Project>{90c99adb-7d4b-4eb4-98c2-40bd1b14c7d2}</Project>
       <Name>Mono.Debugging</Name>
     </ProjectReference>
@@ -90,7 +90,7 @@
       <Name>CorApi</Name>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="..\..\..\..\\external\debugger-libs\Mono.Debugging.settings" />
+  <Import Project="..\Mono.Debugging.settings" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
