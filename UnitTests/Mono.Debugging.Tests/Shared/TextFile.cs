@@ -1,5 +1,5 @@
 ﻿#pragma warning disable 1587
-namespace MonoDevelop.Debugger.Tests
+namespace Mono.Debugging.Tests
 {
 	public partial class TextFile
 	{

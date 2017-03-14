@@ -26,7 +26,7 @@
 using System;
 using NUnit.Framework;
 
-namespace MonoDevelop.Debugger.Tests
+namespace Mono.Debugging.Tests
 {
 	namespace Soft
 	{

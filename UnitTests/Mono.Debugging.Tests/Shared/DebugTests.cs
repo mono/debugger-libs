@@ -35,7 +35,7 @@ using Mono.Debugging.Client;
 
 using NUnit.Framework;
 
-namespace MonoDevelop.Debugger.Tests
+namespace Mono.Debugging.Tests
 {
 	[TestFixture]
 	public abstract partial class DebugTests

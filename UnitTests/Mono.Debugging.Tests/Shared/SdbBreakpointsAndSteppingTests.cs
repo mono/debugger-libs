@@ -26,7 +26,7 @@
 using System;
 using NUnit.Framework;
 
-namespace MonoDevelop.Debugger.Tests.Soft
+namespace Mono.Debugging.Tests.Soft
 {
 	[TestFixture]
 	[Ignore("Sdb has many failings until resolved ignore all")]

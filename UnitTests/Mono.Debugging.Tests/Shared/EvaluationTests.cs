@@ -30,7 +30,7 @@ using Mono.Debugging.Client;
 using NUnit.Framework;
 using Mono.Debugging.Soft;
 
-namespace MonoDevelop.Debugger.Tests
+namespace Mono.Debugging.Tests
 {
 	[TestFixture]
 	public abstract class EvaluationTests: DebugTests

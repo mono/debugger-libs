@@ -25,7 +25,7 @@
 // THE SOFTWARE.
 using NUnit.Framework;
 
-namespace MonoDevelop.Debugger.Tests.Win32
+namespace Mono.Debugging.Tests.Win32
 {
 	[TestFixture]
 	[Platform (Include = "Win")]

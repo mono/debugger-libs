@@ -29,7 +29,7 @@ using Mono.Debugging.Client;
 using System.Collections.Generic;
 using Mono.Debugging.Soft;
 
-namespace MonoDevelop.Debugger.Tests
+namespace Mono.Debugging.Tests
 {
 	[TestFixture]
 	public abstract class BreakpointsAndSteppingTests:DebugTests
