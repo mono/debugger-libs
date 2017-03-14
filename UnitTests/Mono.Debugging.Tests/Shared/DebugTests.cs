@@ -61,14 +61,14 @@ namespace MonoDevelop.Debugger.Tests
 			EngineId = engineId;
 		}
 
-		public void IgnoreCorDebugger (string message = "")
+		public virtual void IgnoreCorDebugger (string message = "")
 		{
 			if (!(Session is SoftDebuggerSession)) {
 				Assert.Ignore (message);
 			}
 		}
 
-		public void IgnoreSoftDebugger (string message = "")
+		public virtual void IgnoreSoftDebugger (string message = "")
 		{
 			if (Session is SoftDebuggerSession) {
 				Assert.Ignore (message);
@@ -126,14 +126,14 @@ namespace MonoDevelop.Debugger.Tests
 
 		partial void TearDownPartial ();
 
-		protected string TargetExePath
+		protected virtual string TargetExePath
 		{
 			get{
 				return Path.Combine (TargetExeDirectory, TestAppExeName);
 			}
 		}
 
-		protected void Start (string test)
+		protected virtual void Start (string test)
 		{
 			TestName = test;
 			Session = CreateSession (test, EngineId);
