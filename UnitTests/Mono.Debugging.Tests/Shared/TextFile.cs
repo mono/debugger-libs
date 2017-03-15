@@ -68,12 +68,12 @@ namespace Mono.Debugging.Tests
 //		}
 
 		/// <summary>
-		/// Returns the text starting from <paramref name="offset"/> with length=<paramref name="length"/>
+		/// Returns the text starting from <paramref name="startOffset"/> with length=<paramref name="endOffset"/>
 		/// </summary>
-		/// <param name="offset">0-based starting offset</param>
-		/// <param name="length">length of text</param>
+		/// <param name="startOffset">0-based starting offset</param>
+		/// <param name="endOffset">0-based end offset</param>
 		/// <returns></returns>
-//		public string GetText (int offset, int length)
+//		public string GetText(int startOffset, int endOffset)
 //		{
 //		}
 

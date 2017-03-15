@@ -99,7 +99,8 @@ namespace Mono.Debugging.Tests
 		/// Creates start info to run the app
 		/// </summary>
 		/// <param name="test">test name</param>
-		//protected DebuggerStartInfo CreateStartInfo (string test);
+		/// <param name="engineId">the ID of debugger engine</param>
+		//protected DebuggerStartInfo CreateStartInfo (string test, string engineId);
 
 		#endregion
 
@@ -138,7 +139,7 @@ namespace Mono.Debugging.Tests
 			TestName = test;
 			Session = CreateSession (test, EngineId);
 
-			var dsi = CreateStartInfo (test);
+			var dsi = CreateStartInfo (test, EngineId);
 			var soft = dsi as SoftDebuggerStartInfo;
 
 			if (soft != null) {
@@ -200,6 +201,7 @@ namespace Mono.Debugging.Tests
 			Session.Run (dsi, ops);
 			Session.ExceptionHandler = (ex) => {
 				Console.WriteLine ("Session.ExceptionHandler:" + Environment.NewLine + ex.ToString ());
+				HandleAnyException(ex);
 				return true;
 			};
 			switch (WaitHandle.WaitAny (new WaitHandle[]{ done, targetExited }, 30000)) {
@@ -387,6 +389,8 @@ namespace Mono.Debugging.Tests
 		{
 			Session.Breakpoints.Add (new Catchpoint (exceptionName, includeSubclasses));
 		}
+
+		partial void HandleAnyException(Exception exception);
 	}
 
 	static class EvalHelper
