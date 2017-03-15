@@ -46,7 +46,7 @@ namespace Mono.Debugging.Tests
 		readonly ManualResetEvent targetStoppedEvent = new ManualResetEvent (false);
 		readonly string EngineId;
 		string TestName = "";
-		TextFile SourceFile;
+		ITextFile SourceFile;
 
 		SourceLocation lastStoppedPosition;
 
@@ -102,6 +102,13 @@ namespace Mono.Debugging.Tests
 		/// <param name="engineId">the ID of debugger engine</param>
 		//protected DebuggerStartInfo CreateStartInfo (string test, string engineId);
 
+		/// <summary>
+		/// Reads file from given path
+		/// </summary>
+		/// <param name="sourcePath"></param>
+		/// <returns></returns>
+		//protected ITextFile ReadFile (string sourcePath)
+
 		#endregion
 
 
@@ -156,7 +163,7 @@ namespace Mono.Debugging.Tests
 
 
 			var sourcePath = Path.Combine (TargetProjectSourceDir, test + ".cs");
-			SourceFile = TextFile.ReadFile (sourcePath);
+			SourceFile = ReadFile(sourcePath);
 			AddBreakpoint ("break");
 
 			var done = new ManualResetEvent (false);

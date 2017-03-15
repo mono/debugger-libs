@@ -25,27 +25,18 @@
 #pragma warning disable 1587
 namespace Mono.Debugging.Tests
 {
-	public partial class TextFile
+	public interface ITextFile
 	{
 //		TODO: Implement in another part of the class
 
 		/// <summary>
-		/// Reads file from given path
-		/// </summary>
-		/// <param name="sourcePath"></param>
-		/// <returns></returns>
-//		public static TextFile ReadFile (string sourcePath)
-//		{
-//		}
-
-		/// <summary>
 		/// Content of the file
 		/// </summary>
-//		public string Text { get; }
+		string Text { get; }
 		/// <summary>
 		/// Full path to file
 		/// </summary>
-//		public string Name { get; }
+		string Name { get; }
 
 		/// <summary>
 		/// Returns line and column (1-based) by given offset (0-based)
@@ -53,9 +44,7 @@ namespace Mono.Debugging.Tests
 		/// <param name="offset">0-based</param>
 		/// <param name="line">1-based</param>
 		/// <param name="col">1-based</param>
-//		public void GetLineColumnFromPosition (int offset, out int line, out int col)
-//		{
-//		}
+		void GetLineColumnFromPosition (int offset, out int line, out int col);
 
 		/// <summary>
 		/// Returns offset by given line and column (1-based)
@@ -63,9 +52,7 @@ namespace Mono.Debugging.Tests
 		/// <param name="line">line (1-based)</param>
 		/// <param name="column">column (1-based)</param>
 		/// <returns>offset (0-based)</returns>
-//		public int GetPositionFromLineColumn (int line, int column)
-//		{
-//		}
+		int GetPositionFromLineColumn (int line, int column);
 
 		/// <summary>
 		/// Returns the text starting from <paramref name="startOffset"/> with length=<paramref name="endOffset"/>
@@ -73,17 +60,13 @@ namespace Mono.Debugging.Tests
 		/// <param name="startOffset">0-based starting offset</param>
 		/// <param name="endOffset">0-based end offset</param>
 		/// <returns></returns>
-//		public string GetText(int startOffset, int endOffset)
-//		{
-//		}
+		string GetText(int startOffset, int endOffset);
 
 		/// <summary>
 		/// Returns length of the given line (1-based)
 		/// </summary>
 		/// <param name="line">1-based line</param>
 		/// <returns></returns>
-//		public int GetLineLength (int line)
-//		{
-//		}
+		int GetLineLength (int line);
 	}
 }
