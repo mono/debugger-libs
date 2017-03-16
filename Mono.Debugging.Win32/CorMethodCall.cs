@@ -40,7 +40,12 @@ namespace Mono.Debugging.Win32
 				return;
 			context.Session.OnEndEvaluating ();
 			evalArgs.Continue = false;
-			tcs.TrySetResult(new OperationResult<CorValue> (evalArgs.Eval.Result, isException));
+			if (aborted) {
+				tcs.TrySetCanceled ();
+			}
+			else {
+				tcs.TrySetResult(new OperationResult<CorValue> (evalArgs.Eval.Result, isException));
+			}
 		}
 
 		void SubscribeOnEvals ()
@@ -69,6 +74,7 @@ namespace Mono.Debugging.Win32
 		}
 
 		readonly TaskCompletionSource<OperationResult<CorValue>> tcs = new TaskCompletionSource<OperationResult<CorValue>> ();
+		bool aborted = false;
 		const int DelayAfterAbort = 500;
 
 		protected override void AfterCancelledImpl (int elapsedAfterCancelMs)
@@ -108,6 +114,7 @@ namespace Mono.Debugging.Win32
 		protected override void CancelImpl ( )
 		{
 			eval.Abort ();
+			aborted = true;
 		}
 	}
 }
