@@ -1,10 +1,10 @@
 // 
-// SdbEvaluationTests.cs
+// SdbStackFrameTests.cs
 //  
 // Author:
 //       Lluis Sanchez Gual <lluis@novell.com>
 // 
-// Copyright (c) 2009 Novell, Inc (http://www.novell.com)
+// Copyright (c) 2010 Novell, Inc (http://www.novell.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,25 +24,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System;
 using NUnit.Framework;
-using Mono.Debugging.Client;
-using Mono.Debugging.Soft;
-using System.Collections.Generic;
 
-namespace Mono.Debugging.UnitTests
+namespace Mono.Debugging.Tests.Soft
 {
-	[TestFixture()]
-	public class SdbEvaluationTests: EvaluationTests
+	[TestFixture]
+	public class SdbStackFrameAllowTargetInvokesTests : StackFrameTests
 	{
-		protected override DebuggerSession CreateDebuggerSession ()
+		public SdbStackFrameAllowTargetInvokesTests (): base ("Mono.Debugger.Soft", true)
 		{
-			return new SoftDebuggerSession ();
 		}
+	}
 
-		protected override DebuggerStartInfo CreateDebuggerStartInfo ()
+	[TestFixture]
+	public class SdbStackFrameNoTargetInvokesTests : StackFrameTests
+	{
+		public SdbStackFrameNoTargetInvokesTests (): base ("Mono.Debugger.Soft", false)
 		{
-			return new SoftDebuggerStartInfo (null, new Dictionary<string,string> ());
 		}
 	}
 }
