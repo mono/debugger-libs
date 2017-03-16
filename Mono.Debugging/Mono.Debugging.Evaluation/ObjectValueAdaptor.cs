@@ -193,7 +193,7 @@ namespace Mono.Debugging.Evaluation
 					next = genericEndIndex;
 				
 				// Append the next generic type component
-				builder.Append (typeName.Substring (i, next - i));
+				builder.Append (typeName, i, next - i);
 				
 				i = next + 1;
 			}
@@ -1266,7 +1266,7 @@ namespace Mono.Debugging.Evaluation
 			int last = 0;
 
 			while (i != -1 && i < expr.Length) {
-				display.Append (expr.Substring (last, i - last));
+				display.Append (expr, last, i - last);
 				i++;
 
 				int j = expr.IndexOf ('}', i);
@@ -1308,7 +1308,7 @@ namespace Mono.Debugging.Evaluation
 					if (str == null)
 						display.Append ("null");
 					else if (noquotes && IsQuoted (str))
-						display.Append (str.Substring (1, str.Length - 2));
+						display.Append (str, 1, str.Length - 2);
 					else
 						display.Append (str);
 				} else {
