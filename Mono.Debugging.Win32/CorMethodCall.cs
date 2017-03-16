@@ -1,7 +1,7 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.Samples.Debugging.CorDebug;
 using Microsoft.Samples.Debugging.CorDebug.NativeApi;
+using Mono.Debugging.Client;
 using Mono.Debugging.Evaluation;
 
 namespace Mono.Debugging.Win32
@@ -40,10 +40,12 @@ namespace Mono.Debugging.Win32
 				return;
 			context.Session.OnEndEvaluating ();
 			evalArgs.Continue = false;
-			if (aborted) {
+			if (Token.IsCancellationRequested) {
+				DebuggerLoggingService.LogMessage ("EvalFinished() but evaluation was cancelled");
 				tcs.TrySetCanceled ();
 			}
 			else {
+				DebuggerLoggingService.LogMessage ("EvalFinished(). Setting the result");
 				tcs.TrySetResult(new OperationResult<CorValue> (evalArgs.Eval.Result, isException));
 			}
 		}
@@ -66,7 +68,7 @@ namespace Mono.Debugging.Win32
 			{
 				var met = function.GetMethodInfo (context.Session);
 				if (met == null)
-					return "<Unknown>";
+					return "[Unknown method]";
 				if (met.DeclaringType == null)
 					return met.Name;
 				return met.DeclaringType.FullName + "." + met.Name;
@@ -74,22 +76,8 @@ namespace Mono.Debugging.Win32
 		}
 
 		readonly TaskCompletionSource<OperationResult<CorValue>> tcs = new TaskCompletionSource<OperationResult<CorValue>> ();
-		bool aborted = false;
-		const int DelayAfterAbort = 500;
 
-		protected override void AfterCancelledImpl (int elapsedAfterCancelMs)
-		{
-			if (tcs.TrySetCanceled ()) {
-				// really cancelled for the first time not before. so we should check that we awaited necessary amout of time after Abort() call
-				// else if we return too earle after Abort() the process may be PROCESS_NOT_SYNCHRONIZED
-				if (elapsedAfterCancelMs < DelayAfterAbort) {
-					Thread.Sleep (DelayAfterAbort - elapsedAfterCancelMs);
-				}
-			}
-			context.Session.OnEndEvaluating ();
-		}
-
-		protected override Task<OperationResult<CorValue>> InvokeAsyncImpl (CancellationToken token)
+		protected override Task<OperationResult<CorValue>> InvokeAsyncImpl ()
 		{
 			SubscribeOnEvals ();
 
@@ -102,8 +90,7 @@ namespace Mono.Debugging.Win32
 			context.Session.OnStartEvaluating ();
 			context.Session.Process.Continue (false);
 			Task = tcs.Task;
-			// Don't pass token here, because it causes immediately task cancellation which must be performed by debugger event or real timeout 
-			// ReSharper disable once MethodSupportsCancellation
+			// Don't pass token here, because it causes immediately task cancellation which must be performed by debugger event or real timeout
 			return Task.ContinueWith (task => {
 				UnSubcribeOnEvals ();
 				return task.Result;
@@ -111,10 +98,16 @@ namespace Mono.Debugging.Win32
 		}
 
 
-		protected override void CancelImpl ( )
+		protected override void AbortImpl (int abortCallTimes)
 		{
-			eval.Abort ();
-			aborted = true;
+			if (abortCallTimes < 10) {
+				DebuggerLoggingService.LogMessage ("Calling Abort()");
+				eval.Abort ();
+			}
+			else {
+				DebuggerLoggingService.LogMessage ("Calling RudeAbort()");
+				eval.RudeAbort();
+			}
 		}
 	}
 }
