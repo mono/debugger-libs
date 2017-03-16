@@ -101,11 +101,22 @@ namespace Mono.Debugging.Win32
 		protected override void AbortImpl (int abortCallTimes)
 		{
 			if (abortCallTimes < 10) {
-				DebuggerLoggingService.LogMessage ("Calling Abort()");
+				DebuggerLoggingService.LogMessage ("Calling Abort() for {0} time", abortCallTimes);
 				eval.Abort ();
 			}
 			else {
-				DebuggerLoggingService.LogMessage ("Calling RudeAbort()");
+				if (abortCallTimes == 20) {
+					// if Abort() and RudeAbort() didn't bring any result let's try to resume all the threads to free possible deadlocks in target process
+					// maybe this can help to abort hanging evaluations
+					DebuggerLoggingService.LogMessage ("RudeAbort() didn't stop eval after {0} times", abortCallTimes - 1);
+					DebuggerLoggingService.LogMessage ("Calling Stop()");
+					context.Session.Process.Stop (0);
+					DebuggerLoggingService.LogMessage ("Calling SetAllThreadsDebugState(THREAD_RUN)");
+					context.Session.Process.SetAllThreadsDebugState (CorDebugThreadState.THREAD_RUN, null);
+					DebuggerLoggingService.LogMessage ("Calling Continue()");
+					context.Session.Process.Continue (false);
+				}
+				DebuggerLoggingService.LogMessage ("Calling RudeAbort() for {0} time", abortCallTimes);
 				eval.RudeAbort();
 			}
 		}
