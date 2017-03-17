@@ -127,6 +127,10 @@ namespace Mono.Debugging.Evaluation
 				try {
 					ChangeBusyState (true, desc);
 					while (true) {
+						lock (currentOperations) {
+							if (disposed)
+								break;
+						}
 						op.Abort ();
 						if (op.RawTask.Wait (ShortCancelTimeout))
 							break;
