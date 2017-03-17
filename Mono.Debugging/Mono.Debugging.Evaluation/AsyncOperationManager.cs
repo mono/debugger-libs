@@ -76,9 +76,12 @@ namespace Mono.Debugging.Evaluation
 					return task.Result;
 				}
 				DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} timed out after {1} ms. Cancelling.", description, timeout));
-				mc.Abort ();
+				var abortCalled = mc.AbortCalled;
+				// if abort was already called (in AbortAll/Dispose) don't call it again, just wait
+				if (!abortCalled)
+					mc.Abort ();
 				try {
-					WaitAfterCancel (mc);
+					WaitAfterCancel (mc, abortCalled);
 				}
 				catch (Exception e) {
 					if (IsOperationCancelledException (e)) {
@@ -119,7 +122,7 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		void WaitAfterCancel (IAsyncOperationBase op)
+		void WaitAfterCancel (IAsyncOperationBase op, bool onlyWait)
 		{
 			var desc = op.Description;
 			DebuggerLoggingService.LogMessage (string.Format ("Waiting for cancel of invoke {0}", desc));
@@ -131,7 +134,9 @@ namespace Mono.Debugging.Evaluation
 							if (disposed)
 								break;
 						}
-						op.Abort ();
+						if (!onlyWait) {
+							op.Abort ();
+						}
 						if (op.RawTask.Wait (ShortCancelTimeout))
 							break;
 					}
@@ -160,9 +165,13 @@ namespace Mono.Debugging.Evaluation
 			foreach (var operation in operations) {
 				var taskDescription = operation.Description;
 				try {
-					operation.Abort ();
+					var abortCalled = operation.AbortCalled;
+					// if abort was already called (in AbortAll/Dispose) don't call it again, just wait
+					if (!abortCalled) {
+						operation.Abort ();
+					}
 					if (wait) {
-						WaitAfterCancel (operation);
+						WaitAfterCancel (operation, abortCalled);
 					}
 				}
 				catch (Exception e) {

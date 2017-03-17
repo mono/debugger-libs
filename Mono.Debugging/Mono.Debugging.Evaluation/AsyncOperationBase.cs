@@ -32,6 +32,7 @@ namespace Mono.Debugging.Evaluation
 	{
 		Task RawTask { get; }
 		string Description { get; }
+		bool AbortCalled { get; }
 		void Abort ();
 	}
 
@@ -58,6 +59,8 @@ namespace Mono.Debugging.Evaluation
 		/// for Token.IsCancellationRequested and call Task.SetCancelled() instead of setting the result
 		/// </summary>
 		protected CancellationToken Token { get { return tokenSource.Token; } }
+
+		public bool AbortCalled { get { return Token.IsCancellationRequested; } }
 
 		public void Abort ()
 		{
