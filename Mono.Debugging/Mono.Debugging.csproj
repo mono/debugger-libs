@@ -87,7 +87,6 @@
     <Compile Include="Mono.Debugging.Evaluation\EvaluationContext.cs" />
     <Compile Include="Mono.Debugging.Evaluation\ExpressionEvaluator.cs" />
     <Compile Include="Mono.Debugging.Evaluation\FilteredMembersSource.cs" />
-    <Compile Include="Mono.Debugging.Evaluation\IAsyncOperation.cs" />
     <Compile Include="Mono.Debugging.Evaluation\ICollectionAdaptor.cs" />
     <Compile Include="Mono.Debugging.Evaluation\LiteralValueReference.cs" />
     <Compile Include="Mono.Debugging.Evaluation\NamespaceValueReference.cs" />
