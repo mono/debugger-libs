@@ -2030,7 +2030,18 @@ namespace Mono.Debugging.Soft
 		void HandleThreadDeathEvents (ThreadDeathEvent[] events)
 		{
 			current_threads = null;
-			var thread = events [0].Thread;
+			ThreadMirror thread;
+			try {
+				thread = events [0].Thread;
+			} catch (ObjectCollectedException) {
+				// A 2.1 debugger-agent can send a ThreadDeath event for a ThreadMirror
+				// already collected, in that case just allow the session to continue
+				if (!vm.Version.AtLeast (2, 2))
+					return;
+
+				// Otherwise just report the error
+				throw;
+			}
 			if (events.Length > 1 && events.Any (a => a.Thread != thread))
 				throw new InvalidOperationException ("Simultaneous ThreadDeathEvents for multiple threads");
 
