@@ -3301,6 +3301,8 @@ namespace Mono.Debugging.Soft
 			string oper;
 			if (ins.Operand is MethodMirror)
 				oper = ((MethodMirror)ins.Operand).FullName;
+			else if (ins.Operand is FieldInfoMirror)
+				oper = ((FieldInfoMirror)ins.Operand).FullName;
 			else if (ins.Operand is TypeMirror)
 				oper = ((TypeMirror)ins.Operand).FullName;
 			else if (ins.Operand is ILInstruction)
