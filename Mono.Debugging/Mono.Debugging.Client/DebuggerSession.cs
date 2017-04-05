@@ -993,7 +993,11 @@ namespace Mono.Debugging.Client
 		/// </returns>
 		protected virtual string OnResolveExpression (string expression, SourceLocation location)
 		{
-			return defaultResolver.Resolve (this, location, expression);
+			var resolver = defaultResolver;
+			if (GetExpressionEvaluator != null)
+				resolver = GetExpressionEvaluator(System.IO.Path.GetExtension(location.FileName))?.Evaluator ?? defaultResolver;
+
+			return resolver.Resolve(this, location, expression);
 		}
 		
 		internal protected string ResolveIdentifierAsType (string identifier, SourceLocation location)
