@@ -45,7 +45,7 @@ using Mono.Debugger.Soft;
 using Mono.Debugging.Evaluation;
 using MDB = Mono.Debugger.Soft;
 using System.Security.Cryptography;
-using System.Reflection.Metadata;
+using Mono.Cecil.Cil;
 
 namespace Mono.Debugging.Soft
 {
@@ -2640,50 +2640,59 @@ namespace Mono.Debugging.Soft
 			if (!File.Exists (pdbFileName))
 				return false;
 
-			var fileToSourceFileInfos = new Dictionary<string, List<SourceFileDebugInfo>> ();
-			sourceFilesDebugInfo [pdbFileName] = fileToSourceFileInfos;
-			using (var fs = new FileStream (pdbFileName, FileMode.Open))
-			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
-				var pdb = metadataReader.GetMetadataReader ();
-				if (pdb.Documents.Count == 0)//If .pdb has 0 documents consider it invalid
-					return false;
-				var methodMapping = new Dictionary<DocumentHandle, List<SequencePoint []>> (pdb.Documents.Count);
-				foreach (var methodHandle in pdb.MethodDebugInformation) {
-					var method = pdb.GetMethodDebugInformation (methodHandle);
-					if (method.Document.IsNil)
-						continue;
-					List<SequencePoint []> list;
-					if (!methodMapping.TryGetValue (method.Document, out list))
-						methodMapping [method.Document] = list = new List<SequencePoint []> ();
+			var fileToSourceFileInfos = new Dictionary<string, List<SourceFileDebugInfo>>();
+			sourceFilesDebugInfo[pdbFileName] = fileToSourceFileInfos;
 
-					list.Add (method.GetSequencePoints ().ToArray ());
-				}
 
-				foreach (var documentHandle in pdb.Documents) {
-					// A CompileUnit may not have methods, so guard against this.
-					List<SequencePoint []> list;
-					if (!methodMapping.TryGetValue (documentHandle, out list))
-						list = new List<SequencePoint []> ();
+			using (var module = Cecil.ModuleDefinition.ReadModule(Path.ChangeExtension(pdbFileName, ".dll")))
+			{
+				var symbolReaderProvider = new Cecil.Cil.DefaultSymbolReaderProvider(false);
+				module.ReadSymbols(symbolReaderProvider.GetSymbolReader(module, pdbFileName));
 
-					SourceFileDebugInfo info = new SourceFileDebugInfo (list);
+				var methodMapping = new Dictionary<Document, List<SequencePoint[]>>();
+				foreach (var type in module.Types)
+				{
+					LoadPdbType(type, fileToSourceFileInfos);
 
-					var document = pdb.GetDocument (documentHandle);
-					info.Hash = pdb.GetBlobBytes (document.Hash);
-					info.HashAlgorithem = pdb.GetGuid (document.HashAlgorithm);
-					info.FileID = 0;
-					info.FullFilePath = pdb.GetString (document.Name);
-
-					fileToSourceFileInfos [info.FullFilePath] = new List<SourceFileDebugInfo> ();
-
-					if (!fileToSourceFileInfos.ContainsKey (Path.GetFileName (info.FullFilePath)))
-						fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)] = new List<SourceFileDebugInfo> ();
-
-					fileToSourceFileInfos [info.FullFilePath].Add (info);
-					fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)].Add (info);
+					foreach (var nestedType in type.NestedTypes)
+						LoadPdbType(nestedType, fileToSourceFileInfos);
 				}
 			}
 
 			return true;
+		}
+
+		private void LoadPdbType(Cecil.TypeDefinition type, Dictionary<string, List<SourceFileDebugInfo>> fileToSourceFileInfos)
+		{
+			foreach (var method in type.Methods)
+			{
+				var documents = method.DebugInformation.SequencePoints.GroupBy(t => t.Document, t => t, (document, sequencePoints) => new { Document = document, SequencePoints = sequencePoints });
+
+				foreach (var doc in documents)
+				{
+					AddSequencePointsToFileSource(fileToSourceFileInfos, doc.Document, doc.SequencePoints, doc.Document.Url.ToLower());
+					AddSequencePointsToFileSource(fileToSourceFileInfos, doc.Document, doc.SequencePoints, Path.GetFileName(doc.Document.Url.ToLower()));
+				}
+			}
+		}
+
+		private static void AddSequencePointsToFileSource(Dictionary<string, List<SourceFileDebugInfo>> fileToSourceFileInfos, Document document, IEnumerable<SequencePoint> sequencePoints, string name)
+		{
+			if (!fileToSourceFileInfos.ContainsKey(name))
+			{
+				List<SequencePoint[]> list = new List<SequencePoint[]>(new[] { sequencePoints.ToArray() });
+				SourceFileDebugInfo info = new SourceFileDebugInfo(list);
+
+				info.Hash = document.Hash;
+				info.FileID = 0;
+				info.FullFilePath = document.Url;
+
+				fileToSourceFileInfos.Add(name, new List<SourceFileDebugInfo> { info });
+			}
+			else
+			{
+				fileToSourceFileInfos[name].First().PdbMethods.Add(sequencePoints.ToArray());
+			}
 		}
 
 		bool LoadMdbFile (string mdbFileName)
@@ -2856,17 +2865,14 @@ namespace Mono.Debugging.Soft
 						}
 					}
 				}
-			} else if (sourceInfo.PdbMethods != null) {
+			}
+			else if (sourceInfo.PdbMethods != null) {
 				foreach (var methodInfo in sourceInfo.PdbMethods) {
 					foreach (var entry in methodInfo) {
 						if ((entry.StartLine >= line && (entry.StartLine - line) < foundDelta))
 							return true;
 						if (entry.StartLine == line && column >= entry.StartColumn && entry.StartColumn > found.ColumnNumber)
 							return true;
-						if (vm.Version.AtLeast (2, 19)) { //if version is less then 2.19, found Location will not contain info about columns
-							if (entry.StartLine == line && column >= entry.StartColumn && entry.StartColumn > found.ColumnNumber)
-								return true;
-						}
 					}
 				}
 			}
