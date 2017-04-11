@@ -45,7 +45,7 @@ using Mono.Debugger.Soft;
 using Mono.Debugging.Evaluation;
 using MDB = Mono.Debugger.Soft;
 using System.Security.Cryptography;
-using System.Reflection.Metadata;
+using Mono.Cecil.Cil;
 
 namespace Mono.Debugging.Soft
 {
@@ -2635,63 +2635,66 @@ namespace Mono.Debugging.Soft
 			return PathComparer.Compare (rp1, rp2) == 0;
 		}
 
-		bool LoadPdbFile (string pdbFileName)
+		bool LoadPdbFile (string assemblyFileName, string pdbFileName)
 		{
 			if (!File.Exists (pdbFileName))
 				return false;
 
-			var fileToSourceFileInfos = new Dictionary<string, List<SourceFileDebugInfo>> ();
-			sourceFilesDebugInfo [pdbFileName] = fileToSourceFileInfos;
-			using (var fs = new FileStream (pdbFileName, FileMode.Open))
-			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
-				var pdb = metadataReader.GetMetadataReader ();
-				if (pdb.Documents.Count == 0)//If .pdb has 0 documents consider it invalid
-					return false;
-				var methodMapping = new Dictionary<DocumentHandle, List<SequencePoint []>> (pdb.Documents.Count);
-				foreach (var methodHandle in pdb.MethodDebugInformation) {
-					var method = pdb.GetMethodDebugInformation (methodHandle);
-					if (method.Document.IsNil)
-						continue;
-					List<SequencePoint []> list;
-					if (!methodMapping.TryGetValue (method.Document, out list))
-						methodMapping [method.Document] = list = new List<SequencePoint []> ();
+			var fileToSourceFileInfos = new Dictionary<string, List<SourceFileDebugInfo>>(StringComparer.InvariantCultureIgnoreCase);
+			sourceFilesDebugInfo[pdbFileName] = fileToSourceFileInfos;
 
-					list.Add (method.GetSequencePoints ().ToArray ());
-				}
+			using (var module = Cecil.ModuleDefinition.ReadModule(assemblyFileName))
+			{
+				var symbolReaderProvider = new Cecil.Cil.DefaultSymbolReaderProvider(false);
+				module.ReadSymbols(symbolReaderProvider.GetSymbolReader(module, pdbFileName));
 
-				foreach (var documentHandle in pdb.Documents) {
-					// A CompileUnit may not have methods, so guard against this.
-					List<SequencePoint []> list;
-					if (!methodMapping.TryGetValue (documentHandle, out list))
-						list = new List<SequencePoint []> ();
-
-					SourceFileDebugInfo info = new SourceFileDebugInfo (list);
-
-					var document = pdb.GetDocument (documentHandle);
-					info.Hash = pdb.GetBlobBytes (document.Hash);
-					info.HashAlgorithem = pdb.GetGuid (document.HashAlgorithm);
-					info.FileID = 0;
-					info.FullFilePath = pdb.GetString (document.Name);
-
-					fileToSourceFileInfos [info.FullFilePath] = new List<SourceFileDebugInfo> ();
-
-					if (!fileToSourceFileInfos.ContainsKey (Path.GetFileName (info.FullFilePath)))
-						fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)] = new List<SourceFileDebugInfo> ();
-
-					fileToSourceFileInfos [info.FullFilePath].Add (info);
-					fileToSourceFileInfos [Path.GetFileName (info.FullFilePath)].Add (info);
-				}
+				var methodMapping = new Dictionary<Document, List<SequencePoint[]>>();
+				foreach (var type in module.GetTypes())
+					LoadPdbType(type, fileToSourceFileInfos);
 			}
 
 			return true;
 		}
 
-		bool LoadMdbFile (string mdbFileName)
+		private void LoadPdbType(Cecil.TypeDefinition type, Dictionary<string, List<SourceFileDebugInfo>> fileToSourceFileInfos)
+		{
+			foreach (var method in type.Methods)
+			{
+				var documents = method.DebugInformation.SequencePoints.GroupBy(t => t.Document, t => t);
+
+				foreach (var document in documents)
+				{
+					AddSequencePointsToFileSource(fileToSourceFileInfos, document.Key, document, document.Key.Url);
+					AddSequencePointsToFileSource(fileToSourceFileInfos, document.Key, document, Path.GetFileName(document.Key.Url));
+				}
+			}
+		}
+
+		private static void AddSequencePointsToFileSource(Dictionary<string, List<SourceFileDebugInfo>> fileToSourceFileInfos, Document document, IEnumerable<SequencePoint> sequencePoints, string name)
+		{
+			if (!fileToSourceFileInfos.ContainsKey(name))
+			{
+				List<SequencePoint[]> list = new List<SequencePoint[]> { sequencePoints.ToArray() };
+				SourceFileDebugInfo info = new SourceFileDebugInfo(list);
+
+				info.Hash = document.Hash;
+				info.FileID = 0;
+				info.FullFilePath = document.Url;
+
+				fileToSourceFileInfos.Add(name, new List<SourceFileDebugInfo> { info });
+			}
+			else
+			{
+				fileToSourceFileInfos[name][0].PdbMethods.Add(sequencePoints.ToArray());
+			}
+		}
+
+		bool LoadMdbFile (string assemblyFileName, string mdbFileName)
 		{
 			if (!File.Exists (mdbFileName))
 				return false;
 
-			var fileToSourceFileInfos = new Dictionary<string, List<SourceFileDebugInfo>> ();
+			var fileToSourceFileInfos = new Dictionary<string, List<SourceFileDebugInfo>> (StringComparer.InvariantCultureIgnoreCase);
 			sourceFilesDebugInfo [mdbFileName] = fileToSourceFileInfos;
 
 			using (MonoSymbolFile mdb = MonoSymbolFile.ReadSymbolFile (mdbFileName)) {
@@ -2731,7 +2734,7 @@ namespace Mono.Debugging.Soft
 			return true;
 		}
 
-		bool LoadDebugFile (string debugFileName, Func<string,bool> loadDebugFile)
+		bool LoadDebugFile (string assemblyFileName, string debugFileName, Func<string,string,bool> loadDebugFile)
 		{
 			long debugFileTicks;
 			// Check if there is a previously saved timestamp for this debug file.
@@ -2743,7 +2746,7 @@ namespace Mono.Debugging.Soft
 			// Check if debug file has been updated and if so, reload it.
 			if (currentMdbFileNameTicks > debugFileTicks) {
 				sourceFilesDebugInfo.Remove (debugFileName);
-				if (!loadDebugFile (debugFileName))
+				if (!loadDebugFile (assemblyFileName, debugFileName))
 					return false;
 
 				symbolFilesTimestamps [debugFileName] = currentMdbFileNameTicks;
@@ -2763,9 +2766,9 @@ namespace Mono.Debugging.Soft
 			if (assemblyFileName == null)
 				return false;
 			string debugFile = assemblyFileName + ".mdb";
-			if (!LoadDebugFile (debugFile, LoadMdbFile)) {
+			if (!LoadDebugFile (assemblyFileName, debugFile, LoadMdbFile)) {
 				debugFile = Path.ChangeExtension (assemblyFileName, ".pdb");
-				if (!LoadDebugFile (debugFile, LoadPdbFile)) {
+				if (!LoadDebugFile (assemblyFileName, debugFile, LoadPdbFile)) {
 						return false;
 				}
 			}
@@ -2850,23 +2853,16 @@ namespace Mono.Debugging.Soft
 							return true;
 						if (entry.Row == line && column >= entry.Column && entry.Column > found.ColumnNumber)
 							return true;
-						if (vm.Version.AtLeast (2, 19)) { //if version is less then 2.19, found Location will not contain info about columns
-							if (entry.Row == line && column >= entry.Column && entry.Column > found.ColumnNumber)
-								return true;
-						}
 					}
 				}
-			} else if (sourceInfo.PdbMethods != null) {
+			}
+			else if (sourceInfo.PdbMethods != null) {
 				foreach (var methodInfo in sourceInfo.PdbMethods) {
 					foreach (var entry in methodInfo) {
 						if ((entry.StartLine >= line && (entry.StartLine - line) < foundDelta))
 							return true;
 						if (entry.StartLine == line && column >= entry.StartColumn && entry.StartColumn > found.ColumnNumber)
 							return true;
-						if (vm.Version.AtLeast (2, 19)) { //if version is less then 2.19, found Location will not contain info about columns
-							if (entry.StartLine == line && column >= entry.StartColumn && entry.StartColumn > found.ColumnNumber)
-								return true;
-						}
 					}
 				}
 			}
