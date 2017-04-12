@@ -2650,13 +2650,8 @@ namespace Mono.Debugging.Soft
 				module.ReadSymbols(symbolReaderProvider.GetSymbolReader(module, pdbFileName));
 
 				var methodMapping = new Dictionary<Document, List<SequencePoint[]>>();
-				foreach (var type in module.Types)
-				{
+				foreach (var type in module.GetTypes())
 					LoadPdbType(type, fileToSourceFileInfos);
-
-					foreach (var nestedType in type.NestedTypes)
-						LoadPdbType(nestedType, fileToSourceFileInfos);
-				}
 			}
 
 			return true;
@@ -2666,12 +2661,12 @@ namespace Mono.Debugging.Soft
 		{
 			foreach (var method in type.Methods)
 			{
-				var documents = method.DebugInformation.SequencePoints.GroupBy(t => t.Document, t => t, (document, sequencePoints) => new { Document = document, SequencePoints = sequencePoints });
+				var documents = method.DebugInformation.SequencePoints.GroupBy(t => t.Document, t => t);
 
-				foreach (var doc in documents)
+				foreach (var document in documents)
 				{
-					AddSequencePointsToFileSource(fileToSourceFileInfos, doc.Document, doc.SequencePoints, doc.Document.Url);
-					AddSequencePointsToFileSource(fileToSourceFileInfos, doc.Document, doc.SequencePoints, Path.GetFileName(doc.Document.Url));
+					AddSequencePointsToFileSource(fileToSourceFileInfos, document.Key, document, document.Key.Url);
+					AddSequencePointsToFileSource(fileToSourceFileInfos, document.Key, document, Path.GetFileName(document.Key.Url));
 				}
 			}
 		}
@@ -2680,7 +2675,7 @@ namespace Mono.Debugging.Soft
 		{
 			if (!fileToSourceFileInfos.ContainsKey(name))
 			{
-				List<SequencePoint[]> list = new List<SequencePoint[]>(new[] { sequencePoints.ToArray() });
+				List<SequencePoint[]> list = new List<SequencePoint[]> { sequencePoints.ToArray() };
 				SourceFileDebugInfo info = new SourceFileDebugInfo(list);
 
 				info.Hash = document.Hash;
@@ -2691,7 +2686,7 @@ namespace Mono.Debugging.Soft
 			}
 			else
 			{
-				fileToSourceFileInfos[name].First().PdbMethods.Add(sequencePoints.ToArray());
+				fileToSourceFileInfos[name][0].PdbMethods.Add(sequencePoints.ToArray());
 			}
 		}
 
