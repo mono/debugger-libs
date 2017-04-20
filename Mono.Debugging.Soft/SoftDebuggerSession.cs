@@ -2635,7 +2635,7 @@ namespace Mono.Debugging.Soft
 			return PathComparer.Compare (rp1, rp2) == 0;
 		}
 
-		bool LoadPdbFile (string pdbFileName)
+		bool LoadPdbFile (string assemblyFileName, string pdbFileName)
 		{
 			if (!File.Exists (pdbFileName))
 				return false;
@@ -2643,8 +2643,7 @@ namespace Mono.Debugging.Soft
 			var fileToSourceFileInfos = new Dictionary<string, List<SourceFileDebugInfo>>(StringComparer.InvariantCultureIgnoreCase);
 			sourceFilesDebugInfo[pdbFileName] = fileToSourceFileInfos;
 
-
-			using (var module = Cecil.ModuleDefinition.ReadModule(Path.ChangeExtension(pdbFileName, ".dll")))
+			using (var module = Cecil.ModuleDefinition.ReadModule(assemblyFileName))
 			{
 				var symbolReaderProvider = new Cecil.Cil.DefaultSymbolReaderProvider(false);
 				module.ReadSymbols(symbolReaderProvider.GetSymbolReader(module, pdbFileName));
@@ -2690,7 +2689,7 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-		bool LoadMdbFile (string mdbFileName)
+		bool LoadMdbFile (string assemblyFileName, string mdbFileName)
 		{
 			if (!File.Exists (mdbFileName))
 				return false;
@@ -2735,7 +2734,7 @@ namespace Mono.Debugging.Soft
 			return true;
 		}
 
-		bool LoadDebugFile (string debugFileName, Func<string,bool> loadDebugFile)
+		bool LoadDebugFile (string assemblyFileName, string debugFileName, Func<string,string,bool> loadDebugFile)
 		{
 			long debugFileTicks;
 			// Check if there is a previously saved timestamp for this debug file.
@@ -2747,7 +2746,7 @@ namespace Mono.Debugging.Soft
 			// Check if debug file has been updated and if so, reload it.
 			if (currentMdbFileNameTicks > debugFileTicks) {
 				sourceFilesDebugInfo.Remove (debugFileName);
-				if (!loadDebugFile (debugFileName))
+				if (!loadDebugFile (assemblyFileName, debugFileName))
 					return false;
 
 				symbolFilesTimestamps [debugFileName] = currentMdbFileNameTicks;
@@ -2767,9 +2766,9 @@ namespace Mono.Debugging.Soft
 			if (assemblyFileName == null)
 				return false;
 			string debugFile = assemblyFileName + ".mdb";
-			if (!LoadDebugFile (debugFile, LoadMdbFile)) {
+			if (!LoadDebugFile (assemblyFileName, debugFile, LoadMdbFile)) {
 				debugFile = Path.ChangeExtension (assemblyFileName, ".pdb");
-				if (!LoadDebugFile (debugFile, LoadPdbFile)) {
+				if (!LoadDebugFile (assemblyFileName, debugFile, LoadPdbFile)) {
 						return false;
 				}
 			}
