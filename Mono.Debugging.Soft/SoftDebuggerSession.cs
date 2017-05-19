@@ -905,24 +905,22 @@ namespace Mono.Debugging.Soft
 						resolved = true;
 					}
 				}
-
 				if (!resolved) {
-					// FIXME: handle types like GenericType<>, GenericType<SomeOtherType>, and GenericType<...>+NestedGenricType<...>
-					var bracket = fb.FunctionName.IndexOf ('(');
-					int dot;
-					if (bracket != -1) {
-						//Handle stuff like SomeNamespace.SomeType.Method(SomeOtherNamespace.SomeOtherType)
-						dot = fb.FunctionName.LastIndexOf ('.', bracket);
-					} else {
-						dot = fb.FunctionName.LastIndexOf ('.');
-					}
-					if (dot != -1)
-						bi.TypeName = fb.FunctionName.Substring (0, dot);
-
 					bi.SetStatus (BreakEventStatus.NotBound, null);
-					lock (pending_bes) {
-						pending_bes.Add (bi);
-					}
+				}
+				// FIXME: handle types like GenericType<>, GenericType<SomeOtherType>, and GenericType<...>+NestedGenricType<...>
+				var bracket = fb.FunctionName.IndexOf ('(');
+				int dot;
+				if (bracket != -1) {
+					//Handle stuff like SomeNamespace.SomeType.Method(SomeOtherNamespace.SomeOtherType)
+					dot = fb.FunctionName.LastIndexOf ('.', bracket);
+				} else {
+					dot = fb.FunctionName.LastIndexOf ('.');
+				}
+				if (dot != -1)
+					bi.TypeName = fb.FunctionName.Substring (0, dot);
+				lock (pending_bes) {
+					pending_bes.Add(bi);
 				}
 			} else if (breakEvent is InstructionBreakpoint) {
 				var bp = (InstructionBreakpoint) breakEvent;
@@ -941,17 +939,10 @@ namespace Mono.Debugging.Soft
 					resolved = true;
 				}
 
-				if (resolved) {
-					// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
-					if (generic) {
-						lock (pending_bes) {
-							pending_bes.Add (bi);
-						}
-					}
-				} else {
-					lock (pending_bes) {
-						pending_bes.Add (bi);
-					}
+				lock (pending_bes) {
+					pending_bes.Add (bi);
+				}
+				if (!resolved) {
 					if (insideTypeRange)
 						bi.SetStatus (BreakEventStatus.Invalid, null);
 					else
@@ -976,17 +967,10 @@ namespace Mono.Debugging.Soft
 					resolved = true;
 				}
 
-				if (resolved) {
-					// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
-					if (generic) {
-						lock (pending_bes) {
-							pending_bes.Add (bi);
-						}
-					}
-				} else {
-					lock (pending_bes) {
-						pending_bes.Add (bi);
-					}
+				lock (pending_bes) {
+					pending_bes.Add(bi);
+				}
+				if (!resolved) {
 					if (insideLoadedRange)
 						bi.SetStatus (BreakEventStatus.Invalid, null);
 					else
@@ -1010,11 +994,11 @@ namespace Mono.Debugging.Soft
 						InsertCatchpoint (cp, bi, type);
 					bi.SetStatus (BreakEventStatus.Bound, null);
 				} else {
-					bi.TypeName = cp.ExceptionName;
-					lock (pending_bes) {
-						pending_bes.Add (bi);
-					}
 					bi.SetStatus (BreakEventStatus.NotBound, null);
+				}
+				bi.TypeName = cp.ExceptionName;
+				lock (pending_bes) {
+					pending_bes.Add(bi);
 				}
 			}
 
@@ -1938,27 +1922,7 @@ namespace Mono.Debugging.Soft
 				assemblyLocation = null;
 			}
 
-			if (assemblyFilters != null) {
-				int index = assemblyFilters.IndexOf (asm);
-				if (index != -1)
-					assemblyFilters.RemoveAt (index);
-			}
-			// Mark affected breakpoints as pending again
-			var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => x.Value != null && x.Value.Location != null &&
-				x.Value.Location.Method != null && x.Value.Location.Method.DeclaringType != null &&  x.Value.Location.Method.DeclaringType.Assembly != null &&
-				PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asm.Location)
-			));
-			foreach (var breakpoint in affectedBreakpoints) {
-				string file = breakpoint.Value.Location.SourceFile;
-				int line = breakpoint.Value.Location.LineNumber;
-				OnDebuggerOutput (false, string.Format ("Re-pending breakpoint at {0}:{1}\n", file, line));
-				breakpoints.Remove (breakpoint.Key);
-				breakpoint.Value.Requests.Clear ();
-
-				lock (pending_bes) {
-					pending_bes.Add (breakpoint.Value);
-				}
-			}
+			assemblyFilters?.Remove (asm);
 
 			// Remove affected types from the loaded types list
 			var affectedTypes = types.SelectMany (l => l.Value).Where (t => t.Assembly == asm).ToArray ();
@@ -2460,7 +2424,6 @@ namespace Mono.Debugging.Soft
 
 		void ResolveBreakpoints (TypeMirror type)
 		{
-			var resolved = new List<BreakInfo> ();
 			Location loc;
 			
 			ProcessType (type);
@@ -2474,17 +2437,10 @@ namespace Mono.Debugging.Soft
 				if (CheckTypeName (type, bi.TypeName)) {
 					var bp = (FunctionBreakpoint)bi.BreakEvent;
 					foreach (var method in FindMethodsByName (bp.FunctionName, bp.ParamTypes)) {
-						if(ResolveFunctionBreakpoint (bi, bp, method))
-							resolved.Add (bi);
+						ResolveFunctionBreakpoint (bi, bp, method);
 					}
 				}
 			}
-			
-			foreach (var be in resolved)
-				lock (pending_bes) {
-					pending_bes.Remove (be);
-				}
-			resolved.Clear ();
 
 			// Now resolve normal Breakpoints
 			foreach (string s in type_to_source [type]) {
@@ -2506,10 +2462,6 @@ namespace Mono.Debugging.Soft
 							OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
 							                                        s, bp.Line, bp.Column, GetPrettyMethodName (loc.Method), loc.ILOffset));
 							ResolvePendingBreakpoint (bi, loc);
-							
-							// Note: if the type or method is generic, there may be more instances so don't assume we are done resolving the breakpoint
-							if (!genericMethod && !type.IsGenericType)
-								resolved.Add (bi);
 						} else {
 							if (insideLoadedRange) {
 								bi.SetStatus (BreakEventStatus.Invalid, null);
@@ -2517,12 +2469,6 @@ namespace Mono.Debugging.Soft
 						}
 					}
 				}
-				
-				foreach (var be in resolved)
-					lock (pending_bes) {
-						pending_bes.Remove (be);
-					}
-				resolved.Clear ();
 			}
 
 			// Thirdly, resolve pending catchpoints
@@ -2533,14 +2479,8 @@ namespace Mono.Debugging.Soft
 				var cp = (Catchpoint) bi.BreakEvent;
 				if (cp.ExceptionName == type.FullName) {
 					ResolvePendingCatchpoint (bi, type);
-					resolved.Add (bi);
 				}
 			}
-			
-			foreach (var be in resolved)
-				lock (pending_bes) {
-					pending_bes.Remove (be);
-				}
 		}
 
 		bool ResolveFunctionBreakpoint (BreakInfo bi, FunctionBreakpoint bp, MethodMirror method)
