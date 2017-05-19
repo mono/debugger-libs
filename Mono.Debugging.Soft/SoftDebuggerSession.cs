@@ -1981,7 +1981,16 @@ namespace Mono.Debugging.Soft
 
 			if (assemblyLocation != null) {
 				foreach (var pair in source_to_type) {
-					pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, assemblyLocation));
+					pair.Value.RemoveAll (m => {
+						try {
+							assemblyLocation = m.Assembly.Location;
+						} catch (CommandException ex) {
+							if (ex.ErrorCode != ErrorCode.ERR_UNLOADED)
+								throw ex;
+							return true;//If assembly is unloaded, so is type, hence remove type from list...
+						}
+						return PathComparer.Equals (m.Assembly.Location, assemblyLocation);
+					});
 				}
 			}
 			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", assemblyLocation ?? "<unknown>"));
