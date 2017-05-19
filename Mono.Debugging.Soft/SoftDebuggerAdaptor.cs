@@ -346,13 +346,13 @@ namespace Mono.Debugging.Soft
 				fromType = ToTypeMirror (ctx, valueType);
 
 			if (fromType != null) {
-				if (toType != null && toType.IsAssignableFrom (fromType))
-					return val;
-				
 				// Try casting the primitive type of the enum
 				var em = val as EnumMirror;
 				if (em != null)
 					return TryCast (ctx, CreateValue (ctx, em.Value), type);
+
+				if (toType != null && toType.IsAssignableFrom(fromType))
+					return val;
 
 				if (toType == null)
 					return null;
