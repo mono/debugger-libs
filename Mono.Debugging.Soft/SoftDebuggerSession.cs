@@ -1017,7 +1017,12 @@ namespace Mono.Debugging.Soft
 					bi.SetStatus (BreakEventStatus.NotBound, null);
 				}
 			}
+			UpdateTypeLoadFilters ();
+			return bi;
+		}
 
+		void UpdateTypeLoadFilters()
+		{
 			/*
 			 * TypeLoad events lead to too much wire traffic + suspend/resume work, so
 			 * filter them using the file names used by pending breakpoints.
@@ -1065,8 +1070,6 @@ namespace Mono.Debugging.Soft
 					typeLoadTypeNameReq.Enabled = true;
 				}
 			}
-
-			return bi;
 		}
 
 		private Location FindLocationByILOffset (InstructionBreakpoint bp, string filename, out bool isGeneric, out bool insideTypeRange)
@@ -1945,9 +1948,11 @@ namespace Mono.Debugging.Soft
 				breakpoints.Remove (breakpoint.Key);
 				breakpoint.Value.Requests.Clear ();
 
+				breakpoint.Value.SetStatus (BreakEventStatus.NotBound, "Assembly unloaded");
 				lock (pending_bes) {
 					pending_bes.Add (breakpoint.Value);
 				}
+				UpdateTypeLoadFilters ();
 			}
 
 			// Remove affected types from the loaded types list
