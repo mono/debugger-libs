@@ -1929,14 +1929,7 @@ namespace Mono.Debugging.Soft
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyUnloadEvents for multiple assemblies");
 
-			string assemblyLocation;
-			try {
-				assemblyLocation = asm.Location;
-			} catch (CommandException ex) {
-				if (ex.ErrorCode != ErrorCode.ERR_UNLOADED)
-					throw ex;
-				assemblyLocation = null;
-			}
+			string assemblyLocation = GetAssemblyLocation (asm);
 
 			if (assemblyFilters != null) {
 				int index = assemblyFilters.IndexOf (asm);
@@ -1944,10 +1937,7 @@ namespace Mono.Debugging.Soft
 					assemblyFilters.RemoveAt (index);
 			}
 			// Mark affected breakpoints as pending again
-			var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => x.Value != null && x.Value.Location != null &&
-				x.Value.Location.Method != null && x.Value.Location.Method.DeclaringType != null &&  x.Value.Location.Method.DeclaringType.Assembly != null &&
-				PathComparer.Equals (x.Value.Location.Method.DeclaringType.Assembly.Location, asm.Location)
-			));
+			var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => assemblyLocation != null && PathComparer.Equals (GetAssemblyLocation (x.Value?.Location?.Method?.DeclaringType?.Assembly), assemblyLocation)));
 			foreach (var breakpoint in affectedBreakpoints) {
 				string file = breakpoint.Value.Location.SourceFile;
 				int line = breakpoint.Value.Location.LineNumber;
@@ -1981,10 +1971,23 @@ namespace Mono.Debugging.Soft
 
 			if (assemblyLocation != null) {
 				foreach (var pair in source_to_type) {
-					pair.Value.RemoveAll (m => PathComparer.Equals (m.Assembly.Location, assemblyLocation));
+					pair.Value.RemoveAll (m => PathComparer.Equals (GetAssemblyLocation(m.Assembly), assemblyLocation));
 				}
 			}
 			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", assemblyLocation ?? "<unknown>"));
+		}
+
+		static string GetAssemblyLocation (AssemblyMirror asm)
+		{
+			if (asm == null)
+				return null;
+			try {
+				return asm.Location;
+			} catch (CommandException ex) {
+				if (ex.ErrorCode != ErrorCode.ERR_UNLOADED)
+					throw ex;
+				return null;
+			}
 		}
 
 		void HandleVMStartEvents (VMStartEvent[] events)

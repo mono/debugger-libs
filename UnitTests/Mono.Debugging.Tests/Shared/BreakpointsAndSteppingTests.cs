@@ -28,6 +28,8 @@ using NUnit.Framework;
 using Mono.Debugging.Client;
 using System.Collections.Generic;
 using Mono.Debugging.Soft;
+using System.IO;
+using System.Threading;
 
 namespace Mono.Debugging.Tests
 {
@@ -879,7 +881,6 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void CatchPointTest2 ()
 		{
-			IgnoreSoftDebugger ("I'm having problem testing this because. There is error nonstop happening in framework about CurrentCulture featching.");
 			IgnoreCorDebugger ("Randomly fails");
 
 			InitializeTest ();
@@ -1144,13 +1145,47 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void Bug21410 ()
 		{
-			IgnoreSoftDebugger ("Runtime bug.");
-
 			InitializeTest ();
 			AddBreakpoint ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5");
 			StartTest ("TestBug21410");
 			CheckPosition ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5");
 			StepOver ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5", 1);
+		}
+
+		[Test]
+		public void Bug53371()
+		{
+			InitializeTest();
+			Session.Options.ProjectAssembliesOnly = false;
+			Exception exception = null;
+			var exceptionRaised = new ManualResetEvent(false);
+			Session.ExceptionHandler = (ex) =>
+			{
+				exception = ex;
+				exceptionRaised.Set();
+				return true;
+			};
+			var file = ReadFile(Path.Combine(Path.GetDirectoryName(TargetProjectSourceDir), "MonoDevelop.Debugger.Tests.AppDomainClient", "Client.cs"));
+			AddBreakpoint("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+			AddBreakpoint("e0aa9771-8072-4ae5-b827-51f44b281f4d", 1);
+			StartTest("TestBug53371");
+			CheckPosition("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+			Continue("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+			targetStoppedEvent.Reset();
+			Session.Continue();
+			var result = WaitHandle.WaitAny(new WaitHandle[] { exceptionRaised, targetStoppedEvent }, 5000);
+			switch (result)
+			{
+				case -1:
+					Assert.Fail("Timeout");
+					break;
+				case 0:
+					Assert.Fail(exception.ToString());
+					break;
+				case 1:
+					CheckPosition("e0aa9771-8072-4ae5-b827-51f44b281f4d", 1);
+					break;
+			}
 		}
 	}
 }
