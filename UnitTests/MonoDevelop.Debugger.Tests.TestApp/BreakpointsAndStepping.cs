@@ -459,6 +459,16 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		{
 		}
 
+		public void TestBug53371 ()
+		{
+			var domain1 = AppDomain.CreateDomain ("domain1", null, new AppDomainSetup () { ApplicationBase = "." });
+			domain1.ExecuteAssembly ("MonoDevelop.Debugger.Tests.AppDomainClient.exe", new [] { "1", "2", "3" });
+			var domain2 = AppDomain.CreateDomain ("domain2", null, new AppDomainSetup () { ApplicationBase = "." });
+			domain2.ExecuteAssembly ("MonoDevelop.Debugger.Tests.AppDomainClient.exe", new [] { "1", "2", "3" });
+			AppDomain.Unload (domain2);
+			AppDomain.Unload (domain1);/*e0aa9771-8072-4ae5-b827-51f44b281f4d*/
+		}
+
 		class DontUseThisClassInOtherTests
 		{
 			//Or StaticConstructorStepping will fail because

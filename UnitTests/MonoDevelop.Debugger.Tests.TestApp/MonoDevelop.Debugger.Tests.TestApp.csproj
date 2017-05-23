@@ -77,5 +77,9 @@
       <Name>MonoDevelop.Debugger.Tests.NonUserCodeTestLib</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\MonoDevelop.Debugger.Tests.AppDomainClient\MonoDevelop.Debugger.Tests.AppDomainClient.csproj">
+      <Project>{7A55BE57-81C9-45EC-9C7C-7F97D0508171}</Project>
+      <Name>MonoDevelop.Debugger.Tests.AppDomainClient</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

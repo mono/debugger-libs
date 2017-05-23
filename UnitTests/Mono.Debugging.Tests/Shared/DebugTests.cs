@@ -43,7 +43,7 @@ namespace Mono.Debugging.Tests
 		const string TestAppExeName = "MonoDevelop.Debugger.Tests.TestApp.exe";
 		const string TestAppProjectDirName = "MonoDevelop.Debugger.Tests.TestApp";
 
-		readonly ManualResetEvent targetStoppedEvent = new ManualResetEvent (false);
+		protected readonly ManualResetEvent targetStoppedEvent = new ManualResetEvent (false);
 		readonly string EngineId;
 		string TestName = "";
 		ITextFile SourceFile;
@@ -225,40 +225,42 @@ namespace Mono.Debugging.Tests
 			}
 		}
 
-		void GetLineAndColumn (string breakpointMarker, int offset, string statement, out int line, out int col)
+		void GetLineAndColumn (string breakpointMarker, int offset, string statement, out int line, out int col, ITextFile file)
 		{
-			int i = SourceFile.Text.IndexOf ("/*" + breakpointMarker + "*/", StringComparison.Ordinal);
+			int i = file.Text.IndexOf ("/*" + breakpointMarker + "*/", StringComparison.Ordinal);
 			if (i == -1)
-				Assert.Fail ("Break marker not found: " + breakpointMarker + " in " + SourceFile.Name);
-			SourceFile.GetLineColumnFromPosition (i, out line, out col);
+				Assert.Fail ("Break marker not found: " + breakpointMarker + " in " + file.Name);
+			file.GetLineColumnFromPosition (i, out line, out col);
 			line += offset;
 			if (statement != null) {
-				int lineStartPosition = SourceFile.GetPositionFromLineColumn (line, 1);
-				string lineText = SourceFile.GetText (lineStartPosition, lineStartPosition + SourceFile.GetLineLength (line));
+				int lineStartPosition = file.GetPositionFromLineColumn (line, 1);
+				string lineText = file.GetText (lineStartPosition, lineStartPosition + file.GetLineLength (line));
 				col = lineText.IndexOf (statement, StringComparison.Ordinal) + 1;
 				if (col == 0)
-					Assert.Fail ("Failed to find statement:" + statement + " at " + SourceFile.Name + "(" + line + ")");
+					Assert.Fail ("Failed to find statement:" + statement + " at " + file.Name + "(" + line + ")");
 			} else {
 				col = 1;
 			}
 		}
 
-		public Breakpoint AddBreakpoint (string breakpointMarker, int offset = 0, string statement = null)
+		public Breakpoint AddBreakpoint (string breakpointMarker, int offset = 0, string statement = null, ITextFile file = null)
 		{
+			file = file ?? SourceFile;
 			int col, line;
-			GetLineAndColumn (breakpointMarker, offset, statement, out line, out col);
-			var bp = new Breakpoint (SourceFile.Name, line, col);
+			GetLineAndColumn (breakpointMarker, offset, statement, out line, out col, file);
+			var bp = new Breakpoint (file.Name, line, col);
 			Session.Breakpoints.Add (bp);
 			return bp;
 		}
 
-		public void RunToCursor (string breakpointMarker, int offset = 0, string statement = null)
+		public void RunToCursor (string breakpointMarker, int offset = 0, string statement = null, ITextFile file = null)
 		{
+			file = file ?? SourceFile;
 			int col, line;
-			GetLineAndColumn (breakpointMarker, offset, statement, out line, out col);
+			GetLineAndColumn (breakpointMarker, offset, statement, out line, out col, file);
 			targetStoppedEvent.Reset ();
 			Session.Breakpoints.RemoveRunToCursorBreakpoints ();
-			var bp = new RunToCursorBreakpoint (SourceFile.Name, line, col);
+			var bp = new RunToCursorBreakpoint (file.Name, line, col);
 			Session.Breakpoints.Add (bp);
 			Session.Continue ();
 			CheckPosition (breakpointMarker, offset, statement);
@@ -289,30 +291,31 @@ namespace Mono.Debugging.Tests
 			}
 		}
 
-		public bool CheckPosition (string guid, int offset = 0, string statement = null, bool silent = false)
+		public bool CheckPosition (string guid, int offset = 0, string statement = null, bool silent = false, ITextFile file = null)
 		{
+			file = file ?? SourceFile;
 			if (!targetStoppedEvent.WaitOne (6000)) {
 				if (!silent)
 					Assert.Fail ("CheckPosition failure: Target stop timeout");
 				return false;
 			}
-			if (lastStoppedPosition.FileName == SourceFile.Name) {
-				int i = SourceFile.Text.IndexOf ("/*" + guid + "*/", StringComparison.Ordinal);
+			if (lastStoppedPosition.FileName == file.Name) {
+				int i = file.Text.IndexOf ("/*" + guid + "*/", StringComparison.Ordinal);
 				if (i == -1) {
 					if (!silent)
-						Assert.Fail ("CheckPosition failure: Guid marker not found:" + guid + " in file:" + SourceFile.Name);
+						Assert.Fail ("CheckPosition failure: Guid marker not found:" + guid + " in file:" + file.Name);
 					return false;
 				}
 				int line, col;
-				SourceFile.GetLineColumnFromPosition (i, out line, out col);
+				file.GetLineColumnFromPosition (i, out line, out col);
 				if ((line + offset) != lastStoppedPosition.Line) {
 					if (!silent)
-						Assert.Fail ("CheckPosition failure: Wrong line Expected:" + (line + offset) + " Actual:" + lastStoppedPosition.Line + " in file:" + SourceFile.Name);
+						Assert.Fail ("CheckPosition failure: Wrong line Expected:" + (line + offset) + " Actual:" + lastStoppedPosition.Line + " in file:" + file.Name);
 					return false;
 				}
 				if (!string.IsNullOrEmpty (statement)) {
-					int position = SourceFile.GetPositionFromLineColumn (lastStoppedPosition.Line, lastStoppedPosition.Column);
-					string actualStatement = SourceFile.GetText (position, position + statement.Length);
+					int position = file.GetPositionFromLineColumn (lastStoppedPosition.Line, lastStoppedPosition.Column);
+					string actualStatement = file.GetText (position, position + statement.Length);
 					if (statement != actualStatement) {
 						if (!silent)
 							Assert.AreEqual (statement, actualStatement);
@@ -321,7 +324,7 @@ namespace Mono.Debugging.Tests
 				}
 			} else {
 				if (!silent)
-					Assert.Fail ("CheckPosition failure: Wrong file Excpected:" + SourceFile.Name + " Actual:" + lastStoppedPosition.FileName);
+					Assert.Fail ("CheckPosition failure: Wrong file Excpected:" + file.Name + " Actual:" + lastStoppedPosition.FileName);
 				return false;
 			}
 			return true;
@@ -368,11 +371,11 @@ namespace Mono.Debugging.Tests
 			Continue (guid, 0, statement);
 		}
 
-		public void Continue (string guid, int offset = 0, string statement = null)
+		public void Continue (string guid, int offset = 0, string statement = null, ITextFile file = null)
 		{
 			targetStoppedEvent.Reset ();
 			Session.Continue ();
-			CheckPosition (guid, offset, statement);
+			CheckPosition(guid, offset, statement, file: file);
 		}
 
 		public void StartTest (string methodName)
@@ -385,11 +388,12 @@ namespace Mono.Debugging.Tests
 			Session.Continue ();
 		}
 
-		public void SetNextStatement (string guid, int offset = 0, string statement = null)
+		public void SetNextStatement (string guid, int offset = 0, string statement = null, ITextFile file = null)
 		{
+			file = file ?? SourceFile;
 			int line, column;
-			GetLineAndColumn (guid, offset, statement, out line, out column);
-			Session.SetNextStatement (SourceFile.Name, line, column);
+			GetLineAndColumn (guid, offset, statement, out line, out column, file);
+			Session.SetNextStatement (file.Name, line, column);
 		}
 
 		public void AddCatchpoint (string exceptionName, bool includeSubclasses)

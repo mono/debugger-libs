@@ -29,7 +29,6 @@ using NUnit.Framework;
 namespace Mono.Debugging.Tests.Soft
 {
 	[TestFixture]
-	[Ignore("Sdb has many failings until resolved ignore all")]
 	public class SdbBreakpointsAndSteppingTests: BreakpointsAndSteppingTests
 	{
 		public SdbBreakpointsAndSteppingTests () : base ("Mono.Debugger.Soft")
