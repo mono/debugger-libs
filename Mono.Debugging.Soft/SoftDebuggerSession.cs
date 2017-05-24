@@ -1791,22 +1791,23 @@ namespace Mono.Debugging.Soft
 				foreach (Event e in es) {
 					if (e.EventType == EventType.Breakpoint) {
 						var be = (BreakpointEvent) e;
+						var hasBreakInfo = breakpoints.TryGetValue (be.Request, out binfo);
 
 						if (!HandleBreakpoint (e.Thread, be.Request)) {
 							etype = TargetEventType.TargetHitBreakpoint;
 							autoStepInto = false;
 							resume = false;
+							if (hasBreakInfo)
+								breakEvent = binfo.BreakEvent;
 						}
 						
-						if (breakpoints.TryGetValue (be.Request, out binfo)) {
+						if (hasBreakInfo) {
 							if (currentStepRequest != null &&
 							    currentStepRequest.Depth != StepDepth.Out &&
 							    binfo.Location.ILOffset == currentAddress && 
 							    e.Thread.Id == currentStepRequest.Thread.Id &&
 								currentStackDepth == e.Thread.GetFrames ().Length)
 								redoCurrentStep = true;
-							
-							breakEvent = binfo.BreakEvent;
 						}
 					} else if (e.EventType == EventType.Step) {
 						var stepRequest = e.Request as StepEventRequest;
