@@ -1187,6 +1187,19 @@ namespace Mono.Debugging.Tests
 					break;
 			}
 		}
+
+		[Test]
+		public void BugDomainBreakpointNotBound ()
+		{
+			InitializeTest ();
+			Session.Options.ProjectAssembliesOnly = false;
+			var file = ReadFile (Path.Combine (Path.GetDirectoryName (TargetProjectSourceDir), "MonoDevelop.Debugger.Tests.AppDomainClient", "Client.cs"));
+			AddBreakpoint ("3fda6c6b-9c2f-412b-9d0b-012bacdce577");
+			StartTest ("TestBugDomainBreakpointNotBound");
+			CheckPosition ("3fda6c6b-9c2f-412b-9d0b-012bacdce577");
+			AddBreakpoint ("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+			Continue ("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
+		}
 	}
 }
 
