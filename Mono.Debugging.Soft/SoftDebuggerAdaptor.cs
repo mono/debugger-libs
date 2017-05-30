@@ -687,11 +687,17 @@ namespace Mono.Debugging.Soft
 			}
 
 			// csc, mcs locals of form <name>__#, where # represents index of scope
+			// roslyn locals of form <name>5__#, where # represents index of scope
 			if (field.Name [0] == '<') {
+				int suffixLength = 3;
 				var i = field.Name.IndexOf (">__", StringComparison.Ordinal);
+				if (i == -1) {
+					suffixLength = 4;
+					i = field.Name.IndexOf (">5__", StringComparison.Ordinal);
+				}
 				if (i != -1 && field.VirtualMachine.Version.AtLeast (2, 43)) {
 					int scopeIndex;
-					if (int.TryParse (field.Name.Substring (i + 3), out scopeIndex) && scopeIndex > 0) {//0 means whole method scope
+					if (int.TryParse (field.Name.Substring (i + suffixLength), out scopeIndex) && scopeIndex > 0) {//0 means whole method scope
 						scopeIndex--;//Scope index is 1 based(not zero)
 						var scopes = cx.Frame.Method.GetScopes ();
 						if (scopeIndex < scopes.Length) {

@@ -70,6 +70,23 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			yield return "4";/*a9a9aa9d-6b8b-4724-9741-2a3e1fb435e8*/
 		}
 
+		public void Bug33193Test ()
+		{
+			Bug33193 ().Wait ();
+		}
+
+		public async Task Bug33193()
+		{
+			var list = new [] { "a", "b", "c" };
+			foreach (var item1 in list) {
+				item1.ToString ();
+			}
+			await Task.Delay (0);
+			foreach (var item1 in list) {
+				item1.ToString ();/*f1665382-7ddc-4c65-9c20-39d4a0ae9cf1*/
+			}
+		}
+
 		public void Bug24998Test ()
 		{
 			Bug24998 ().Wait ();

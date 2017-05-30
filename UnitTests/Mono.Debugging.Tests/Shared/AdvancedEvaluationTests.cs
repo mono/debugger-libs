@@ -106,6 +106,20 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("System.Action", val.TypeName);
 		}
 
+		[Test]
+		[Ignore("Waiting for runtime side fix.")]
+		public void Bug33193 ()
+		{
+			InitializeTest ();
+			AddBreakpoint ("f1665382-7ddc-4c65-9c20-39d4a0ae9cf1");
+			StartTest ("Bug33193Test");
+			CheckPosition ("f1665382-7ddc-4c65-9c20-39d4a0ae9cf1");
+			Continue ("f1665382-7ddc-4c65-9c20-39d4a0ae9cf1");
+			var val = Eval ("item1");
+			Assert.AreEqual ("\"b\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+		}
+
 
 		[Test]
 		public void YieldMethodTest ()
