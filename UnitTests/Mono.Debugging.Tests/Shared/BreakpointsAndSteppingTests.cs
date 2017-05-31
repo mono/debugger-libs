@@ -1153,6 +1153,7 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
+		[Ignore]
 		public void Bug53371()
 		{
 			InitializeTest();
@@ -1189,6 +1190,7 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
+		[Ignore]
 		public void BugDomainBreakpointNotBound ()
 		{
 			InitializeTest ();
