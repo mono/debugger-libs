@@ -265,31 +265,28 @@ namespace Mono.Debugging.Client
 		}
 
 		readonly Queue<Action> actionsQueue = new Queue<Action>();
+		bool threadExecuting = false;
 
 		void Dispatch (Action action)
 		{
 			if (UseOperationThread) {
 				lock (actionsQueue) {
 					actionsQueue.Enqueue (action);
-					if (actionsQueue.Count == 1) {
+					if (!threadExecuting) {
+						threadExecuting = true;
 						ThreadPool.QueueUserWorkItem (delegate {
 							while (true) {
 								Action actionToExecute = null;
 								lock (actionsQueue) {
 									if (actionsQueue.Count > 0) {
-										actionToExecute = actionsQueue.Peek ();
+										actionToExecute = actionsQueue.Dequeue ();
 									} else {
+										threadExecuting = false;
 										return;
 									}
 								}
-								try {
-									lock (slock) {
-										actionToExecute ();
-									}
-								} finally {
-									lock (actionsQueue) {
-										actionsQueue.Dequeue ();
-									}
+								lock (slock) {
+									actionToExecute ();
 								}
 							}
 						});
