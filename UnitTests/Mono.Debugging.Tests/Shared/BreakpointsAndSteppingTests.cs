@@ -1200,6 +1200,20 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
 			Continue ("c6632437-1cac-45db-ac15-0ca13cf02aa1", file: file);
 		}
+
+		/// <summary>
+		/// If user explicitly set breakpoint outside user code... Respect that breakpoint anyway
+		/// </summary>
+		[Test]
+		public void StopOnBreakpointsEvenIfInNonUserCode ()
+		{
+			InitializeTest ();
+			Session.Options.ProjectAssembliesOnly = true;
+			var file = ReadFile (Path.Combine (Path.GetDirectoryName (TargetProjectSourceDir), "MonoDevelop.Debugger.Tests.NonUserCodeTestLib", "NonUserCodeClass.cs"));
+			AddBreakpoint ("ce16b8fd-dd76-440e-886a-8278820ce908", file: file);
+			StartTest ("StopOnBreakpointsEvenIfInNonUserCodeTest");
+			CheckPosition ("ce16b8fd-dd76-440e-886a-8278820ce908", file: file);
+		}
 	}
 }
 

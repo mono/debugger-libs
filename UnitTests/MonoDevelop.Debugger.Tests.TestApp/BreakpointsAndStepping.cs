@@ -73,6 +73,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			var b = a;/*36c0a44a-44ac-4676-b99b-9a58b73bae9d*/
 		}
 
+		public void StopOnBreakpointsEvenIfInNonUserCodeTest ()
+		{
+			NonUserCodeClass.NonUserMethod ();
+		}
+
 		public void StaticConstructorStepping ()
 		{
 			var test = new DontUseThisClassInOtherTests ();

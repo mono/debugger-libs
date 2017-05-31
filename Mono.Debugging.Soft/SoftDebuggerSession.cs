@@ -1681,9 +1681,6 @@ namespace Mono.Debugging.Soft
 
 		bool IgnoreBreakpoint (MethodMirror method)
 		{
-			if (Options.ProjectAssembliesOnly && !IsUserAssembly (method.DeclaringType.Assembly))
-				return true;
-
 			if (vm.Version.AtLeast (2, 21)) {
 				foreach (var attr in method.GetCustomAttributes (false)) {
 					var attrName = attr.Constructor.DeclaringType.FullName;
@@ -1815,6 +1812,7 @@ namespace Mono.Debugging.Soft
 				Step (depth, size);
 			} else if (resume) {
 				// all breakpoints were conditional and evaluated as false
+				current_thread = null;
 				vm.Resume ();
 				DequeueEventsForFirstThread ();
 			} else {
@@ -1839,6 +1837,7 @@ namespace Mono.Debugging.Soft
 
 					if (frame != null && steppedInto) {
 						if (ContinueOnStepInto (frame.StackFrame.Method)) {
+							current_thread = null;
 							vm.Resume ();
 							DequeueEventsForFirstThread ();
 							return;
@@ -1865,6 +1864,7 @@ namespace Mono.Debugging.Soft
 							stepOut = true;
 						}
 					} else if (etype == TargetEventType.TargetHitBreakpoint && breakEvent != null && !breakEvent.NonUserBreakpoint && IgnoreBreakpoint (frame.StackFrame.Method)) {
+						current_thread = null;
 						vm.Resume ();
 						DequeueEventsForFirstThread ();
 						return;

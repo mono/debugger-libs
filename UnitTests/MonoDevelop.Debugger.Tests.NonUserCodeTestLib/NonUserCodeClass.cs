@@ -43,6 +43,11 @@ namespace MonoDevelop.Debugger.Tests.NonUserCodeTestLib
 				}
 			});
 		}
+
+		public static void NonUserMethod()
+		{
+			new NonUserCodeClass();/*ce16b8fd-dd76-440e-886a-8278820ce908*/
+		}
 	}
 }
 
