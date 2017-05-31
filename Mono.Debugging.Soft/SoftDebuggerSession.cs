@@ -2588,9 +2588,19 @@ namespace Mono.Debugging.Soft
 				return path;
 
 			if (IsWindows)
-				return Path.GetFullPath (path);
+				return ResolveWindowsSymbolicLink (path);
 
-			try {
+            return ResolveUnixSymbolicLink (path);
+		}
+
+        static string ResolveWindowsSymbolicLink (string path)
+        {
+            return Path.GetFullPath (path);
+        }
+
+        static string ResolveUnixSymbolicLink (string path)
+        {
+   			try {
 				var alreadyVisted = new HashSet<string> ();
 
 				while (true) {
@@ -2619,7 +2629,7 @@ namespace Mono.Debugging.Soft
 			} catch {
 				return path;
 			}
-		}
+        }
 		
 		static bool PathsAreEqual (string p1, string p2)
 		{
