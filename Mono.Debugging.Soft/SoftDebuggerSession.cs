@@ -1929,7 +1929,7 @@ namespace Mono.Debugging.Soft
 
 		void HandleAssemblyUnloadEvents (AssemblyMirror asm)
 		{
-			assemblyFilters.Remove (asm);
+			assemblyFilters?.Remove (asm);
 
 			// Mark affected breakpoints as pending again
 			var affectedBreakpoints = new List<KeyValuePair<EventRequest, BreakInfo>> (breakpoints.Where (x => x.Value.Requests.TryGetValue (x.Key, out var a) && a == asm));
