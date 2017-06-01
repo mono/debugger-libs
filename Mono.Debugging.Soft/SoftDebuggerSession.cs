@@ -934,15 +934,14 @@ namespace Mono.Debugging.Soft
 					bi.Location = location;
 					InsertBreakpoint (bp, bi);
 					bi.SetStatus (BreakEventStatus.Bound, null);
-				}
+				} else if (insideTypeRange)
+					bi.SetStatus (BreakEventStatus.Invalid, null);
+				else
+					bi.SetStatus (BreakEventStatus.NotBound, null);
 
 				lock (pending_bes) {
 					pending_bes.Add (bi);
 				}
-				if (insideTypeRange)
-					bi.SetStatus (BreakEventStatus.Invalid, null);
-				else
-					bi.SetStatus (BreakEventStatus.NotBound, null);
 
 			} else if (breakEvent is Breakpoint) {
 				var bp = (Breakpoint) breakEvent;
@@ -950,23 +949,27 @@ namespace Mono.Debugging.Soft
 				bool generic;
 
 				bi.FileName = bp.FileName;
-
+				bool found = false;
 				foreach (var location in FindLocationsByFile (bp.FileName, bp.Line, bp.Column, out generic, out insideLoadedRange)) {
 					OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
 					                                        bp.FileName, bp.Line, bp.Column, GetPrettyMethodName (location.Method), location.ILOffset));
 
 					bi.Location = location;
 					InsertBreakpoint (bp, bi);
+					found = true;
 					bi.SetStatus (BreakEventStatus.Bound, null);
 				}
 
 				lock (pending_bes) {
 					pending_bes.Add (bi);
 				}
-				if (insideLoadedRange)
-					bi.SetStatus (BreakEventStatus.Invalid, null);
-				else
-					bi.SetStatus (BreakEventStatus.NotBound, null);
+
+				if (!found) {
+					if (insideLoadedRange)
+						bi.SetStatus (BreakEventStatus.Invalid, null);
+					else
+						bi.SetStatus (BreakEventStatus.NotBound, null);
+				}
 			} else if (breakEvent is Catchpoint) {
 				var cp = (Catchpoint) breakEvent;
 
