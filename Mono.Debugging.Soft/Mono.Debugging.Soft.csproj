@@ -65,9 +65,11 @@
     <Compile Include="FieldReferenceBatch.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Mono.Posix, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>$(SolutionDir)\packages\Mono.Posix.4.0.0.0\lib\net40\Mono.Posix.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="Mono.Posix" />
     <Reference Include="Mono.Cecil">
       <HintPath>$(SolutionDir)\packages\Mono.Cecil.0.10.0-beta5\lib\net40\Mono.Cecil.dll</HintPath>
     </Reference>
