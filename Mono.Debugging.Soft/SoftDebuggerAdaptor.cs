@@ -699,7 +699,11 @@ namespace Mono.Debugging.Soft
 					int scopeIndex;
 					if (int.TryParse (field.Name.Substring (i + suffixLength), out scopeIndex) && scopeIndex > 0) {//0 means whole method scope
 						scopeIndex--;//Scope index is 1 based(not zero)
-						var scopes = cx.Frame.Method.GetScopes ();
+						LocalScope [] scopes = null;
+						if (field.VirtualMachine.Version.AtLeast (2, 46))
+							scopes = cx.Frame.Method.GetHoistedScopes ();
+						if (scopes == null || scopes.Length == 0)// If hoisted scopes are empty use normal scopes
+							scopes = cx.Frame.Method.GetScopes ();
 						if (scopeIndex < scopes.Length) {
 							var scope = scopes [scopeIndex];
 							if (scope.LiveRangeStart > cx.Frame.Location.ILOffset || scope.LiveRangeEnd < cx.Frame.Location.ILOffset)

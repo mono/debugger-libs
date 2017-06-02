@@ -24,6 +24,7 @@ namespace Mono.Debugger.Soft
 		MethodBodyMirror body;
 		MethodMirror gmd;
 		TypeMirror[] type_args;
+		LocalScope[] hoisted_scopes;
 
 		internal MethodMirror (VirtualMachine vm, long id) : base (vm, id) {
 		}
@@ -241,10 +242,19 @@ namespace Mono.Debugger.Soft
 		}
 
 		public LocalScope [] GetScopes () {
-			if (!vm.Version.AtLeast (2, 43))
-				throw new InvalidOperationException ("Scopes support was implemented in 2.43 version of protocol.");
+			vm.CheckProtocolVersion (2, 43);
 			GetLocals ();
 			return scopes;
+		}
+
+		//
+		// Return the contents of the State Machine Hoisted Locals Scope record:
+		// https://github.com/dotnet/corefx/blob/master/src/System.Reflection.Metadata/specs/PortablePdb-Metadata.md#state-machine-hoisted-local-scopes-c--vb-compilers
+		//
+		public LocalScope [] GetHoistedScopes () {
+			vm.CheckProtocolVersion (2, 46);
+			GetLocals ();
+			return hoisted_scopes;
 		}
 
 		public LocalVariable[] GetLocals () {
@@ -272,6 +282,10 @@ namespace Mono.Debugger.Soft
 					for (int i = 0; i < scopes.Length; ++i)
 						scopes [i] = new LocalScope (vm, this, li.scopes_start [i], li.scopes_end [i]);
 				}
+
+				hoisted_scopes = new LocalScope [li.nhoisted];
+				for (int i = 0; i < li.nhoisted; ++i)
+					hoisted_scopes [i] = new LocalScope (vm, this, li.hoisted_scopes_start [i], li.hoisted_scopes_end [i]);
 			}
 			return locals;
 		}
