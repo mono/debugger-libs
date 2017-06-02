@@ -24,6 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
+using Mono.Debugging.Soft;
 using NUnit.Framework;
 
 namespace Mono.Debugging.Tests
@@ -107,9 +108,11 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
-		[Ignore("Waiting for runtime side fix.")]
 		public void Bug33193 ()
 		{
+			var soft = Session as SoftDebuggerSession;
+			if (soft != null && soft.ProtocolVersion < new Version (2, 46))
+				Assert.Ignore ("A newer version of the Mono runtime is required.");
 			InitializeTest ();
 			AddBreakpoint ("f1665382-7ddc-4c65-9c20-39d4a0ae9cf1");
 			StartTest ("Bug33193Test");
