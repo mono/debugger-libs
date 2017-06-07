@@ -752,6 +752,22 @@ namespace Mono.Debugging.Soft
 			return new [] { new ProcessInfo (procs[0].Id, procs[0].Name) };
 		}
 
+		internal PortablePdbData GetPdbData (AssemblyMirror asm)
+		{
+			string assemblyFileName;
+			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
+				assemblyFileName = asm.Location;
+			var pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
+			if (!PortablePdbData.IsPortablePdb (pdbFileName))
+				return null;
+			return new PortablePdbData (pdbFileName);
+		}
+
+		internal PortablePdbData GetPdbData (MethodMirror method)
+		{
+			return GetPdbData (method.DeclaringType.Assembly);
+		}
+
 		protected override Backtrace OnGetThreadBacktrace (long processId, long threadId)
 		{
 			return GetThreadBacktrace (GetThread (threadId));
