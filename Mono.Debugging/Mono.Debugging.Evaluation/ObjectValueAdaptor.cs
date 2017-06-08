@@ -91,6 +91,8 @@ namespace Mono.Debugging.Evaluation
 				return CreateObjectValueImpl (ctx, source, path, obj, flags);
 			} catch (EvaluatorAbortedException ex) {
 				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
+			} catch (EvaluatorExceptionThrownException ex) {
+				return ObjectValue.CreateEvaluationException (ctx, source, path, ex);
 			} catch (EvaluatorException ex) {
 				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
 			} catch (Exception ex) {
@@ -588,7 +590,7 @@ namespace Mono.Debugging.Evaluation
 						values.Add (oval);
 					}
 				} catch (Exception ex) {
-					ctx.WriteDebuggerError (ex);
+					DebuggerLoggingService.LogError ("Exception in GetObjectValueChildren()", ex);
 					values.Add (ObjectValue.CreateError (null, new ObjectPath (val.Name), GetDisplayTypeName (GetTypeName (ctx, val.Type)), ex.Message, val.Flags));
 				}
 			}
@@ -1111,6 +1113,8 @@ namespace Mono.Debugging.Evaluation
 						return new EvaluationResult ("{" + CallToString (ctx, obj) + "}");
 					} catch (TimeOutException) {
 						// ToString() timed out, fall back to default behavior.
+					} catch (EvaluatorExceptionThrownException e) {
+						// ToString() call thrown exception, fall back to default behavior.
 					}
 				}
 				
@@ -1324,9 +1328,9 @@ namespace Mono.Debugging.Evaluation
 			return display.ToString ();
 		}
 
-		public void AsyncExecute (AsyncOperation operation, int timeout)
+		public OperationResult<TValue> InvokeSync<TValue> (AsyncOperationBase<TValue> operation, int timeout)
 		{
-			asyncOperationManager.Invoke (operation, timeout);
+			return asyncOperationManager.Invoke (operation, timeout);
 		}
 
 		public ObjectValue CreateObjectValueAsync (string name, ObjectValueFlags flags, ObjectEvaluatorDelegate evaluator)
@@ -1355,10 +1359,12 @@ namespace Mono.Debugging.Evaluation
 				return ObjectValue.CreateImplicitNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ObjectValueFlags.None);
 			} catch (NotSupportedExpressionException ex) {
 				return ObjectValue.CreateNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message, ObjectValueFlags.None);
+			} catch (EvaluatorExceptionThrownException ex) {
+				return ObjectValue.CreateEvaluationException (ctx, ctx.ExpressionValueSource, new ObjectPath (exp), ex);
 			} catch (EvaluatorException ex) {
 				return ObjectValue.CreateError (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message, ObjectValueFlags.None);
 			} catch (Exception ex) {
-				ctx.WriteDebuggerError (ex);
+				DebuggerLoggingService.LogError ("Exception in GetExpressionValue()", ex);
 				return ObjectValue.CreateUnknown (exp);
 			}
 		}
