@@ -1924,10 +1924,11 @@ namespace Mono.Debugging.Soft
 
 		void RegisterAssembly (AssemblyMirror asm)
 		{
-			if (domainAssembliesToUnload.TryGetValue (asm.Domain, out var asmList)) {
+			var domain = vm.Version.AtLeast (2, 45) ? asm.Domain : asm.GetAssemblyObject ().Domain;
+			if (domainAssembliesToUnload.TryGetValue (domain, out var asmList)) {
 				asmList.Add (asm);
 			} else {
-				domainAssembliesToUnload.Add (asm.Domain, new HashSet<AssemblyMirror> (new [] { asm }));
+				domainAssembliesToUnload.Add (domain, new HashSet<AssemblyMirror> (new [] { asm }));
 			}
 		}
 
