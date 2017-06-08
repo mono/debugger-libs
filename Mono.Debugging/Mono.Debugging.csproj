@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -82,6 +82,7 @@
     <Compile Include="Mono.Debugging.Evaluation\ArrayElementGroup.cs" />
     <Compile Include="Mono.Debugging.Evaluation\ArrayValueReference.cs" />
     <Compile Include="Mono.Debugging.Evaluation\AsyncEvaluationTracker.cs" />
+    <Compile Include="Mono.Debugging.Evaluation\AsyncOperationBase.cs" />
     <Compile Include="Mono.Debugging.Evaluation\AsyncOperationManager.cs" />
     <Compile Include="Mono.Debugging.Evaluation\EvaluationContext.cs" />
     <Compile Include="Mono.Debugging.Evaluation\ExpressionEvaluator.cs" />
@@ -96,6 +97,7 @@
     <Compile Include="Mono.Debugging.Evaluation\TimedEvaluator.cs" />
     <Compile Include="Mono.Debugging.Evaluation\TimeOutException.cs" />
     <Compile Include="Mono.Debugging.Evaluation\TypeValueReference.cs" />
+    <Compile Include="Mono.Debugging.Evaluation\ValueModificationException.cs" />
     <Compile Include="Mono.Debugging.Evaluation\ValueReference.cs" />
     <Compile Include="Mono.Debugging.Evaluation\UserVariableReference.cs" />
     <Compile Include="Mono.Debugging.Client\DebuggerException.cs" />
@@ -124,6 +126,7 @@
     <Compile Include="Mono.Debugging.Client\DebuggerLoggingService.cs" />
     <Compile Include="Mono.Debugging.Client\RunToCursorBreakpoint.cs" />
     <Compile Include="Mono.Debugging.Evaluation\EnumerableElementGroup.cs" />
+    <Compile Include="Mono.Debugging.Evaluation\ValueModificationUtil.cs" />
   </ItemGroup>
   <Import Project="..\Mono.Debugging.settings" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

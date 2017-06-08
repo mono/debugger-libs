@@ -190,16 +190,19 @@ namespace Mono.Debugging.Soft
 					DC.DebuggerLoggingService.LogMessage ("Thread state before evaluation is {0}", threadState);
 					throw new EvaluatorException ("Evaluation is not allowed when the thread is in 'Wait' state");
 				}
-				var mc = new MethodCall (this, method, target, values, enableOutArgs);
+				var invocableMirror = target as IInvocableMethodOwnerMirror;
+				if (invocableMirror == null)
+					throw new ArgumentException ("Soft debugger method calls cannot be invoked on objects of type " + target.GetType ().Name);
+				var mc = new SoftMethodCall (this, method, invocableMirror, values, enableOutArgs);
 				//Since runtime is returning NOT_SUSPENDED error if two methods invokes are executed
 				//at same time we have to lock invoking to prevent this...
 				lock (method.VirtualMachine) {
-					Adapter.AsyncExecute (mc, Options.EvaluationTimeout);
+					var result = (SoftOperationResult)Adapter.InvokeSync (mc, Options.EvaluationTimeout).ThrowIfException (this);
+					if (enableOutArgs) {
+						outArgs = result.OutArgs;
+					}
+					return result.Result;
 				}
-				if (enableOutArgs) {
-					outArgs = mc.OutArgs;
-				}
-				return mc.ReturnValue;
 			}
 		}
 

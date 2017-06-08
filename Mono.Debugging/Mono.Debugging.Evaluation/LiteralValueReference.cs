@@ -108,7 +108,7 @@ namespace Mono.Debugging.Evaluation
 				return value;
 			}
 			set {
-				throw new NotSupportedException ();
+				throw new NotSupportedException ("Assignment to a literal is not possible");
 			}
 		}
 		
