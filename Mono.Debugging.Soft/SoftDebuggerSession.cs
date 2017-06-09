@@ -752,6 +752,22 @@ namespace Mono.Debugging.Soft
 			return new [] { new ProcessInfo (procs[0].Id, procs[0].Name) };
 		}
 
+		internal PortablePdbData GetPdbData (AssemblyMirror asm)
+		{
+			string assemblyFileName;
+			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
+				assemblyFileName = asm.Location;
+			var pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
+			if (!PortablePdbData.IsPortablePdb (pdbFileName))
+				return null;
+			return new PortablePdbData (pdbFileName);
+		}
+
+		internal PortablePdbData GetPdbData (MethodMirror method)
+		{
+			return GetPdbData (method.DeclaringType.Assembly);
+		}
+
 		protected override Backtrace OnGetThreadBacktrace (long processId, long threadId)
 		{
 			return GetThreadBacktrace (GetThread (threadId));
@@ -1908,10 +1924,11 @@ namespace Mono.Debugging.Soft
 
 		void RegisterAssembly (AssemblyMirror asm)
 		{
-			if (domainAssembliesToUnload.TryGetValue (asm.Domain, out var asmList)) {
+			var domain = vm.Version.AtLeast (2, 45) ? asm.Domain : asm.GetAssemblyObject ().Domain;
+			if (domainAssembliesToUnload.TryGetValue (domain, out var asmList)) {
 				asmList.Add (asm);
 			} else {
-				domainAssembliesToUnload.Add (asm.Domain, new HashSet<AssemblyMirror> (new [] { asm }));
+				domainAssembliesToUnload.Add (domain, new HashSet<AssemblyMirror> (new [] { asm }));
 			}
 		}
 

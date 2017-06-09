@@ -678,8 +678,10 @@ namespace Mono.Debugging.Soft
 			// csc uses CS$ prefix for temporary variables and <>t__ prefix for async task-related state variables
 			return local.Name != null && (local.Name.StartsWith ("CS$", StringComparison.Ordinal) || local.Name.StartsWith ("<>t__", StringComparison.Ordinal));
 		}
-		
-		static string GetHoistedIteratorLocalName (FieldInfoMirror field, SoftEvaluationContext cx)
+
+		Dictionary<MethodMirror, PortablePdbData.SoftScope []> methodScopeCache = new Dictionary<MethodMirror, PortablePdbData.SoftScope []> ();
+
+		string GetHoistedIteratorLocalName (FieldInfoMirror field, SoftEvaluationContext cx)
 		{
 			//mcs captured args, of form <$>name
 			if (field.Name.StartsWith ("<$>", StringComparison.Ordinal)) {
@@ -699,11 +701,13 @@ namespace Mono.Debugging.Soft
 					int scopeIndex;
 					if (int.TryParse (field.Name.Substring (i + suffixLength), out scopeIndex) && scopeIndex > 0) {//0 means whole method scope
 						scopeIndex--;//Scope index is 1 based(not zero)
-						LocalScope [] scopes = null;
-						if (field.VirtualMachine.Version.AtLeast (2, 46))
-							scopes = cx.Frame.Method.GetHoistedScopes ();
-						if (scopes == null || scopes.Length == 0)// If hoisted scopes are empty use normal scopes
-							scopes = cx.Frame.Method.GetScopes ();
+						PortablePdbData.SoftScope [] scopes;
+						if (!methodScopeCache.TryGetValue (cx.Frame.Method, out scopes)) {
+							scopes = cx.Session.GetPdbData (cx.Frame.Method)?.GetHoistedScopes (cx.Frame.Method);
+							if (scopes == null || scopes.Length == 0)// If hoisted scopes are empty use normal scopes
+								scopes = cx.Frame.Method.GetScopes ().Select (s => new PortablePdbData.SoftScope () { LiveRangeStart = s.LiveRangeStart, LiveRangeEnd = s.LiveRangeEnd }).ToArray ();
+							methodScopeCache [cx.Frame.Method] = scopes;
+						}
 						if (scopeIndex < scopes.Length) {
 							var scope = scopes [scopeIndex];
 							if (scope.LiveRangeStart > cx.Frame.Location.ILOffset || scope.LiveRangeEnd < cx.Frame.Location.ILOffset)
