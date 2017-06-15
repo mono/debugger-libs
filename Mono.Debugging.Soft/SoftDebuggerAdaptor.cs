@@ -2170,7 +2170,7 @@ namespace Mono.Debugging.Soft
 		readonly object obj;
 		IAsyncResult handle;
 		Exception exception;
-		IInvokeResult result;
+		InvokeResult result;
 		
 		public MethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args, bool enableOutArgs)
 		{
@@ -2195,14 +2195,14 @@ namespace Mono.Debugging.Soft
 		public override void Invoke ()
 		{
 			try {
-				var invocableMirror = obj as IInvocableMethodOwnerMirror;
-				if (invocableMirror != null) {
-					var optionsToInvoke = options;
-					if (obj is StructMirror) {
-						optionsToInvoke |= InvokeOptions.ReturnOutThis;
-					}
-					handle = invocableMirror.BeginInvokeMethod (ctx.Thread, function, args, optionsToInvoke, null, null);
-				}
+				if (obj is ObjectMirror)
+					handle = ((ObjectMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
+				else if (obj is TypeMirror)
+					handle = ((TypeMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
+				else if (obj is StructMirror)
+					handle = ((StructMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options | InvokeOptions.ReturnOutThis, null, null);
+				else if (obj is PrimitiveValue)
+					handle = ((PrimitiveValue)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
 				else
 					throw new ArgumentException ("Soft debugger method calls cannot be invoked on objects of type " + obj.GetType ().Name);
 			} catch (InvocationException ex) {
@@ -2235,7 +2235,14 @@ namespace Mono.Debugging.Soft
 		void EndInvoke ()
 		{
 			try {
-				result = ((IInvocableMethodOwnerMirror) obj).EndInvokeMethodWithResult (handle);
+				if (obj is ObjectMirror)
+					result = ((ObjectMirror)obj).EndInvokeMethodWithResult (handle);
+				else if (obj is TypeMirror)
+					result = ((TypeMirror)obj).EndInvokeMethodWithResult (handle);
+				else if (obj is StructMirror)
+					result = ((StructMirror)obj).EndInvokeMethodWithResult (handle);
+				else
+					result = ((PrimitiveValue)obj).EndInvokeMethodWithResult (handle);
 			} catch (InvocationException ex) {
 				if (!Aborting && ex.Exception != null) {
 					string ename = ctx.Adapter.GetValueTypeName (ctx, ex.Exception);
