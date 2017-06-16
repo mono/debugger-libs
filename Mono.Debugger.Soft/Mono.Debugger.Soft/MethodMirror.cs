@@ -241,8 +241,7 @@ namespace Mono.Debugger.Soft
 		}
 
 		public LocalScope [] GetScopes () {
-			if (!vm.Version.AtLeast (2, 43))
-				throw new InvalidOperationException ("Scopes support was implemented in 2.43 version of protocol.");
+			vm.CheckProtocolVersion (2, 43);
 			GetLocals ();
 			return scopes;
 		}
