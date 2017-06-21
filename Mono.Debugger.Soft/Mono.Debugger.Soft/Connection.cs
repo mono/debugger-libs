@@ -1077,6 +1077,9 @@ namespace Mono.Debugger.Soft
 
 		internal event EventHandler<ErrorHandlerEventArgs> ErrorHandler;
 
+		[Obsolete("This constructor will be removed in next version")]
+		protected Connection (TextWriter logWriter) : this () { }
+
 		protected Connection () {
 			closed = false;
 			reply_packets = new Dictionary<int, byte[]> ();
