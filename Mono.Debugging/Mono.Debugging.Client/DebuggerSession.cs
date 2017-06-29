@@ -359,7 +359,7 @@ namespace Mono.Debugging.Client
 				OnRunning ();
 				Dispatch (delegate {
 					try {
-						OnAttachToProcess (proc.Id);
+						OnAttachToProcess (proc);
 						attached = true;
 					} catch (Exception ex) {
 						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
@@ -1353,6 +1353,17 @@ namespace Mono.Debugging.Client
 		/// Process identifier.
 		/// </param>
 		protected abstract void OnAttachToProcess (long processId);
+
+		/// <summary>
+		/// Called to attach the debugger to a running process
+		/// </summary>
+		/// <param name='processInfo'>
+		/// Process identifier.
+		/// </param>
+		protected virtual void OnAttachToProcess (ProcessInfo processInfo)
+		{
+			OnAttachToProcess (processInfo.Id);
+		}
 
 		/// <summary>
 		/// Called to detach the debugging session from the running process
