@@ -937,8 +937,15 @@ namespace Mono.Debugging.Soft
 
 					return getter != null ? new PropertyValueReference (ctx, prop, co, type, getter, null) : null;
 				}
-
-				type = type.BaseType;
+				if (type.IsInterface) {
+					foreach (var interace in type.GetInterfaces ()) {
+						var result = GetMember (ctx, interace, co, name);
+						if (result != null)
+							return result;
+					}
+				} else {
+					type = type.BaseType;
+				}
 			}
 
 			return null;
