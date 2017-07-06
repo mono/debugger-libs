@@ -34,6 +34,32 @@ using System.Threading.Tasks;
 
 namespace MonoDevelop.Debugger.Tests.TestApp
 {
+	namespace Bug57425
+	{
+		interface IEx : IFoo
+		{
+
+		}
+
+		interface IFoo
+		{
+			string Prop { get; }
+		}
+
+		class B : IEx
+		{
+			public string Prop {
+				get {
+					return "3";
+				}
+			}
+		}
+		class MainClass : B
+		{
+			
+		}
+	}
+
 	interface IFoo
 	{
 		int this[int index] { get; }
@@ -228,6 +254,8 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			FooBar = new FooBar ();
 			Foo = new FooBar ();
 			Bar = new FooBar ();
+
+			Bug57425.IEx bug57425 = new Bug57425.MainClass ();
 
 			var testEvaluationChild = new TestEvaluationChild ();
 

@@ -957,6 +957,19 @@ namespace Mono.Debugging.Tests
 			}
 			Assert.AreEqual ("int", val.TypeName);
 			Assert.AreEqual ("1", val.Value);
+
+			val = Eval ("bug57425.Prop");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("string", val.TypeName);
+			Assert.AreEqual ("\"3\"", val.Value);
+
 			val = Eval ("Foo.Prop");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
