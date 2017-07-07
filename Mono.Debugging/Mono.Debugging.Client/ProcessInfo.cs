@@ -34,7 +34,8 @@ namespace Mono.Debugging.Client
 	{
 		long id;
 		string name;
-		
+		string description;
+
 		[NonSerialized]
 		DebuggerSession session;
 		
@@ -53,6 +54,18 @@ namespace Mono.Debugging.Client
 			get {
 				return name;
 			}
+		}
+
+		public string Description {
+			get {
+				return description;
+			}
+		}
+
+		public ProcessInfo (string name, string description)
+		{
+			this.name = name;
+			this.description = description;
 		}
 
 		public ProcessInfo (long id, string name)
