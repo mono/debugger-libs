@@ -1006,10 +1006,16 @@ namespace Mono.Debugging.Soft
 		{
 			switch (source) {
 			case FieldValueReference field:
+				if ((field.Type as TypeMirror)?.Name?.StartsWith ("ValueTuple`", StringComparison.Ordinal) != true)
+					return null;
 				return field.GetTupleElementNames ();
 			case PropertyValueReference prop:
+				if ((prop.Type as TypeMirror)?.Name?.StartsWith ("ValueTuple`", StringComparison.Ordinal) != true)
+					return null;
 				return prop.GetTupleElementNames ();
 			case VariableValueReference variable:
+				if ((variable.Type as TypeMirror)?.Name?.StartsWith ("ValueTuple`", StringComparison.Ordinal) != true)
+					return null;
 				return variable.GetTupleElementNames ((SoftEvaluationContext)ctx);
 			default:
 				return null;
