@@ -934,7 +934,7 @@ namespace Mono.Debugging.Tests
 			}
 
 			if (AllowTargetInvokes) {
-				val = Eval ("ProperyA");
+				val = Eval ("PropertyA");
 				Assert.AreEqual ("{(1, 2, 3.3)}", val.Value);
 				Assert.AreEqual ("System.ValueTuple<int,string,double>", val.TypeName);
 
@@ -943,7 +943,7 @@ namespace Mono.Debugging.Tests
 				Assert.AreEqual ("\"2\"", richChildren.Single (c => c.Name == "Item2").Value);
 				Assert.AreEqual ("3.3", richChildren.Single (c => c.Name == "B").Value);
 
-				val = Eval ("ProperyA.a");
+				val = Eval ("PropertyA.a");
 				Assert.AreEqual ("int", val.TypeName);
 				Assert.AreEqual ("1", val.Value);
 			}

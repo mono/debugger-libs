@@ -171,7 +171,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		string someString = "hi";
 		string[] numbers = { "one", "two", "three" };
 
-		public (int a, string, double B) ProperyA => (1, "2", 3.3);
+		public (int a, string, double B) PropertyA => (1, "2", 3.3);
 		public (bool C, float, string d) FieldB;
 		public (TestEvaluation e, int f) MethodC () => (null, 3);
 

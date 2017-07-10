@@ -857,9 +857,14 @@ namespace Mono.Debugging.Evaluation
 			return GetMember (ctx, objectSource, GetValueType (ctx, co), co, name);
 		}
 
-		public virtual ValueReference GetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
+		protected virtual ValueReference OnGetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
 		{
-			ValueReference m = GetMember (ctx, t, co, name);
+			return GetMember (ctx, t, co, name);
+		}
+
+		public ValueReference GetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
+		{
+			ValueReference m = OnGetMember (ctx, objectSource, t, co, name);
 			if (m != null)
 				m.ParentSource = objectSource;
 			return m;

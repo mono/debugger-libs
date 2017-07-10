@@ -916,10 +916,10 @@ namespace Mono.Debugging.Soft
 
 		protected override ValueReference GetMember (EvaluationContext ctx, object t, object co, string name)
 		{
-			return GetMember (ctx, null, t, co, name);
+			return OnGetMember (ctx, null, t, co, name);
 		}
 
-		public override ValueReference GetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
+		protected override ValueReference OnGetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
 		{
 			var type = t as TypeMirror;
 			var tupleNames = GetTupleElementNames (objectSource, ctx);
@@ -957,9 +957,14 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 
-		private static string MapTupleName (string name, string [] tupleNames)
+		static string MapTupleName (string name, string [] tupleNames)
 		{
-			if (tupleNames != null && name.Length > 4 && name.StartsWith ("Item", StringComparison.Ordinal) && int.TryParse (name.Substring (4), out var tupleIndex) && tupleNames.Length >= tupleIndex && tupleNames [tupleIndex - 1] != null)
+			if (tupleNames != null &&
+				name.Length > 4 &&
+				name.StartsWith ("Item", StringComparison.Ordinal) &&
+				int.TryParse (name.Substring (4), out var tupleIndex) &&
+				tupleNames.Length >= tupleIndex &&
+				tupleNames [tupleIndex - 1] != null)
 				return tupleNames [tupleIndex - 1];
 			else
 				return name;
