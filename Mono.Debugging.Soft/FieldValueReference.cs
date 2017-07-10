@@ -30,6 +30,8 @@ using System.Reflection;
 using Mono.Debugging.Evaluation;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Client;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Mono.Debugging.Soft
 {
@@ -176,6 +178,31 @@ namespace Mono.Debugging.Soft
 				else
 					throw new NotSupportedException ();
 			}
+		}
+
+		internal string [] GetTupleElementNames ()
+		{
+			return GetTupleElementNames (field.GetCustomAttributes (true));
+		}
+
+		internal static string [] GetTupleElementNames (CustomAttributeDataMirror [] attrs)
+		{
+			var attr = attrs.FirstOrDefault (at => at.Constructor.DeclaringType.Name == "TupleElementNamesAttribute");
+			if (attr == null)
+				return null;
+			var attributeValue = attr.ConstructorArguments.Single ().Value;
+			var array = attributeValue as ArrayMirror;
+			if (array == null)
+				return null;
+			var values = array.GetValues (0, array.Length);
+			if (!values.Any ())
+				return null;
+			var result = new string [values.Count];
+			for (int i = 0; i < result.Length; i++) {
+				if (values [i] is StringMirror s)//other than string is null
+					result [i] = s.Value;
+			}
+			return result;
 		}
 	}
 }

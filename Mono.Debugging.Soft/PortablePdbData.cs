@@ -30,6 +30,8 @@ using System.IO;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Reflection;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Mono.Debugging.Soft
 {
@@ -95,6 +97,41 @@ namespace Mono.Debugging.Soft
 							};
 						}
 						return result;
+					}
+				}
+			}
+			return null;
+		}
+
+		// We need proxy method to make sure VS2013/15 doesn't crash(this method won't be called if portable .pdb file doesn't exist, which means 2017+)
+		[MethodImpl (MethodImplOptions.NoInlining)]
+		internal string [] GetTupleElementNames (MethodMirror method, int localVariableIndex) => TupleElementNamesPrivate (method, localVariableIndex);
+
+		private static string [] DecodeTupleElementNames (BlobReader reader)
+		{
+			var list = new List<string> ();
+			while (reader.RemainingBytes > 0) {
+				int byteCount = reader.IndexOf (0);
+				string value = reader.ReadUTF8 (byteCount);
+				byte terminator = reader.ReadByte ();
+				list.Add (value.Length == 0 ? null : value);
+			}
+			return list.ToArray ();
+		}
+
+		internal string [] TupleElementNamesPrivate (MethodMirror method, int localVariableIndex)
+		{
+			using (var fs = new FileStream (pdbFileName, FileMode.Open))
+			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
+				var reader = metadataReader.GetMetadataReader ();
+				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
+				var methodInfo = reader.GetLocalScopes (methodHandle);
+				var localVar = methodInfo.Select (s => reader.GetLocalScope (s)).SelectMany (s => s.GetLocalVariables ()).Single (l => reader.GetLocalVariable (l).Index == localVariableIndex);
+				var customDebugInfos = reader.GetCustomDebugInformation (localVar);
+				foreach (var item in customDebugInfos) {
+					var debugInfo = reader.GetCustomDebugInformation (item);
+					if (reader.GetGuid (debugInfo.Kind) == TupleElementNames) {
+						return DecodeTupleElementNames (reader.GetBlobReader (debugInfo.Value));
 					}
 				}
 			}

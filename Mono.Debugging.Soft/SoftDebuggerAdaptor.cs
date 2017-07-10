@@ -916,9 +916,15 @@ namespace Mono.Debugging.Soft
 
 		protected override ValueReference GetMember (EvaluationContext ctx, object t, object co, string name)
 		{
+			return GetMember (ctx, null, t, co, name);
+		}
+
+		public override ValueReference GetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
+		{
 			var type = t as TypeMirror;
+			var tupleNames = GetTupleElementNames (objectSource, ctx);
 			while (type != null) {
-				var field = FindByName (type.GetFields (), f => f.Name, name, ctx.CaseSensitive);
+				var field = FindByName (type.GetFields (), f => MapTupleName(f.Name, tupleNames), name, ctx.CaseSensitive);
 
 				if (field != null && (field.IsStatic || co != null))
 					return new FieldValueReference (ctx, field, co, type);
@@ -949,6 +955,14 @@ namespace Mono.Debugging.Soft
 			}
 
 			return null;
+		}
+
+		private static string MapTupleName (string name, string [] tupleNames)
+		{
+			if (tupleNames != null && name.Length > 4 && name.StartsWith ("Item", StringComparison.Ordinal) && int.TryParse (name.Substring (4), out var tupleIndex) && tupleNames.Length >= tupleIndex && tupleNames [tupleIndex - 1] != null)
+				return tupleNames [tupleIndex - 1];
+			else
+				return name;
 		}
 
 		static bool IsCompilerGenerated (FieldInfoMirror field)
@@ -982,8 +996,27 @@ namespace Mono.Debugging.Soft
 
 			return best;
 		}
-		
+
 		protected override IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, object t, object co, BindingFlags bindingFlags)
+		{
+			return GetMembers (ctx, null, t, co, bindingFlags);
+		}
+
+		string [] GetTupleElementNames (IObjectSource source, EvaluationContext ctx)
+		{
+			switch (source) {
+			case FieldValueReference field:
+				return field.GetTupleElementNames ();
+			case PropertyValueReference prop:
+				return prop.GetTupleElementNames ();
+			case VariableValueReference variable:
+				return variable.GetTupleElementNames ((SoftEvaluationContext)ctx);
+			default:
+				return null;
+			}
+		}
+
+		protected override IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, IObjectSource objectSource, object t, object co, BindingFlags bindingFlags)
 		{
 			var subProps = new Dictionary<string, PropertyInfoMirror> ();
 			var type = t as TypeMirror;
@@ -1012,6 +1045,7 @@ namespace Mono.Debugging.Soft
 				realType = realType.BaseType;
 			}
 
+			var tupleNames = GetTupleElementNames (objectSource, ctx);
 			bool hasExplicitInterface = false;
 			while (type != null) {
 				var fieldsBatch = new FieldReferenceBatch (co);
@@ -1031,7 +1065,7 @@ namespace Mono.Debugging.Soft
 						yield return new FieldValueReference (ctx, field, co, type);
 					} else {
 						fieldsBatch.Add (field);
-						yield return new FieldValueReference (ctx, field, co, type, fieldsBatch);
+						yield return new FieldValueReference (ctx, field, co, type, MapTupleName (field.Name, tupleNames), ObjectValueFlags.Field, fieldsBatch);
 					}
 				}
 
