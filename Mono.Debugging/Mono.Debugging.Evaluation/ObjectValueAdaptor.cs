@@ -846,7 +846,7 @@ namespace Mono.Debugging.Evaluation
 		
 		public IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, IObjectSource objectSource, object t, object co)
 		{
-			foreach (ValueReference val in GetMembers (ctx, t, co, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)) {
+			foreach (ValueReference val in GetMembers (ctx, objectSource, t, co, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)) {
 				val.ParentSource = objectSource;
 				yield return val;
 			}
@@ -857,9 +857,14 @@ namespace Mono.Debugging.Evaluation
 			return GetMember (ctx, objectSource, GetValueType (ctx, co), co, name);
 		}
 
+		protected virtual ValueReference OnGetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
+		{
+			return GetMember (ctx, t, co, name);
+		}
+
 		public ValueReference GetMember (EvaluationContext ctx, IObjectSource objectSource, object t, object co, string name)
 		{
-			ValueReference m = GetMember (ctx, t, co, name);
+			ValueReference m = OnGetMember (ctx, objectSource, t, co, name);
 			if (m != null)
 				m.ParentSource = objectSource;
 			return m;
@@ -886,7 +891,7 @@ namespace Mono.Debugging.Evaluation
 		{
 			var list = new List<ValueReference> ();
 
-			foreach (var vr in GetMembers (ctx, t, co, bindingFlags)) {
+			foreach (var vr in GetMembers (ctx, objectSource, t, co, bindingFlags)) {
 				vr.ParentSource = objectSource;
 				list.Add (vr);
 			}
@@ -913,6 +918,15 @@ namespace Mono.Debugging.Evaluation
 		/// BindingFlags.Static, BindingFlags.Instance, BindingFlags.Public, BindingFlags.NonPublic, BindingFlags.DeclareOnly
 		/// </summary>
 		protected abstract IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, object t, object co, BindingFlags bindingFlags);
+
+		/// <summary>
+		/// Returns all members of a type. The following binding flags have to be honored:
+		/// BindingFlags.Static, BindingFlags.Instance, BindingFlags.Public, BindingFlags.NonPublic, BindingFlags.DeclareOnly
+		/// </summary>
+		protected virtual IEnumerable<ValueReference> GetMembers (EvaluationContext ctx, IObjectSource objectSource, object t, object co, BindingFlags bindingFlags)
+		{
+			return GetMembers (ctx, t, co, bindingFlags);
+		}
 
 		public virtual IEnumerable<object> GetNestedTypes (EvaluationContext ctx, object type)
 		{

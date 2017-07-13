@@ -27,6 +27,8 @@
 using Mono.Debugging.Evaluation;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Client;
+using System;
+using System.Collections.Generic;
 
 namespace Mono.Debugging.Soft
 {
@@ -170,6 +172,11 @@ namespace Mono.Debugging.Soft
 			} catch (ImplicitEvaluationDisabledException) {
 				return false;
 			}
+		}
+
+		internal string [] GetTupleElementNames ()
+		{
+			return FieldValueReference.GetTupleElementNames (property.GetCustomAttributes (true));
 		}
 	}
 }

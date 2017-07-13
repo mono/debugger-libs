@@ -171,6 +171,10 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		string someString = "hi";
 		string[] numbers = { "one", "two", "three" };
 
+		public (int a, string, double B) PropertyA => (1, "2", 3.3);
+		public (bool C, float, string d) FieldB;
+		public (TestEvaluation e, int f) MethodC () => (null, 3);
+
 		public static void RunTest ()
 		{
 			var obj = new TestEvaluationChild ();
@@ -258,6 +262,8 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			Bug57425.IEx bug57425 = new Bug57425.MainClass ();
 
 			var testEvaluationChild = new TestEvaluationChild ();
+			FieldB = (true, 2.2f, "3");
+			var namedTuple = MethodC ();
 
 			Console.WriteLine (n); /*break*/
 		}
