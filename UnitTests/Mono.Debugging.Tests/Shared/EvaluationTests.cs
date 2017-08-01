@@ -523,6 +523,30 @@ namespace Mono.Debugging.Tests
 
 			Assert.AreEqual ("\"True\"", val.Value);
 			Assert.AreEqual ("string", val.TypeName);
+
+			val = Eval ("IsNull(null)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("true", val.Value);
+			Assert.AreEqual ("bool", val.TypeName);
+
+			val = Eval ("IsNull(new RichClass(5))");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("false", val.Value);
+			Assert.AreEqual ("bool", val.TypeName);
 		}
 
 		[Test]
@@ -1078,6 +1102,23 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("true", val.Value);
 
 			val = Eval ("nullableBool == true");
+			Assert.AreEqual ("true", val.Value);
+		}
+
+		[Test]
+		public void CallMethodWithNullableInt()
+		{
+			if (!AllowTargetInvokes)
+				return;
+			var val = Eval ("NullableHasValue1 (null)");
+			Assert.AreEqual ("false", val.Value);
+			val = Eval ("NullableHasValue1 (0)");
+			Assert.AreEqual ("true", val.Value);
+			val = Eval ("NullableHasValue1 ((byte)0)");
+			Assert.AreEqual ("true", val.Value);
+			val = Eval ("NullableHasValue1 (new int? (0))");
+			Assert.AreEqual ("true", val.Value);
+			val = Eval ("NullableHasValue1 ((int?)(0))");
 			Assert.AreEqual ("true", val.Value);
 		}
 
