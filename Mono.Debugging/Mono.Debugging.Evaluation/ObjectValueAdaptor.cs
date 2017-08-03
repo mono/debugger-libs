@@ -785,6 +785,7 @@ namespace Mono.Debugging.Evaluation
 					}
 
 					// FIXME: handle types and namespaces...
+				} catch (EvaluatorException) {
 				} catch (Exception ex) {
 					ctx.WriteDebuggerError (ex);
 				}
