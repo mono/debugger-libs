@@ -161,7 +161,7 @@ namespace Mono.Debugging.Evaluation
 				if (baseIndices.Length > 0)
 					curIndexStr += ",";
 				curIndex [curIndex.Length - 1] = initalIndex + firstItemIndex;
-				var elems = array.GetElements (curIndex, System.Math.Min (values.Length, upperBound + 1));
+				var elems = array.GetElements (curIndex, System.Math.Min (values.Length, upperBound - lowerBound + 1));
 
 				for (int n = 0; n < values.Length; n++) {
 					int index = n + initalIndex + firstItemIndex;

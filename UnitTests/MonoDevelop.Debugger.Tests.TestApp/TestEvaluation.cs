@@ -265,6 +265,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			FieldB = (true, 2.2f, "3");
 			var namedTuple = MethodC ();
 
+			int [] myLengthArray = new int [1] { 3 };
+			int [] myBoundArray = new int [1] { Int32.MinValue };
+			Array myExtremeArray = Array.CreateInstance (typeof (String), myLengthArray, myBoundArray);
+			myExtremeArray.SetValue ("b38c0da4-a009-409d-bc78-2a051267d05a", int.MinValue + 1);
+
 			Console.WriteLine (n); /*break*/
 		}
 

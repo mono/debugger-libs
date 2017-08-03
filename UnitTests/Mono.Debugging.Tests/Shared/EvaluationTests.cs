@@ -2505,6 +2505,21 @@ namespace Mono.Debugging.Tests
 
 			var children = Eval ("arrayWithLowerBounds").GetAllChildrenSync ();
 			Assert.AreEqual ("[5, ...]", children [0].Name);
+
+			children = Eval ("myExtremeArray").GetAllChildrenSync ();
+			Assert.AreEqual (3, children.Length);
+			Assert.AreEqual ("object", children [0].TypeName);
+			Assert.AreEqual ("[-2147483648]", children [0].Name);
+			Assert.IsTrue (children [0].IsNull);
+
+			Assert.AreEqual ("string", children [1].TypeName);
+			Assert.AreEqual ("[-2147483647]", children [1].Name);
+			Assert.IsFalse (children [1].IsNull);
+			Assert.AreEqual ("\"b38c0da4-a009-409d-bc78-2a051267d05a\"", children [1].Value);
+
+			Assert.AreEqual ("object", children [2].TypeName);
+			Assert.AreEqual ("[-2147483646]", children [2].Name);
+			Assert.IsTrue (children [2].IsNull);
 		}
 	}
 }
