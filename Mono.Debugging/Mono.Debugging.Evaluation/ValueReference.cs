@@ -96,9 +96,11 @@ namespace Mono.Debugging.Evaluation
 		
 		public ObjectValue CreateObjectValue (EvaluationOptions options)
 		{
-			if (!CanEvaluate (options))
+			if (!CanEvaluate (options)) {
+				if (options.AllowTargetInvoke)//If it can't evaluate and target invoke is allowed, mark it as not supported.
+					return DC.ObjectValue.CreateNotSupported (this, new ObjectPath (Name), Context.Adapter.GetDisplayTypeName (GetContext (options), Type), "Can not evaluate", Flags);
 				return DC.ObjectValue.CreateImplicitNotSupported (this, new ObjectPath (Name), Context.Adapter.GetDisplayTypeName (GetContext (options), Type), Flags);
-			
+			}
 			Connect ();
 			try {
 				return OnCreateObjectValue (options);
