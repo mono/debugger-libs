@@ -1447,6 +1447,26 @@ namespace Mono.Debugging.Tests
 			val = Eval ("(2 * 1.5f) / 2");
 			Assert.AreEqual ("1.5", val.Value);
 			Assert.AreEqual ("float", val.TypeName);
+
+			val = Eval ("(uint)2 + 1");
+			Assert.AreEqual ("3", val.Value);
+			Assert.AreEqual ("uint", val.TypeName);
+
+			val = Eval ("2 + (uint)1");
+			Assert.AreEqual ("3", val.Value);
+			Assert.AreEqual ("uint", val.TypeName);
+
+			val = Eval ("(sbyte)1 + (byte)2");
+			Assert.AreEqual ("3", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
+
+			val = Eval ("(short)1 + (ushort)2");
+			Assert.AreEqual ("3", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
+
+			val = Eval ("(ulong)1 + (long)2");
+			Assert.AreEqual ("3", val.Value);
+			Assert.AreEqual ("ulong", val.TypeName);
 		}
 
 		[Test]
