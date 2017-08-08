@@ -1110,6 +1110,11 @@ namespace Mono.Debugging.Tests
 		{
 			if (!AllowTargetInvokes)
 				return;
+
+			var soft = Session as SoftDebuggerSession;
+			if (soft != null && soft.ProtocolVersion < new Version (2, 46))
+				Assert.Ignore ("A newer version of the Mono runtime is required.");
+			
 			var val = Eval ("NullableHasValue1 (null)");
 			Assert.AreEqual ("false", val.Value);
 			val = Eval ("NullableHasValue1 (0)");
