@@ -113,7 +113,7 @@ namespace Mono.Debugging.Soft
 			Domain = other.Domain;
 		}
 
-		static bool IsValueTypeOrPrimitive (TypeMirror type)
+		internal static bool IsValueTypeOrPrimitive (TypeMirror type)
 		{
 			return type != null && (type.IsValueType || type.IsPrimitive);
 		}
@@ -145,7 +145,7 @@ namespace Mono.Debugging.Soft
 				
 				for (int n = 0; n < mparams.Length; n++) {
 					var tm = mparams[n].ParameterType;
-					if (tm.IsValueType || tm.IsPrimitive)
+					if (tm.IsValueType || tm.IsPrimitive || tm.FullName.StartsWith ("System.Nullable`1", StringComparison.Ordinal))
 						continue;
 
 					var type = Adapter.GetValueType (this, values[n]);

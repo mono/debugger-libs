@@ -319,6 +319,16 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			return b ? 1 : 2;
 		}
 
+		public static bool NullableHasValue1 (int? test)
+		{
+			return test.HasValue;
+		}
+
+		public static bool IsNull (RichClass obj)
+		{
+			return obj == null;
+		}
+
 		public T ReturnSame<T> (T t)
 		{
 			return t;
