@@ -1820,8 +1820,8 @@ namespace Mono.Debugging.Soft
 
 		public class ArgumentType
 		{
-			public bool RepresentsNull { get; set; }
-			public TypeMirror Type { get; set; }
+			public bool RepresentsNull { get; internal set; }
+			public TypeMirror Type { get; internal set; }
 
 			public static implicit operator TypeMirror (ArgumentType d)
 			{
@@ -1840,6 +1840,9 @@ namespace Mono.Debugging.Soft
 
 			return new ArgumentType {
 				Type = tm ?? (TypeMirror)GetType (ctx, ((Type)type).FullName),
+				// GetValueType method always returns `typeof (object)` when value is `null`
+				// We need to store this information because later in process this information is lost
+				// when needed by OverloadResolve when trying to determine correct method overload
 				RepresentsNull = (type as Type) == typeof (object)
 			};
 		}
