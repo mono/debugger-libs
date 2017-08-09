@@ -134,7 +134,7 @@ namespace Mono.Debugging.Evaluation
 			// so we need to override our context temporarily to do the evaluation.
 			val = GetValue (ctx);
 
-			if (val != null)
+			if (val != null && !ctx.Adapter.IsNull (ctx, val))
 				return ctx.Adapter.CreateObjectValue (ctx, this, new ObjectPath (name), val, Flags);
 
 			return Mono.Debugging.Client.ObjectValue.CreateNullObject (this, name, ctx.Adapter.GetDisplayTypeName (ctx.Adapter.GetTypeName (ctx, Type)), Flags);

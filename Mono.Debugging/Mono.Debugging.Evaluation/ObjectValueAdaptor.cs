@@ -966,6 +966,26 @@ namespace Mono.Debugging.Evaluation
 
 			return RuntimeInvoke (ctx, arrType, arrayList, "ToArray", objTypes, new [] { typof });
 		}
+
+		public virtual object CreateArray (EvaluationContext ctx, object type, int [] lengths)
+		{
+			if (lengths.Length > 3) {
+				throw new NotSupportedException ("Arrays with more than 3 demensions are not supported.");
+			}
+			var arrType = GetType (ctx, "System.Array");
+			var intType = GetType (ctx, "System.Int32");
+			var typeType = GetType (ctx, "System.Type");
+			var arguments = new object [lengths.Length + 1];
+			var argTypes = new object [lengths.Length + 1];
+			arguments [0] = CreateTypeObject (ctx, type);
+			argTypes [0] = typeType;
+			for (int i = 0; i < lengths.Length; i++) {
+				arguments [i + 1] = FromRawValue (ctx, lengths [i]);
+				argTypes [i + 1] = intType;
+			}
+
+			return RuntimeInvoke (ctx, arrType, null, "CreateInstance", argTypes, arguments);
+		}
 		
 		public virtual object ToRawValue (EvaluationContext ctx, IObjectSource source, object obj)
 		{

@@ -994,7 +994,7 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("true", val.Value);
 
 			val = Eval ("namedTuple.e");
-			Assert.AreEqual ("object", val.TypeName);
+			Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.TestEvaluation", val.TypeName);
 			Assert.AreEqual ("(null)", val.Value);
 
 			val = Eval ("numbers.GetLength(0)");
@@ -2566,6 +2566,55 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("object", children [2].TypeName);
 			Assert.AreEqual ("[-2147483646]", children [2].Name);
 			Assert.IsTrue (children [2].IsNull);
+
+			if (!AllowTargetInvokes)
+				return;
+			
+			children = Eval ("new int [2]").GetAllChildrenSync ();
+			Assert.AreEqual (2, children.Length);
+
+			Assert.AreEqual ("int", children [0].TypeName);
+			Assert.AreEqual ("[0]", children [0].Name);
+			Assert.AreEqual ("0", children [0].Value);
+
+			Assert.AreEqual ("int", children [1].TypeName);
+			Assert.AreEqual ("[1]", children [1].Name);
+			Assert.AreEqual ("0", children [1].Value);
+
+			children = Eval ("new int [2] { 1, 2 }").GetAllChildrenSync ();
+			Assert.AreEqual (2, children.Length);
+
+			Assert.AreEqual ("int", children [0].TypeName);
+			Assert.AreEqual ("[0]", children [0].Name);
+			Assert.AreEqual ("1", children [0].Value);
+
+			Assert.AreEqual ("int", children [1].TypeName);
+			Assert.AreEqual ("[1]", children [1].Name);
+			Assert.AreEqual ("2", children [1].Value);
+
+			val = Eval ("new int [2,3] { { 1, 2, 3 }, { 6, 5, 4 } }.GetValue(1,1)");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("5", val.Value);
+		}
+
+		[Test]
+		public void DefaultExpression ()
+		{
+			var val = Eval ("default (string)");
+			Assert.AreEqual ("(null)", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+
+			val = Eval ("default (byte)");
+			Assert.AreEqual ("byte", val.TypeName);
+			Assert.AreEqual ("0", val.Value);
+
+			val = Eval ("default (bool)");
+			Assert.AreEqual ("bool", val.TypeName);
+			Assert.AreEqual ("false", val.Value);
+
+			val = Eval ("default (int?)");
+			Assert.AreEqual ("int?", val.TypeName);
+			Assert.AreEqual ("(null)", val.Value);
 		}
 	}
 }
