@@ -31,6 +31,7 @@ using System.Reflection;
 using Mono.Debugging.Client;
 
 using ICSharpCode.NRefactory.CSharp;
+using System.Linq;
 
 namespace Mono.Debugging.Evaluation
 {
@@ -542,7 +543,33 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitArrayCreateExpression (ArrayCreateExpression arrayCreateExpression)
 		{
-			throw NotSupported ();
+			var type = arrayCreateExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
+			if (type == null)
+				throw ParseError ("Invalid type in array creation.");
+			var lengths = new int [arrayCreateExpression.Arguments.Count];
+			for (int i = 0; i < lengths.Length; i++) {
+				lengths [i] = (int)Convert.ChangeType (arrayCreateExpression.Arguments.ElementAt (i).AcceptVisitor<ValueReference> (this).ObjectValue, typeof (int));
+			}
+			var array = ctx.Adapter.CreateArray (ctx, type.Type, lengths);
+			if (arrayCreateExpression.Initializer.Elements.Any ()) {
+				var arrayAdaptor = ctx.Adapter.CreateArrayAdaptor (ctx, array);
+				int index = 0;
+				foreach (var el in LinearElements(arrayCreateExpression.Initializer.Elements)) {
+					arrayAdaptor.SetElement (new int [] { index++ }, el.AcceptVisitor<ValueReference> (this).Value);
+				}
+			}
+			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, array);
+		}
+
+		IEnumerable<Expression> LinearElements (AstNodeCollection<Expression> elements)
+		{
+			foreach (var el in elements) {
+				if (el is ArrayInitializerExpression)
+					foreach (var el2 in LinearElements (((ArrayInitializerExpression)el).Elements)) {
+						yield return el2;
+					} else
+					yield return el;
+			}
 		}
 
 		public ValueReference VisitArrayInitializerExpression (ArrayInitializerExpression arrayInitializerExpression)
@@ -649,7 +676,30 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitDefaultValueExpression (DefaultValueExpression defaultValueExpression)
 		{
-			throw NotSupported ();
+			var type = defaultValueExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
+			if (type == null)
+				throw ParseError ("Invalid type in 'default' expression.");
+			if (ctx.Adapter.IsClass (ctx, type.Type))
+				return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, ctx.Adapter.CreateNullValue (ctx, type.Type), type.Type);
+			else if(ctx.Adapter.IsValueType (type.Type))
+				return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, ctx.Adapter.CreateValue (ctx, type.Type, new object [0]), type.Type);
+			else
+				switch (ctx.Adapter.GetTypeName (ctx, type.Type)) {
+				case "System.Boolean": return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
+				case "System.Char": return LiteralValueReference.CreateObjectLiteral (ctx, expression, '\0');
+				case "System.Byte": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (byte)0);
+				case "System.SByte": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (sbyte)0);
+				case "System.Int16": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (short)0);
+				case "System.UInt16": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (ushort)0);
+				case "System.Int32": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (int)0);
+				case "System.UInt32": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (uint)0);
+				case "System.Int64": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (long)0);
+				case "System.UInt64": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (ulong)0);
+				case "System.Decimal": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (decimal)0);
+				case "System.Single": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (float)0);
+				case "System.Double": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (double)0);
+				default: throw new Exception ($"Unexpected type {ctx.Adapter.GetTypeName (ctx, type.Type)}");
+				}
 		}
 
 		public ValueReference VisitDirectionExpression (DirectionExpression directionExpression)
