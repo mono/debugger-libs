@@ -107,24 +107,25 @@ namespace Mono.Debugging.Evaluation
 
 		static Type GetCommonType (object v1, object v2)
 		{
-			if (v1 is double || v2 is double)
-				return typeof (double);
-			if (v1 is float || v2 is float)
-				return typeof (float);
-			int s1 = Marshal.SizeOf (v1);
-			if (IsUnsigned (s1))
-				s1 += 8;
-			int s2 = Marshal.SizeOf (v2);
-			if (IsUnsigned (s2))
-				s2 += 8;
-			if (s1 > s2)
-				return v1.GetType ();
-			return v2.GetType ();
-		}
-
-		static bool IsUnsigned (object v)
-		{
-			return (v is byte) || (v is ushort) || (v is uint) || (v is ulong);
+			var t1 = Type.GetTypeCode (v1.GetType ());
+			var t2 = Type.GetTypeCode (v2.GetType ());
+			if (t1 < TypeCode.Int32 && t2 < TypeCode.Int32)
+				return typeof (int);
+			else
+				switch ((TypeCode)Math.Max ((int)t1, (int)t2)) {
+				case TypeCode.Byte: return typeof (byte);
+				case TypeCode.Decimal: return typeof (decimal);
+				case TypeCode.Double: return typeof (double);
+				case TypeCode.Int16: return typeof (short);
+				case TypeCode.Int32: return typeof (int);
+				case TypeCode.Int64: return typeof (long);
+				case TypeCode.SByte: return typeof (sbyte);
+				case TypeCode.Single: return typeof (float);
+				case TypeCode.UInt16: return typeof (ushort);
+				case TypeCode.UInt32: return typeof (uint);
+				case TypeCode.UInt64: return typeof (ulong);
+				default: throw new Exception (((TypeCode)Math.Max ((int)t1, (int)t2)).ToString ());
+				}
 		}
 
 		static object EvaluateOperation (BinaryOperatorType op, double v1, double v2)
