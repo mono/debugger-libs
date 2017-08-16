@@ -951,12 +951,21 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitIsExpression (IsExpression isExpression)
 		{
-			var type = isExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
+			var type = (isExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference)?.Type;
 			if (type == null)
 				throw ParseError ("Invalid type in 'is' expression.");
-
-			var val = isExpression.Expression.AcceptVisitor<ValueReference> (this);
-			return LiteralValueReference.CreateObjectLiteral (ctx, expression, ctx.Adapter.TryCast (ctx, val.Value, type.Type) != null);
+			if (ctx.Adapter.IsNullableType (ctx, type))
+				type = ctx.Adapter.GetGenericTypeArguments (ctx, type).Single ();
+			var val = isExpression.Expression.AcceptVisitor<ValueReference> (this).Value;
+			if (ctx.Adapter.IsNull (ctx, val))
+				return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
+			var valueIsPrimitive = ctx.Adapter.IsPrimitive (ctx, val);
+			var typeIsPrimitive = ctx.Adapter.IsPrimitiveType (type);
+			if (valueIsPrimitive != typeIsPrimitive)
+				return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
+			if (typeIsPrimitive)
+				return LiteralValueReference.CreateObjectLiteral (ctx, expression, ctx.Adapter.GetTypeName (ctx, type) == ctx.Adapter.GetValueTypeName (ctx, val));
+			return LiteralValueReference.CreateObjectLiteral (ctx, expression, ctx.Adapter.TryCast (ctx, val, type) != null);
 		}
 
 		public ValueReference VisitLambdaExpression (LambdaExpression lambdaExpression)
