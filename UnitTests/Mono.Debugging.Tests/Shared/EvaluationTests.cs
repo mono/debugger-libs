@@ -556,6 +556,63 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
+		public void FuncInvoke ()
+		{
+			ObjectValue val;
+
+			var soft = Session as SoftDebuggerSession;
+			if (soft != null && soft.ProtocolVersion < new Version (2, 31))
+				Assert.Ignore ("A newer version of the Mono runtime is required.");
+
+			val = Eval ("((System.Action<int>)(x => System.Console.WriteLine(x))).Invoke(5)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("No return value.", val.Value);
+
+			val = Eval ("((System.Func<string,int>)(x => x.Length + 10)).Invoke(\"abcd\")");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("14", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
+
+			val = Eval ("((System.Predicate<string>)(x => x == \"abcd\")).Invoke(\"abcd\")");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("true", val.Value);
+			Assert.AreEqual ("bool", val.TypeName);
+
+			val = Eval ("((MonoDevelop.Debugger.Tests.TestApp.del)((x, y) => x + y * 100 - 1)).Invoke(-9, 5)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("490", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
+		}
+
+		[Test]
 		public void GenericMethodInvoke ()
 		{
 			var soft = Session as SoftDebuggerSession;
