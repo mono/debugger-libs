@@ -610,6 +610,136 @@ namespace Mono.Debugging.Tests
 			}
 			Assert.AreEqual ("490", val.Value);
 			Assert.AreEqual ("int", val.TypeName);
+
+			val = Eval ("stringList.Sum(x => x.Length)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("9", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
+
+			val = Eval ("stringList.Any (x => x.Length == 3)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("true", val.Value);
+			Assert.AreEqual ("bool", val.TypeName);
+
+			val = Eval ("stringList.Last(x => x.CompareTo(\"c\") < 0)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("\"bbb\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+
+			val = Eval ("this.InvokeFuncInt (() => 100 + 500 * 2)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("1100", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
+
+			val = Eval ("this.InvokeFuncString (() => \"test\")");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("\"test\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+
+			val = Eval ("testEvaluationChild.OverridenInvokeFuncInt(() => 100)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("101", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
+
+			val = Eval ("testEvaluationChild.OverridenInvokeFuncString(() => \"test\")");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("\"test-in-overriden\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+
+			val = Eval ("this.OverloadedInvokeFunc (() => \"test\")");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("\"test\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+
+			val = Eval ("this.InvokePredicateString (x => x == \"abc\")");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("true", val.Value);
+			Assert.AreEqual ("bool", val.TypeName);
+
+			val = Eval ("this.InvokeUserDelegate ((x, y) => x + y)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("6", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
+
+			val = Eval ("InvokeGenericFunc (500, x => x * 10");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("5000", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
 		}
 
 		[Test]

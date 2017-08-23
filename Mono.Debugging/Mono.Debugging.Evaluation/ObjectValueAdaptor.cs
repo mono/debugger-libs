@@ -295,6 +295,11 @@ namespace Mono.Debugging.Evaluation
 		public abstract object[] GetTypeArgs (EvaluationContext ctx, object type);
 		public abstract object GetBaseType (EvaluationContext ctx, object type);
 
+		public virtual bool IsDelayedType (EvaluationContext ctx, object type)
+		{
+			return false;
+		}
+
 		public virtual bool IsGenericType (EvaluationContext ctx, object type)
 		{
 			return type != null && GetTypeName (ctx, type).IndexOf ('`') != -1;
@@ -1433,6 +1438,14 @@ namespace Mono.Debugging.Evaluation
 		// argTypes can be null, meaning that it has to return true if there is any method with that name
 		// flags will only contain Static or Instance flags
 		public abstract bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] genericTypeArgs, object[] argTypes, BindingFlags flags);
+
+		// outarg `untyped lambda`
+		// if one of argtypes is untyped lambda, this will resolve its type.
+		public virtual bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] genericTypeArgs, object[] argTypes, BindingFlags flags, out Tuple<int, object>[] resolvedLambdaTypes)
+		{
+			resolvedLambdaTypes = null;
+			return HasMethod (ctx, targetType, methodName, genericTypeArgs, argTypes, flags);
+		}
 
 		public object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] argTypes, object[] argValues)
 		{

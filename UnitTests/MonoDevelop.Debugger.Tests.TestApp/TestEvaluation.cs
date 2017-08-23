@@ -189,6 +189,16 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 				return "6";
 			}
 		}
+
+		public override int OverridenInvokeFuncInt (Func<int> f)
+		{
+			return f () + 1;
+		}
+
+		public override string OverridenInvokeFuncString (Func<string> f)
+		{
+			return f () + "-in-overriden";
+		}
 	}
 
 	public abstract class BaseClass
@@ -387,6 +397,36 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			return a.ToString ();
 		}
 
+		public int InvokeFuncInt (Func<int> f)
+		{
+			return f ();
+		}
+
+		public string InvokeFuncString (Func<string> f)
+		{
+			return f ();
+		}
+
+		public bool InvokePredicateString (Predicate<string> f)
+		{
+			return f ("abc");
+		}
+
+		public int InvokeUserDelegate (del f)
+		{
+			return f (5, 1);
+		}
+
+		public int OverloadedInvokeFunc (Func<int> f)
+		{
+			return f ();
+		}
+
+		public string OverloadedInvokeFunc (Func<string> f)
+		{
+			return f ();
+		}
+
 		public string EscapedStrings {
 			get { return " \" \\ \a \b \f \v \n \r \t"; }
 		}
@@ -405,6 +445,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 				list.Add (value);
 			}
 			return list;
+		}
+
+		public static T InvokeGenericFunc<T> (T value, Func<T, T> f)
+		{
+			return f (value);
 		}
 
 		class NestedClass
@@ -451,6 +496,16 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			get {
 				return "5";
 			}
+		}
+
+		public virtual int OverridenInvokeFuncInt (Func<int> f)
+		{
+			return f ();
+		}
+
+		public virtual string OverridenInvokeFuncString (Func<string> f)
+		{
+			return f ();
 		}
 	}
 
