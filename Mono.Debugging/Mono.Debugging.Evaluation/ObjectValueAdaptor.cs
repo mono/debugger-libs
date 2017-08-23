@@ -376,6 +376,11 @@ namespace Mono.Debugging.Evaluation
 		{
 			return false;
 		}
+
+		public virtual bool IsPublic (EvaluationContext ctx, object type)
+		{
+			return false;
+		}
 		
 		public object GetType (EvaluationContext ctx, string name)
 		{
@@ -432,7 +437,7 @@ namespace Mono.Debugging.Evaluation
 			return val;
 		}
 
-		public virtual object CreateDelayedLambdaValue (EvaluationContext ctx, string expression)
+		public virtual object CreateDelayedLambdaValue (EvaluationContext ctx, string expression, Tuple<string, object>[] localVariables)
 		{
 			return null;
 		}

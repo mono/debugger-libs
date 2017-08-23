@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Mono.Debugger.Soft
 {
@@ -6,9 +7,9 @@ namespace Mono.Debugger.Soft
 	{
 		DelayedLambdaType delayedType;
 
-		public DelayedLambdaValue (VirtualMachine vm, string expression) : base (vm, 0)
+		public DelayedLambdaValue (VirtualMachine vm, Tuple<string, Value>[] locals, string expression) : base (vm, 0)
 		{
-			this.delayedType = new DelayedLambdaType (vm, expression);
+			this.delayedType = new DelayedLambdaType (vm, locals, expression);
 		}
 
 		public string Expression {
@@ -21,6 +22,15 @@ namespace Mono.Debugger.Soft
 
 		public string Name {
 			get { return DelayedType.Name; }
+		}
+
+		public Tuple<string, Value>[] Locals {
+			get { return DelayedType.Locals; }
+		}
+
+		public Value[] GetLocalValues ()
+		{
+			return DelayedType.GetLocalValues ();
 		}
 
 		public string GetLiteralType (TypeMirror t)

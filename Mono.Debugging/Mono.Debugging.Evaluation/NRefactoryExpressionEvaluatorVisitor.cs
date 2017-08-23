@@ -1015,7 +1015,13 @@ namespace Mono.Debugging.Evaluation
 				parent = parent.Parent;
 
 			if (parent is InvocationExpression || parent is CastExpression) {
-				object val = ctx.Adapter.CreateDelayedLambdaValue (ctx, lambdaExpression.ToString ());
+				var writer = new System.IO.StringWriter ();
+				var visitor = new LambdaBodyOutputVisitor (ctx, userVariables, writer);
+
+				lambdaExpression.AcceptVisitor (visitor);
+				var body = writer.ToString ();
+				var values = visitor.GetLocalValues ();
+				object val = ctx.Adapter.CreateDelayedLambdaValue (ctx, body, values);
 				if (val != null)
 					return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, val);
 			}

@@ -659,6 +659,18 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("1100", val.Value);
 			Assert.AreEqual ("int", val.TypeName);
 
+			val = Eval ("this.InvokeFuncInt (() => this.HiddenField)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			// Error occurs beacause `this' type is non public
+			Assert.IsTrue (val.IsError);
+
 			val = Eval ("this.InvokeFuncString (() => \"test\")");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
@@ -682,7 +694,7 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("101", val.Value);
 			Assert.AreEqual ("int", val.TypeName);
 
-			val = Eval ("testEvaluationChild.OverridenInvokeFuncString(() => \"test\")");
+			val = Eval ("testEvaluationChild.OverridenInvokeFuncString(() => (stringList.Count < n ? stringList[1] : stringList[0]) + intOne)");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
@@ -690,10 +702,10 @@ namespace Mono.Debugging.Tests
 				val.Refresh (options);
 				val = val.Sync ();
 			}
-			Assert.AreEqual ("\"test-in-overriden\"", val.Value);
+			Assert.AreEqual ("\"bbb1-in-overriden\"", val.Value);
 			Assert.AreEqual ("string", val.TypeName);
 
-			val = Eval ("this.OverloadedInvokeFunc (() => \"test\")");
+			val = Eval ("this.OverloadedInvokeFunc (() => dict.Count + 500)");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
@@ -702,7 +714,19 @@ namespace Mono.Debugging.Tests
 				val.Refresh (options);
 				val = val.Sync ();
 			}
-			Assert.AreEqual ("\"test\"", val.Value);
+			Assert.AreEqual ("501", val.Value);
+			Assert.AreEqual ("int", val.TypeName);
+
+			val = Eval ("this.OverloadedInvokeFunc (() => \"\" + n + 5)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("\"325\"", val.Value);
 			Assert.AreEqual ("string", val.TypeName);
 
 			val = Eval ("this.InvokePredicateString (x => x == \"abc\")");

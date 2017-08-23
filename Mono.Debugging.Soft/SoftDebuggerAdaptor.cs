@@ -536,10 +536,22 @@ namespace Mono.Debugging.Soft
 			return cx.Session.VirtualMachine.CreateValue (value);
 		}
 
-		public override object CreateDelayedLambdaValue (EvaluationContext ctx, string expression)
+		public override object CreateDelayedLambdaValue (EvaluationContext ctx, string expression, Tuple<string, object>[] localVariables)
 		{
 			var soft = (SoftEvaluationContext)ctx;
-			return new DelayedLambdaValue (soft.Session.VirtualMachine, expression);
+			Tuple<string, Value>[] locals = null;
+
+			if (localVariables != null) {
+				locals = new Tuple<string, Value> [localVariables.Length];
+				for (int i = 0; i < localVariables.Length; i++) {
+					var pair = localVariables [i];
+					var name = pair.Item1;
+					var val = (Value)pair.Item2;
+					locals [i] = Tuple.Create (name, val);
+				}
+			}
+
+			return new DelayedLambdaValue (soft.Session.VirtualMachine, locals, expression);
 		}
 
 		public object CreateByteArray (EvaluationContext ctx, byte [] byts)
@@ -569,8 +581,6 @@ namespace Mono.Debugging.Soft
 				return null;
 			}
 
-			string id = Guid.NewGuid ().ToString ("N");
-			string className = "Lambda" + id;
 			string typeName = val.GetLiteralType (toType);
 			byte [] bytes = CompileLambdaExpression (ctx, val.DelayedType, typeName, out compileError);
 
@@ -613,18 +623,31 @@ namespace Mono.Debugging.Soft
 			int startOfExp, endOfExp;
 			error = null;
 
+			Tuple<string, Value>[] values = val.Locals;
+			string[] paramLiterals = new string [values.Length];
+			for (int i = 0; i < values.Length; i++) {
+				var v = values [i];
+				var typ = GetValueType (ctx, v.Item2);
+				var typ2 = ToTypeMirror (ctx, typ);
+				var typ3 = ctx.Adapter.GetDisplayTypeName (typ2.FullName);
+				Console.WriteLine (typ3);
+				paramLiterals [i] = typ3 + " " + v.Item1;
+			}
+			string paramLiteral = string.Join (",", paramLiterals);
+
 			var sb = new System.Text.StringBuilder ();
 			sb.Append ("public class ");
 			sb.Append (className);
 			sb.Append ("{public static ");
 			sb.Append (typeName);
-			sb.Append (" injected_fn() {");
+			sb.Append (" injected_fn(" + paramLiteral + ") {");
 			sb.Append ("return (");
 			startOfExp = sb.Length;
 			sb.Append (lambdaExpression);
 			endOfExp = startOfExp + lambdaExpression.Length;
 			sb.Append (");");
 			sb.Append ("}}");
+
 
 			var options = new CSharpParseOptions (kind: SourceCodeKind.Regular);
 			SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText (sb.ToString (), options);
@@ -680,10 +703,10 @@ namespace Mono.Debugging.Soft
 			var objectType = ctx.Adapter.GetType (ctx, "System.Object");
 			var objectArrayType = ctx.Adapter.GetType (ctx, "System.Object[]");
 			var nullValue = ctx.Adapter.CreateValue (ctx, null);
-			var emptyArrayValue = ctx.Adapter.CreateArray (ctx, objectType, new object [] { });
+			var paramValues = typ.GetLocalValues ();
+			var paramValuesArray = ctx.Adapter.CreateArray (ctx, objectType, paramValues);
 			argTypes = new object [] { objectType, objectArrayType };
-			argValues = new object [] { nullValue, emptyArrayValue };
-
+			argValues = new object [] { nullValue, paramValuesArray };
 			return ctx.Adapter.RuntimeInvoke (ctx, methodInfoType, injectedFun, "Invoke", argTypes, argValues);
 		}
 
@@ -1930,6 +1953,13 @@ namespace Mono.Debugging.Soft
 		public override bool IsDelayedType (EvaluationContext ctx, object type)
 		{
 			return type is DelayedLambdaType;
+		}
+
+		public override bool IsPublic (EvaluationContext ctx, object type)
+		{
+			var tm = ToTypeMirror (ctx, type);
+
+			return tm != null && tm.IsPublic;
 		}
 
 		protected override TypeDisplayData OnGetTypeDisplayData (EvaluationContext ctx, object type)

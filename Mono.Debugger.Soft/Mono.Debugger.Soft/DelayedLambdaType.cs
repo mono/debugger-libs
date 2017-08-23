@@ -17,11 +17,13 @@ namespace Mono.Debugger.Soft
 		}
 
 		string expression;
+		Tuple<string, Value>[] locals;
 		string uniqueName;
 
-		public DelayedLambdaType (VirtualMachine vm, string expression) : base (vm, 0)
+		public DelayedLambdaType (VirtualMachine vm, Tuple<string, Value>[] locals, string expression) : base (vm, 0)
 		{
 			this.expression = expression;
+			this.locals = locals;
 			this.uniqueName = "Lambda" + Guid.NewGuid ().ToString ("N");
 		}
 
@@ -29,8 +31,24 @@ namespace Mono.Debugger.Soft
 			get { return expression; }
 		}
 
+		public Tuple<string, Value>[] Locals {
+			get {
+				if (locals == null)
+					return new Tuple<string, Value> [0];
+				return locals;
+			}
+		}
+
 		public string Name {
 			get { return uniqueName; }
+		}
+
+		public Value[] GetLocalValues ()
+		{
+			var vals = new Value [Locals.Length];
+			for (int i = 0; i < vals.Length; i++)
+				vals [i] = Locals [i].Item2;
+			return vals;
 		}
 
 		public bool IsAcceptableType (TypeMirror t)
