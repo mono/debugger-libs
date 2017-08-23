@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 
 using Mono.Debugging.Client;
 
@@ -58,30 +59,30 @@ namespace Mono.Debugging.Evaluation
 			return new EvaluatorException (message, args);
 		}
 
-		bool HasPublicType (ValueReference vr)
+		bool IsPublicValueFlag (ObjectValueFlags flags)
 		{
-			if (vr is NamespaceValueReference)
-				return true;
-
-			var typ = vr.Type;
-			return ctx.Adapter.IsPublic (ctx, typ);
-		}
-
-		bool HasPublicValue (ValueReference vr)
-		{
-			var isField = (vr.Flags & ObjectValueFlags.Field) != 0;
-			var isProperty = (vr.Flags & ObjectValueFlags.Property) != 0;
-			var isPublic = (vr.Flags & ObjectValueFlags.Public) != 0;
+			var isField = (flags & ObjectValueFlags.Field) != 0;
+			var isProperty = (flags & ObjectValueFlags.Property) != 0;
+			var isPublic = (flags & ObjectValueFlags.Public) != 0;
 
 			return !(isField || isProperty) || isPublic;
 		}
 
-		void AssertPublic (ValueReference vr)
+		void AssertPublicType (object type)
 		{
-			if (!HasPublicType (vr)) {
-				var typeName = ctx.Adapter.GetDisplayTypeName (ctx, vr.Type);
+			if (!ctx.Adapter.IsPublic (ctx, type)) {
+				var typeName = ctx.Adapter.GetDisplayTypeName (ctx, type);
 				throw EvaluationError ("Not Support to reference non-public type: `{0}'", typeName);
-			} else if (!HasPublicValue (vr)) {
+			}
+		}
+
+		void AssertPublicValueReference (ValueReference vr)
+		{
+			if (!(vr is NamespaceValueReference)) {
+				var typ = vr.Type;
+				AssertPublicType (typ);
+			}
+			if (!IsPublicValueFlag (vr.Flags)) {
 				throw EvaluationError ("Not Support to reference non-public thing: `{0}'", vr.Name);
 			}
 		}
@@ -129,7 +130,7 @@ namespace Mono.Debugging.Evaluation
 				throw EvaluationError ("Cannot use a variable named {0} inside lambda", name);
 			}
 
-			AssertPublic (vr);
+			AssertPublicValueReference (vr);
 
 			var valu = vr != null ? vr.Value : null;
 			var pair = Tuple.Create (localName, valu);
@@ -250,11 +251,62 @@ namespace Mono.Debugging.Evaluation
 		public override void VisitIndexerExpression (IndexerExpression indexerExpression)
 		{
 		}
-		*//*
+		*/
 		public override void VisitInvocationExpression (InvocationExpression invocationExpression)
 		{
+			var invocationTarget = invocationExpression.Target;
+			if (!(invocationTarget is IdentifierExpression)) {
+				base.VisitInvocationExpression (invocationExpression);
+				return;
+			}
+
+			var argc = invocationExpression.Arguments.Count;
+			var method = (IdentifierExpression)invocationTarget;
+			var methodName = method.Identifier;
+			var vref = ctx.Adapter.GetThisReference (ctx);
+			var vtype = ctx.Adapter.GetEnclosingType (ctx);
+			string accessor = null;
+
+			var hasInstanceMethod = ctx.Adapter.HasMethodWithParamLength (ctx, vtype, methodName, BindingFlags.Instance, argc);
+			var hasStaticMethod = ctx.Adapter.HasMethodWithParamLength (ctx, vtype, methodName, BindingFlags.Static, argc);
+			var publicFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
+			var hasPublicMethod = ctx.Adapter.HasMethodWithParamLength (ctx, vtype, methodName, publicFlags, argc);
+
+			if ((hasInstanceMethod || hasStaticMethod) && !hasPublicMethod)
+				throw EvaluationError ("Only support public method invocation inside lambda");
+
+			if (vref == null && hasStaticMethod) {
+				AssertPublicType (vtype);
+				var typeName = ctx.Adapter.GetTypeName (ctx, vtype);
+				accessor = ctx.Adapter.GetDisplayTypeName (typeName);
+			} else if (vref != null) {
+				AssertPublicValueReference (vref);
+				if (hasInstanceMethod) {
+					if (hasStaticMethod) {
+						// It's hard to determine which one is expected because
+						// we don't have any information of parameter types now.
+						throw EvaluationError ("Not supported invocation of static/instance overloaded method");
+					}
+					accessor = GetLocalName ("this");
+					if (accessor == null)
+						accessor = AddToLocals ("this", vref, true);
+				} else if (hasStaticMethod) {
+					var typeName = ctx.Adapter.GetTypeName (ctx, vtype);
+					accessor = ctx.Adapter.GetDisplayTypeName (typeName);
+				}
+			}
+
+			StartNode (invocationExpression);
+			if (accessor == null)
+				WriteIdentifier (method.Identifier);
+			else
+				WriteKeyword (accessor + "." + methodName);
+			Space (policy.SpaceBeforeMethodCallParentheses);
+			WriteCommaSeparatedListInParenthesis (invocationExpression.Arguments, policy.SpaceWithinMethodCallParentheses);
+			EndNode (invocationExpression);
 		}
-		*//*
+
+		/*
 		public override void VisitIsExpression (IsExpression isExpression)
 		{
 		}*/
