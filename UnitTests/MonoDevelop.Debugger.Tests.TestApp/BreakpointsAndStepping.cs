@@ -60,6 +60,10 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			Console.Write ("NormalText");
 			Debug.Write ("DebugText");
 			Debug.Write ("");
+			var a = "hi";
+			if (a != "b") {
+				var b = a;/*cfc8fdb6-552a-40d2-8410-93a604e9063a*/
+			}
 			System.Diagnostics.Debugger.Log (3, "SomeCategory", "DebugText2");
 			Console.Error.Write ("ErrorText");
 			Console.Write ("");
