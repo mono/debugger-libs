@@ -1079,12 +1079,16 @@ namespace Mono.Debugging.Tests
 
 			InitializeTest ();
 			AddBreakpoint ("5070ed1c-593d-4cbe-b4fa-b2b0c7b25289");
+			var br = AddBreakpoint("cfc8fdb6-552a-40d2-8410-93a604e9063a");
+			br.HitAction = HitAction.PrintExpression;
+			br.TraceExpression = "hey {a}";
 			var errorsList = new List<string> ();
 			errorsList.Add ("ErrorText");
 			var outputList = new HashSet<string> ();
 			outputList.Add ("NormalText");
 			var debugList = new List<Tuple<int,string,string>> ();
 			debugList.Add (new Tuple<int,string,string> (0, "", "DebugText"));
+			debugList.Add(new Tuple<int, string, string>(0, "", "hey \"hi\"\n"));
 			debugList.Add (new Tuple<int, string, string> (3, "SomeCategory", "DebugText2"));
 
 			var unexpectedOutput = new List<string> ();
