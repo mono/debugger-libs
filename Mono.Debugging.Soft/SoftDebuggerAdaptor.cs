@@ -1787,8 +1787,11 @@ namespace Mono.Debugging.Soft
 					// constructor because we can't load target types in the debugger process.
 					// So what we do here is convert the Type to a String.
 					var tm = (TypeMirror) val;
-
-					val = tm.FullName + ", " + tm.Assembly.ManifestModule.Name;
+					// Workaround for older Mono runtime that doesn't support generics, simply use ICollection viewer instead generic version
+					if (!tm.VirtualMachine.Version.AtLeast (2, 15) && tm.FullName.StartsWith ("System.Collections.Generic.CollectionDebuggerView`", StringComparison.Ordinal))
+						val = "System.Collections.CollectionDebuggerView, " + tm.Assembly.ManifestModule.Name;
+					else
+						val = tm.FullName + ", " + tm.Assembly.ManifestModule.Name;
 				} else if (val is EnumMirror) {
 					var em = (EnumMirror) val;
 
