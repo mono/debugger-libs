@@ -1352,6 +1352,11 @@ namespace Mono.Debugging.Soft
 			return type != null && ((TypeMirror) type).IsGenericType;
 		}
 
+		public override IEnumerable<object> GetGenericTypeArguments (EvaluationContext ctx, object type)
+		{
+			return ((TypeMirror)type).GetGenericArguments ();
+		}
+
 		public override object[] GetTypeArgs (EvaluationContext ctx, object type)
 		{
 			var tm = (TypeMirror) type;
@@ -1620,6 +1625,13 @@ namespace Mono.Debugging.Soft
 			var tm = type as TypeMirror;
 
 			return tm != null && tm.IsValueType;
+		}
+
+		public override bool IsPrimitiveType (object type)
+		{
+			var tm = type as TypeMirror;
+
+			return tm != null && tm.IsPrimitive;
 		}
 
 		public override bool IsClass (EvaluationContext ctx, object type)

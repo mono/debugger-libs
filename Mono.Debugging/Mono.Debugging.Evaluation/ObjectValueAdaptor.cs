@@ -286,6 +286,7 @@ namespace Mono.Debugging.Evaluation
 		public abstract bool IsArray (EvaluationContext ctx, object val);
 		public abstract bool IsEnum (EvaluationContext ctx, object val);
 		public abstract bool IsValueType (object type);
+		public virtual bool IsPrimitiveType (object type) { throw new NotImplementedException (); }
 		public abstract bool IsClass (EvaluationContext ctx, object type);
 		public abstract object TryCast (EvaluationContext ctx, object val, object type);
 
@@ -297,6 +298,11 @@ namespace Mono.Debugging.Evaluation
 		public virtual bool IsGenericType (EvaluationContext ctx, object type)
 		{
 			return type != null && GetTypeName (ctx, type).IndexOf ('`') != -1;
+		}
+
+		public virtual IEnumerable<object> GetGenericTypeArguments (EvaluationContext ctx, object type)
+		{
+			yield break;
 		}
 
 		public virtual bool IsNullableType (EvaluationContext ctx, object type)
