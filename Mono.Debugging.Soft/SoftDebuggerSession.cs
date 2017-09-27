@@ -2855,13 +2855,20 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 
-		bool CheckFileMd5 (string file, byte[] hash)
+		bool CheckFileHash (string file, byte[] hash)
 		{
 			if (hash == null)
 				return false;
 
 			if (File.Exists (file)) {
 				using (var fs = File.OpenRead (file)) {
+					// Roslyn SHA1 checksum always starts with 20
+					if (hash.Length > 0 && hash [0] == 20)
+						using (var sha1 = SHA1.Create ()) {
+							if (sha1.ComputeHash (fs).Take (15).SequenceEqual (hash.Skip (1))) {
+								return true;
+							}
+						}
 					using (var md5 = MD5.Create ()) {
 						if (md5.ComputeHash (fs).SequenceEqual (hash)) {
 							return true;
@@ -2889,7 +2896,7 @@ namespace Mono.Debugging.Soft
 					//1. For backward compatibility
 					//2. If full path matches user himself probably modified code and is aware of modifications
 					//OR if md5 match, useful for alternative location files with breakpoints
-					if (!PathsAreEqual (NormalizePath (srcFile), file) && !CheckFileMd5 (file, location.SourceFileHash))
+					if (!PathsAreEqual (NormalizePath (srcFile), file) && !CheckFileHash (file, location.SourceFileHash))
 						continue;
 					if (location.LineNumber < rangeFirstLine)
 						rangeFirstLine = location.LineNumber;
