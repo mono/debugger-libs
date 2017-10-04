@@ -849,8 +849,7 @@ namespace Mono.Debugging.Soft
 			bool dummy = false;
 			var location = FindLocationByMethod (frames[0].Method, fileName, line, column, ref dummy);
 			if (location == null)
-				throw new NotSupportedException ();
-
+				throw new NotSupportedException ("Unable to set the next statement. The next statement cannot be set to another function.");
 			try {
 				thread.SetIP (location);
 				currentAddress = location.ILOffset;
