@@ -910,7 +910,19 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("999b8a83-8c32-4640-a8e1-f74309cda79c");
 			StartTest ("CatchpointIgnoreExceptionsInNonUserCode");
 			WaitStop (2000);
-			Assert.AreEqual ("3913936e-3f89-4f07-a863-7275aaaa5fc9", Session.ActiveThread.Backtrace.GetFrame (0).GetException ().Message);
+			var activeThread = Session.ActiveThread;
+			if (activeThread == null)
+				throw new NullReferenceException (nameof (activeThread));
+			var backtrace = activeThread.Backtrace;
+			if (backtrace == null)
+				throw new NullReferenceException (nameof (backtrace));
+			var frame = backtrace.GetFrame (0);
+			if (frame == null)
+				throw new NullReferenceException (nameof (frame));
+			var exception = frame.GetException ();
+			if (exception == null)
+				throw new NullReferenceException (nameof (exception));
+			Assert.AreEqual ("3913936e-3f89-4f07-a863-7275aaaa5fc9", exception.Message);
 		}
 
 		[Test]
