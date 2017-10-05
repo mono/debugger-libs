@@ -125,8 +125,10 @@ namespace Mono.Debugging.Soft
 			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
-				var methodInfo = reader.GetLocalScopes (methodHandle);
-				var localVar = methodInfo.Select (s => reader.GetLocalScope (s)).SelectMany (s => s.GetLocalVariables ()).Single (l => reader.GetLocalVariable (l).Index == localVariableIndex);
+				var localScopes = reader.GetLocalScopes (methodHandle);
+				// localVariableIndex is not really il_index, but sequential index when fetching locals
+				// hence use Skip(index) instead of Index matching.
+				var localVar = localScopes.Select (s => reader.GetLocalScope (s)).SelectMany (s => s.GetLocalVariables ()).Skip (localVariableIndex).First ();
 				var customDebugInfos = reader.GetCustomDebugInformation (localVar);
 				foreach (var item in customDebugInfos) {
 					var debugInfo = reader.GetCustomDebugInformation (item);

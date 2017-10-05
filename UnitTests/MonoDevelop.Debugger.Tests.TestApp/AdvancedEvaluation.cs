@@ -87,6 +87,18 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 		}
 
+		public class Tuples
+		{
+			public List<(string xmlNs, object clrNs)> Usings { get; set; } = new List<(string xmlNs, object clrNs)> () { ("test", null) };
+		}
+
+		public void NamedTupleIndexMissmatchTest ()
+		{
+			foreach (var item in new Tuples ().Usings) {
+				item.xmlNs.ToUpper ();/*9196deef-9d41-41d6-bcef-9e3ef58f9635*/
+			}
+		}
+
 		public void Bug24998Test ()
 		{
 			Bug24998 ().Wait ();
