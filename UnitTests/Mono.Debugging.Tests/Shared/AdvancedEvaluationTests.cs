@@ -84,6 +84,19 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
+		public void NamedTupleIndexMissmatch ()
+		{
+			IgnoreCorDebugger ();
+			InitializeTest ();
+			AddBreakpoint ("9196deef-9d41-41d6-bcef-9e3ef58f9635");
+			StartTest ("NamedTupleIndexMissmatchTest");
+			CheckPosition ("9196deef-9d41-41d6-bcef-9e3ef58f9635");
+			var val = Eval ("item.xmlNs");
+			Assert.AreEqual ("\"test\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+		}
+
+		[Test]
 		public void Bug24998 ()
 		{
 			InitializeTest ();
