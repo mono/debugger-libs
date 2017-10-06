@@ -544,6 +544,7 @@ namespace Mono.Debugging.Soft
 			current_threads = null;
 			current_thread = null;
 			procs = null;
+			Console.WriteLine ($"ExDbg: Cleared");
 			activeExceptionsByThread.Clear ();
 		}
 		
@@ -1743,11 +1744,14 @@ namespace Mono.Debugging.Soft
 				var ev = (ExceptionEvent)es [0];
 				exception = ev.Exception;
 				if (ev.Request == unhandledExceptionRequest) {
+					Console.WriteLine ($"ExDbg({exception.Address})({es [0].Thread.ThreadId}): UnhandledException happened");
 					etype = TargetEventType.UnhandledException;
 					if (exception.Type.FullName != "System.Threading.ThreadAbortException")
 						resume = false;
 				} else {
+					Console.WriteLine ($"ExDbg({exception.Address})({es [0].Thread.ThreadId}): HandledException happened");
 					// Set the exception for this thread so that CatchPoint Print message(tracing) of {$exception} works
+					Console.WriteLine ($"ExDbg({exception.Address})({es [0].Thread.ThreadId}): Added 1");
 					activeExceptionsByThread [es[0].Thread.ThreadId] = exception;
 					if (ExceptionInUserCode(ev) && !HandleBreakpoint (es [0].Thread, ev.Request)) {
 						etype = TargetEventType.ExceptionThrown;
@@ -1756,6 +1760,7 @@ namespace Mono.Debugging.Soft
 
 					// Remove exception from the thread so that when the program stops due to stepFinished/programPause/breakPoint...
 					// we don't have on out-dated exception(setting and unsetting few lines later is needed because it's used inside HandleBreakpoint)
+					Console.WriteLine ($"ExDbg({exception.Address})({es [0].Thread.ThreadId}): Removed");
 					activeExceptionsByThread.Remove (es[0].Thread.ThreadId);
 
 					// Get the breakEvent so that we can check if we should ignore it later
@@ -1822,10 +1827,11 @@ namespace Mono.Debugging.Soft
 				}
 				
 				current_thread = recent_thread = es[0].Thread;
-				
-				if (exception != null)
+
+				if (exception != null) {
 					activeExceptionsByThread [current_thread.ThreadId] = exception;
-				
+					Console.WriteLine ($"ExDbg({exception.Address})({es [0].Thread.ThreadId} {current_thread.ThreadId}): added 2");
+				}
 				var backtrace = GetThreadBacktrace (current_thread);
 				bool stepInto = false;
 				bool stepOut = false;
@@ -2058,8 +2064,13 @@ namespace Mono.Debugging.Soft
 		public ObjectMirror GetExceptionObject (ThreadMirror thread)
 		{
 			ObjectMirror obj;
-
-			return activeExceptionsByThread.TryGetValue (thread.ThreadId, out obj) ? obj : null;
+			if (activeExceptionsByThread.TryGetValue (thread.ThreadId, out obj)) {
+				Console.WriteLine ($"ExDbg({obj.Address})({thread.ThreadId}): Requested and found");
+				return obj;
+			} else {
+				Console.WriteLine ($"ExDbg({thread.ThreadId}): Requested and NOT found");
+				return null;
+			}
 		}
 		
 		void QueueBreakEventSet (Event[] eventSet)

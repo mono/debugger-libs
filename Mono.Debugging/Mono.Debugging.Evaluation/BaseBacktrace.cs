@@ -118,6 +118,7 @@ namespace Mono.Debugging.Evaluation
 		public virtual ExceptionInfo GetException (int frameIndex, EvaluationOptions options)
 		{
 			var frame = GetFrameInfo (frameIndex, options, false);
+			Console.WriteLine ($"ExDbg: Frame {(frame == null ? "null" : "has value")}");
 			ObjectValue value;
 
 			if (frame == null) {

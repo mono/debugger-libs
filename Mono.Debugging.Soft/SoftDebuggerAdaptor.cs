@@ -1342,7 +1342,8 @@ namespace Mono.Debugging.Soft
 				var exc = cx.Session.GetExceptionObject (cx.Thread);
 
 				return exc != null ? LiteralValueReference.CreateTargetObjectLiteral (ctx, ctx.Options.CurrentExceptionTag, exc) : null;
-			} catch (AbsentInformationException) {
+			} catch (Exception e) {
+				Console.WriteLine ($"ExDbg exception:{e}");
 				return null;
 			}
 		}
