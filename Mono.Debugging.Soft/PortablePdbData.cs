@@ -51,7 +51,7 @@ namespace Mono.Debugging.Soft
 		{
 			if (string.IsNullOrEmpty (pdbFileName) || !File.Exists (pdbFileName))
 				return false;
-			using (var file = new FileStream (pdbFileName, FileMode.Open)) {
+			using (var file = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
 				var data = new byte [4];
 				int read = file.Read (data, 0, data.Length);
 				return read == 4 && BitConverter.ToUInt32 (data, 0) == 0x424a5342;
@@ -78,7 +78,7 @@ namespace Mono.Debugging.Soft
 
 		internal SoftScope [] GetHoistedScopesPrivate (MethodMirror method)
 		{
-			using (var fs = new FileStream (pdbFileName, FileMode.Open))
+			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
 			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
@@ -121,7 +121,7 @@ namespace Mono.Debugging.Soft
 
 		internal string [] TupleElementNamesPrivate (MethodMirror method, int localVariableIndex)
 		{
-			using (var fs = new FileStream (pdbFileName, FileMode.Open))
+			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
 			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
