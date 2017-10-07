@@ -764,6 +764,17 @@ namespace Mono.Debugging.Tests
 			}
 			Assert.AreEqual ("5000", val.Value);
 			Assert.AreEqual ("int", val.TypeName);
+			val = Eval ("string.Join(\",\", numbers.Where(n=>n.StartsWith(\"t\")).ToArray())");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("\"two,three\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
 		}
 
 		[Test]

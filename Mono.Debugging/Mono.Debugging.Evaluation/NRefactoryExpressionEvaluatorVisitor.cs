@@ -949,6 +949,10 @@ namespace Mono.Debugging.Evaluation
 							xtypeArgs = ctx.Adapter.GetTypeArgs (ctx, xtype);
 					}
 
+					if (xtypeArgs == null && ctx.Adapter.IsArray (ctx, target.Value)) {
+						xtypeArgs = new object [] { ctx.Adapter.CreateArrayAdaptor (ctx, target.Value).ElementType };
+					}
+
 					if (xtypeArgs != null) {
 						var xtypes = new object[types.Length + 1];
 						Array.Copy (types, 0, xtypes, 1, types.Length);
