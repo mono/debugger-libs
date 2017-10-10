@@ -366,6 +366,12 @@ namespace Mono.Debugging.Tests
 				val = val.Sync ();
 			}
 			Assert.AreEqual ("{System.Console}", val.Value);
+
+			if (!AllowTargetInvokes)
+				return;
+
+			val = Eval ("typeof(System.Console).GetMembers()");
+			Assert.AreEqual ("System.Reflection.MemberInfo[]", val.TypeName);
 		}
 
 		[Test]
