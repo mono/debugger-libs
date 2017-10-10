@@ -764,6 +764,7 @@ namespace Mono.Debugging.Tests
 			}
 			Assert.AreEqual ("5000", val.Value);
 			Assert.AreEqual ("int", val.TypeName);
+
 			val = Eval ("string.Join(\",\", numbers.Where(n=>n.StartsWith(\"t\")).ToArray())");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
