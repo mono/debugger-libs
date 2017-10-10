@@ -1079,7 +1079,7 @@ namespace Mono.Debugging.Evaluation
 			if (result == null)
 				throw NotSupported ();
 
-			return LiteralValueReference.CreateTargetObjectLiteral (ctx, name, result, type);
+			return LiteralValueReference.CreateTargetObjectLiteral (ctx, name, result);
 		}
 
 		public ValueReference VisitTypeReferenceExpression (TypeReferenceExpression typeReferenceExpression)
