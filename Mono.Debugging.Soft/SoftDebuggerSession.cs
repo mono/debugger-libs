@@ -544,7 +544,7 @@ namespace Mono.Debugging.Soft
 			current_threads = null;
 			current_thread = null;
 			procs = null;
-			Console.WriteLine ($"ExDbg: Cleared");
+			Console.WriteLine ($"ExDbg: Cleared" + Environment.NewLine + Environment.StackTrace);
 			activeExceptionsByThread.Clear ();
 		}
 		
@@ -1714,12 +1714,17 @@ namespace Mono.Debugging.Soft
 		bool ExceptionInUserCode (ExceptionEvent ev)
 		{
 			// this is just optimization to prevent need to fetch Frames
-			if (Options.ProjectAssembliesOnly == false)
+			if (Options.ProjectAssembliesOnly == false) {
+				Console.WriteLine ($"ExDbg: ExceptionInUserCode ProjectAssembliesOnly");
 				return true;
-			foreach (var frame in ev.Thread.GetFrames ()) {
-				if (!IsExternalCode (frame))
-					return true;
 			}
+			foreach (var frame in ev.Thread.GetFrames ()) {
+				if (!IsExternalCode (frame)) {
+					Console.WriteLine ($"ExDbg: ExceptionInUserCode frame is not user");
+					return true;
+				}
+			}
+			Console.WriteLine ($"ExDbg: ExceptionInUserCode false");
 			return false;
 		}
 
@@ -1753,7 +1758,10 @@ namespace Mono.Debugging.Soft
 					// Set the exception for this thread so that CatchPoint Print message(tracing) of {$exception} works
 					Console.WriteLine ($"ExDbg({exception.Address})({es [0].Thread.ThreadId}): Added 1");
 					activeExceptionsByThread [es[0].Thread.ThreadId] = exception;
-					if (ExceptionInUserCode(ev) && !HandleBreakpoint (es [0].Thread, ev.Request)) {
+					var inUserCode = ExceptionInUserCode (ev);
+					var handle = HandleBreakpoint (es [0].Thread, ev.Request);
+					Console.WriteLine ($"ExDbg({exception.Address})({es [0].Thread.ThreadId}): Resume {inUserCode} {handle}");
+					if (inUserCode && !handle) {
 						etype = TargetEventType.ExceptionThrown;
 						resume = false;
 					}
@@ -1831,6 +1839,8 @@ namespace Mono.Debugging.Soft
 				if (exception != null) {
 					activeExceptionsByThread [current_thread.ThreadId] = exception;
 					Console.WriteLine ($"ExDbg({exception.Address})({es [0].Thread.ThreadId} {current_thread.ThreadId}): added 2");
+				} else {
+					Console.WriteLine ($"ExDbg: Didn't re-add2 because null");
 				}
 				var backtrace = GetThreadBacktrace (current_thread);
 				bool stepInto = false;
@@ -2170,30 +2180,41 @@ namespace Mono.Debugging.Soft
 		bool HandleBreakpoint (ThreadMirror thread, EventRequest er)
 		{
 			BreakInfo binfo;
-			if (!breakpoints.TryGetValue (er, out binfo))
+			if (!breakpoints.TryGetValue (er, out binfo)) {
+				Console.WriteLine ($"ExDbg: 1");
 				return false;
+			}
 			
 			var bp = binfo.BreakEvent;
-			if (bp == null)
+			if (bp == null) {
+				Console.WriteLine ($"ExDbg: 2");
 				return false;
+			}
 
 			binfo.IncrementHitCount ();
-			if (!binfo.HitCountReached)
+			if (!binfo.HitCountReached) {
+				Console.WriteLine ($"ExDbg: 3");
 				return true;
+			}
 			
 			if (!string.IsNullOrEmpty (bp.ConditionExpression)) {
 				string res = EvaluateExpression (thread, bp.ConditionExpression, bp);
 				if (bp.BreakIfConditionChanges) {
-					if (res == binfo.LastConditionValue)
+					if (res == binfo.LastConditionValue) {
+						Console.WriteLine ($"ExDbg: 4");
 						return true;
+					}
 					binfo.LastConditionValue = res;
 				} else {
-					if (res == null || res.ToLowerInvariant () != "true")
+					if (res == null || res.ToLowerInvariant () != "true") {
+						Console.WriteLine ($"ExDbg: 5");
 						return true;
+					}
 				}
 			}
 			if ((bp.HitAction & HitAction.CustomAction) != HitAction.None) {
 				// If custom action returns true, execution must continue
+				Console.WriteLine ($"ExDbg: 6");
 				return binfo.RunCustomBreakpointAction (bp.CustomActionId);
 			}
 
@@ -2207,6 +2228,7 @@ namespace Mono.Debugging.Soft
 			}
 
 			// Continue execution if we don't have break action.
+			Console.WriteLine ($"ExDbg: 7");
 			return (bp.HitAction & HitAction.Break) == HitAction.None;
 		}
 		
