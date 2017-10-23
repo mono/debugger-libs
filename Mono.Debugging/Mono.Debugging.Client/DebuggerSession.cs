@@ -1043,10 +1043,8 @@ namespace Mono.Debugging.Client
 			
 			if (args.Process != null)
 				args.Process.Attach (this);
-			if (args.Thread != null) {
+			if (args.Thread != null)
 				args.Thread.Attach (this);
-				activeThread = args.Thread;
-			}
 			if (args.Backtrace != null)
 				args.Backtrace.Attach (this);
 
@@ -1112,7 +1110,13 @@ namespace Mono.Debugging.Client
 				evnt = TargetThreadStopped;
 				break;
 			}
-
+			// Set activeThread only when event is IsStopEvent(stopping execution)
+			// otherwise ThreadDeath(as example) event can set activeThread to dying thread
+			// resulting in invalid activeThread being set while process is paused.
+			// This happens often when using ThreadPool because after breakpoint is hit and
+			// process is paused threadpool kills threads since they are not in use...
+			if (args.Thread != null && args.IsStopEvent)
+				activeThread = args.Thread;
 			if (evnt != null)
 				evnt (this, args);
 
