@@ -776,7 +776,7 @@ namespace Mono.Debugging.Evaluation
 
 		public virtual CompletionData GetExpressionCompletionData (EvaluationContext ctx, string expr)
 		{
-			if (string.IsNullOrEmpty (expr))
+			if (expr == null)
 				return null;
 
 			int dot = expr.LastIndexOf ('.');
@@ -810,24 +810,20 @@ namespace Mono.Debugging.Evaluation
 				lastWastLetter = !char.IsDigit (c);
 			}
 
-			if (lastWastLetter) {
-				string partialWord = expr.Substring (i + 1);
-				
+			if (lastWastLetter || expr.Length == 0) {
 				var data = new CompletionData ();
-				data.ExpressionLength = partialWord.Length;
+				data.ExpressionLength = expr.Length - (i + 1);
 
 				// Local variables
 				
 				foreach (var vc in GetLocalVariables (ctx)) {
-					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
-						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
+					data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
 				}
 
 				// Parameters
 				
 				foreach (var vc in GetParameters (ctx)) {
-					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
-						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
+					data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
 				}
 
 				// Members
@@ -840,8 +836,7 @@ namespace Mono.Debugging.Evaluation
 				object type = GetEnclosingType (ctx);
 				
 				foreach (var vc in GetMembers (ctx, null, type, thisobj != null ? thisobj.Value : null)) {
-					if (vc.Name.StartsWith (partialWord, StringComparison.InvariantCulture))
-						data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
+					data.Items.Add (new CompletionItem (vc.Name, vc.Flags));
 				}
 				
 				if (data.Items.Count > 0)
