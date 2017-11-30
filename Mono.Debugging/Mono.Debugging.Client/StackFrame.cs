@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using Mono.Debugging.Backend;
+using System.Threading;
 
 namespace Mono.Debugging.Client
 {
@@ -144,6 +145,17 @@ namespace Mono.Debugging.Client
 					if (options.StackFrameFormat.ParameterTypes || options.StackFrameFormat.ParameterNames || options.StackFrameFormat.ParameterValues) {
 						methodNameBuilder.Append ("(");
 						for (int n = 0; n < args.Length; n++) {
+							if (args [n].IsEvaluating) {
+								var manualReset = new ManualResetEvent (false);
+								EventHandler updated = (s, e) => {
+									manualReset.Set ();
+								};
+								args [n].ValueChanged += updated;
+								if (args [n].IsEvaluating)
+									if (!manualReset.WaitOne (2000))
+										session.OnDebuggerOutput (true, "Timeout evaluating parameters for StackFrame.");
+								args [n].ValueChanged -= updated;
+							}
 							if (n > 0)
 								methodNameBuilder.Append (", ");
 							if (options.StackFrameFormat.ParameterTypes) {
