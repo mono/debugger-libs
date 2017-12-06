@@ -93,7 +93,6 @@ namespace Mono.Debugging.Soft
 		List<AssemblyMirror> assemblyFilters;
 		StepEventRequest currentStepRequest;
 		IConnectionDialog connectionDialog;
-		Thread outputReader, errorReader;
 		bool loggedSymlinkedRuntimesBug;
 		SoftDebuggerStartArgs startArgs;
 		List<string> userAssemblyNames;
@@ -103,8 +102,8 @@ namespace Mono.Debugging.Soft
 		IAsyncResult connection;
 		int currentStackDepth;
 		ProcessInfo[] procs;
-		Thread eventHandler;
 		VirtualMachine vm;
+		bool outputConnected, errorConnected;
 		bool autoStepInto;
 		bool disposed;
 		bool started;
@@ -470,11 +469,8 @@ namespace Mono.Debugging.Soft
 			
 			/* Wait for the VMStart event */
 			HandleEventSet (machine.GetNextEventSet ());
-			
-			eventHandler = new Thread (EventHandler);
-			eventHandler.Name = "SDB Event Handler";
-			eventHandler.IsBackground = true;
-			eventHandler.Start ();
+
+			System.Threading.Tasks.Task.Run (() => EventHandler ());
 		}
 		
 		void RegisterUserAssemblies (SoftDebuggerStartInfo dsi)
@@ -506,19 +502,15 @@ namespace Mono.Debugging.Soft
 
 		protected void ConnectOutput (StreamReader reader, bool error)
 		{
-			Thread t = (error ? errorReader : outputReader);
-			if (t != null || reader == null)
+			bool connected = (error ? errorConnected : outputConnected);
+			if (connected)
 				return;
 
-			t = new Thread (() => ReadOutput (reader, error));
-			t.Name = error ? "SDB error reader" : "SDB output reader";
-			t.IsBackground = true;
-			t.Start ();
-
+			System.Threading.Tasks.Task.Run (() => ReadOutput (reader, error));
 			if (error)
-				errorReader = t;	
+				errorConnected = true;
 			else
-				outputReader = t;
+				outputConnected = true;
 		}
 
 		void ReadOutput (TextReader reader, bool isError)
@@ -531,7 +523,7 @@ namespace Mono.Debugging.Soft
 						OnTargetOutput (isError, new string (buffer, 0, c));
 					} else {
 						//FIXME: workaround for buggy console stream that never blocks
-						Thread.Sleep (250);
+						System.Threading.Tasks.Task.Delay (250);
 					}
 				}
 			} catch (IOException) {
