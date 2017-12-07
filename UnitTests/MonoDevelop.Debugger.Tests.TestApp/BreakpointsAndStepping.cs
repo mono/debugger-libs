@@ -419,9 +419,8 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		public void Catchpoint2 ()
 		{
 			try {
-				//If you wonder why I didn't use just simple File.Open("unexistingFile.txt") is
-				//that FrameStack inside Mono and .Net are different and same goes for 10+ other calls I tried...
-				new Socket (AddressFamily.InterNetwork, SocketType.Unknown, ProtocolType.Ggp);/*d24b1c9d-3944-4f0d-be31-5556251fbdf5*/
+				//Trigger exception in framework code with depth 1(int can't compare to object)
+				123.CompareTo(new object());/*d24b1c9d-3944-4f0d-be31-5556251fbdf5*/
 			} catch {
 
 			}
