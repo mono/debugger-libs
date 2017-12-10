@@ -956,6 +956,8 @@ namespace Mono.Debugging.Soft
 					return getter != null ? new PropertyValueReference (ctx, prop, co, type, getter, null) : null;
 				}
 				if (type.IsInterface) {
+					if (!type.GetInterfaces ().Any ())
+						return null;
 					foreach (var interace in type.GetInterfaces ()) {
 						var result = GetMember (ctx, interace, co, name);
 						if (result != null)
