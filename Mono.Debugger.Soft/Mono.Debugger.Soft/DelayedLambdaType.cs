@@ -97,7 +97,7 @@ namespace Mono.Debugger.Soft
 			if (typ == null)
 				return null;
 
-			string fullName = typ.FullName;
+			string fullName = typ.FullName.Replace ('+', '.');
 			string nmespace = typ.Namespace == "" ? null : typ.Namespace;
 			string typeName = "";
 			string [] argTypeNames = null;
@@ -126,7 +126,7 @@ namespace Mono.Debugger.Soft
 			} else {
 				if (!rest.EndsWith (typ.Name, StringComparison.Ordinal))
 					throw new ArgumentException ("invalid");
-				typeName = rest.Replace ('+', '.');
+				typeName = rest;
 			}
 
 			ParsedType t = new ParsedType ();

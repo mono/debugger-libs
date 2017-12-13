@@ -776,6 +776,18 @@ namespace Mono.Debugging.Tests
 			}
 			Assert.AreEqual ("\"two,three\"", val.Value);
 			Assert.AreEqual ("string", val.TypeName);
+
+			val = Eval ("instList.Find(x => x.n == 5)");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("{MonoDevelop.Debugger.Tests.TestApp.SomeOuterClass.SomeInnerClass}", val.Value);
+			Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.SomeOuterClass.SomeInnerClass", val.TypeName);
 		}
 
 		[Test]

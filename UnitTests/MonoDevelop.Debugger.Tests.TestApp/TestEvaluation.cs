@@ -123,6 +123,18 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 
 	public delegate int del (int x, int y);
 
+	public class SomeOuterClass
+	{
+		public class SomeInnerClass
+		{
+			public int n;
+			public SomeInnerClass(int n)
+			{
+				this.n = n;
+			}
+		}
+	}
+
 	class TestEvaluationParent
 	{
 		public int TestMethodBase ()
@@ -309,6 +321,10 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			FooBar = new FooBar ();
 			Foo = new FooBar ();
 			Bar = new FooBar ();
+
+			var inst1 = new SomeOuterClass.SomeInnerClass (5);
+			var inst2 = new SomeOuterClass.SomeInnerClass (10);
+			var instList = new List<SomeOuterClass.SomeInnerClass> { inst1, inst2 };
 
 			Bug57425.IEx bug57425 = new Bug57425.MainClass ();
 
