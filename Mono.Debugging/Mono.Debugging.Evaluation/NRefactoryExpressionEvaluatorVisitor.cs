@@ -949,8 +949,8 @@ namespace Mono.Debugging.Evaluation
 							xtypeArgs = ctx.Adapter.GetTypeArgs (ctx, xtype);
 					}
 
-					if (xtypeArgs == null && ctx.Adapter.IsArray (ctx, target.Value)) {
-						xtypeArgs = new object [] { ctx.Adapter.CreateArrayAdaptor (ctx, target.Value).ElementType };
+					if (xtypeArgs == null && ctx.Adapter.IsArray (ctx, vtarget)) {
+						xtypeArgs = new object [] { ctx.Adapter.CreateArrayAdaptor (ctx, vtarget).ElementType };
 					}
 
 					if (xtypeArgs != null) {

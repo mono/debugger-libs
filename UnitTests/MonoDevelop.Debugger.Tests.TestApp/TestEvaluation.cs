@@ -325,6 +325,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			var inst1 = new SomeOuterClass.SomeInnerClass (5);
 			var inst2 = new SomeOuterClass.SomeInnerClass (10);
 			var instList = new List<SomeOuterClass.SomeInnerClass> { inst1, inst2 };
+			var instArray = instList.ToArray ();
 
 			Bug57425.IEx bug57425 = new Bug57425.MainClass ();
 

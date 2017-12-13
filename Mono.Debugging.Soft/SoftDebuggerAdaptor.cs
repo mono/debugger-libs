@@ -2326,10 +2326,20 @@ namespace Mono.Debugging.Soft
 				if (argTypes[i].IsDelayed)
 					continue;
 
-				int index = names.IndexOf (parameters[i].ParameterType.Name);
+				var paramType = parameters[i].ParameterType;
+				var isArray = paramType.IsArray;
+				if (isArray)
+					paramType = paramType.GetElementType ();
 
-				if (index != -1 && types[index] == null)
-					types[index] = argTypes[index];
+				int index = names.IndexOf (paramType.Name);
+
+				if (index != -1 && types[index] == null) {
+					var argType = argTypes[i].Type;
+					if (isArray && argType.IsArray)
+						argType = argType.GetElementType ();
+
+					types[index] = argType;
+				}
 			}
 
 			// make sure we have all the generic argument types...
