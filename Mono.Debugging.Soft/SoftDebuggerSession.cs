@@ -2529,7 +2529,7 @@ namespace Mono.Debugging.Soft
 
 		internal static string NormalizePath (string path)
 		{
-			if (!IsWindows && path.StartsWith ("\\", StringComparison.Ordinal))
+			if (!IsWindows && (path.StartsWith ("\\", StringComparison.Ordinal) || (path.Length > 3 && path [1] == ':' && path [2] == '\\')))
 				return path.Replace ('\\', '/');
 
 			return path;
@@ -2890,7 +2890,7 @@ namespace Mono.Debugging.Soft
 				//Console.WriteLine ("\tExamining {0}:{1}...", srcFile, location.LineNumber);
 
 				//Check if file names match
-				if (srcFile != null && PathComparer.Compare (Path.GetFileName (srcFile), Path.GetFileName (file)) == 0) {
+				if (srcFile != null && PathComparer.Compare (Path.GetFileName (NormalizePath(srcFile)), Path.GetFileName (file)) == 0) {
 					//Check if full path match(we don't care about md5 if full path match):
 					//1. For backward compatibility
 					//2. If full path matches user himself probably modified code and is aware of modifications
