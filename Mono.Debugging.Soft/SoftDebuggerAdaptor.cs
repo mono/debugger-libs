@@ -944,15 +944,16 @@ namespace Mono.Debugging.Soft
 				var prop = FindByName (type.GetProperties (), p => p.Name, name, ctx.CaseSensitive);
 
 				if (prop != null && (IsStatic (prop) || co != null)) {
+					var getter = prop.GetGetMethod (true);
 					// Optimization: if the property has a CompilerGenerated backing field, use that instead.
 					// This way we avoid overhead of invoking methods on the debugee when the value is requested.
-					string cgFieldName = string.Format ("<{0}>{1}", prop.Name, IsAnonymousType (type) ? "" : "k__BackingField");
-					if ((field = FindByName (type.GetFields (), f => f.Name, cgFieldName, true)) != null && IsCompilerGenerated (field))
-						return new FieldValueReference (ctx, field, co, type, prop.Name, ObjectValueFlags.Property);
-
+					//But also check that this method is not virtual, because in that case we need to call getter to invoke override
+					if (!getter.IsVirtual) {
+						string cgFieldName = string.Format ("<{0}>{1}", prop.Name, IsAnonymousType (type) ? "" : "k__BackingField");
+						if ((field = FindByName (type.GetFields (), f => f.Name, cgFieldName, true)) != null && IsCompilerGenerated (field))
+							return new FieldValueReference (ctx, field, co, type, prop.Name, ObjectValueFlags.Property);
+					}
 					// Backing field not available, so do things the old fashioned way.
-					var getter = prop.GetGetMethod (true);
-
 					return getter != null ? new PropertyValueReference (ctx, prop, co, type, getter, null) : null;
 				}
 				if (type.IsInterface) {
@@ -1600,7 +1601,7 @@ namespace Mono.Debugging.Soft
 					types[n] = ToArgumentType (ctx, argTypes[n]);
 			}
 			
-			var method = OverloadResolve (soft, tm, methodName, typeArgs, types, (flags & BindingFlags.Instance) != 0, (flags & BindingFlags.Static) != 0, false);
+			var method = OverloadResolve (soft, tm, methodName, typeArgs, types, (flags & BindingFlags.Instance) != 0, (flags & BindingFlags.Static) != 0, false, false);
 
 			return method != null;
 		}
