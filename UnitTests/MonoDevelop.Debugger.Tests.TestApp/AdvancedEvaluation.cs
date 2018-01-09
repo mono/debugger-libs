@@ -52,6 +52,17 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 		}
 
+		public void LocalFunctionVariablesTest ()
+		{
+			var a = 23;
+			int localFunction (int b, string c)
+			{
+				var d = 25;
+				return a + b + d;/*07a0e6ef-e1d2-4f11-ab67-78e6ae5ea3bb*/
+			}
+			localFunction (24, "hi");
+		}
+
 		public void YieldMethodTest ()
 		{
 			YieldMethod ().ToList ();

@@ -628,6 +628,11 @@ namespace Mono.Debugging.Soft
 
 			return IsGeneratedType (tm);
 		}
+
+		static bool IsLocalFunction(EvaluationContext ctx)
+		{
+			return ((SoftEvaluationContext)ctx).Frame.Method.Name.IndexOf (">g__", StringComparison.Ordinal) > 0;
+		}
 		
 		internal static bool IsGeneratedType (TypeMirror tm)
 		{
@@ -828,7 +833,7 @@ namespace Mono.Debugging.Soft
 		{
 			var cx = (SoftEvaluationContext) ctx;
 
-			if (InGeneratedClosureOrIteratorType (cx))
+			if (InGeneratedClosureOrIteratorType (cx) || IsLocalFunction(cx))
 				return FindByName (OnGetLocalVariables (cx), v => v.Name, name, ctx.CaseSensitive);
 			
 			try {
@@ -864,7 +869,11 @@ namespace Mono.Debugging.Soft
 				ValueReference vthis = GetThisReference (cx);
 				return GetHoistedLocalVariables (cx, vthis).Union (GetLocalVariables (cx));
 			}
-
+			if (IsLocalFunction (cx)) {
+				//We are assuming here that last parameter is LocalFunction hoisted struct
+				var par = cx.Frame.Method.GetLocals ().Where (p => p.IsArg).Last ();
+				return GetHoistedLocalVariables (cx, new VariableValueReference (cx, par.Name, par)).Union (GetLocalVariables (cx));
+			}
 			return GetLocalVariables (cx);
 		}
 		
@@ -1309,6 +1318,8 @@ namespace Mono.Debugging.Soft
 
 			try {
 				locals = soft.Frame.Method.GetLocals ().Where (x => x.IsArg).ToArray ();
+				if (IsLocalFunction (ctx))//We are assuming here that last parameter is LocalFunction hoisted struct
+					locals = locals.Take (locals.Length - 1).ToArray ();//So exclude it from Parameters list
 			} catch (AbsentInformationException) {
 				yield break;
 			}

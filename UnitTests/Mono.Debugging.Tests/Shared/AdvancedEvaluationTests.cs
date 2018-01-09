@@ -24,6 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
+using System.Linq;
 using NUnit.Framework;
 
 namespace Mono.Debugging.Tests
@@ -132,6 +133,38 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("string", val.TypeName);
 		}
 
+		[Test]
+		public void LocalFunctionVariablesTest ()
+		{
+			InitializeTest ();
+			AddBreakpoint ("07a0e6ef-e1d2-4f11-ab67-78e6ae5ea3bb");
+			StartTest ("LocalFunctionVariablesTest");
+			CheckPosition ("07a0e6ef-e1d2-4f11-ab67-78e6ae5ea3bb");
+
+			var val = Eval ("a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("23", val.Value);
+
+			var frame = Session.ActiveThread.Backtrace.GetFrame (0);
+			var locals = frame.GetAllLocals ();
+			Assert.AreEqual (4, locals.Length);
+
+			val = locals.Single (l => l.Name == "a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("23", val.Value);
+
+			val = locals.Single (l => l.Name == "b");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("24", val.Value);
+
+			val = locals.Single (l => l.Name == "c");
+			Assert.AreEqual ("string", val.TypeName);
+			Assert.AreEqual ("\"hi\"", val.Value);
+
+			val = locals.Single (l => l.Name == "d");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("25", val.Value);
+		}
 
 		[Test]
 		public void YieldMethodTest ()
