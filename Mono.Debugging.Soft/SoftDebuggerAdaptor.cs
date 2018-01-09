@@ -957,13 +957,14 @@ namespace Mono.Debugging.Soft
 					return getter != null ? new PropertyValueReference (ctx, prop, co, type, getter, null) : null;
 				}
 				if (type.IsInterface) {
-					if (!type.GetInterfaces ().Any ())
-						return null;
-					foreach (var interace in type.GetInterfaces ()) {
-						var result = GetMember (ctx, interace, co, name);
+					foreach (var inteface in type.GetInterfaces ()) {
+						var result = GetMember (ctx, inteface, co, name);
 						if (result != null)
 							return result;
 					}
+					//foreach above recursively checked all "base" interfaces
+					//nothing was found, quit, otherwise we would loop forever
+					return null;
 				} else {
 					type = type.BaseType;
 				}

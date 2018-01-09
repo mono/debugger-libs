@@ -770,6 +770,18 @@ namespace Mono.Debugging.Tests
 			if (soft != null && soft.ProtocolVersion < new Version (2, 31))
 				Assert.Ignore ("A newer version of the Mono runtime is required.");
 
+			val = Eval ("namedTypeSymbol.BaseType");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				Assert.IsTrue (val.IsImplicitNotSupported);
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("\"Type1\"", val.Value);
+			Assert.AreEqual ("string", val.TypeName);
+
 			val = Eval ("\"someString\".Length");
 			if (!AllowTargetInvokes && soft == null) {
 				// Note: this is a simple property which gets evaluated client-side by the SDB backend

@@ -60,6 +60,30 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		}
 	}
 
+	interface ISymbol : IEquatable<ISymbol>
+	{
+		int Id { get; }
+	}
+	interface ITypeSymbol : ISymbol
+	{
+		string BaseType { get; }
+	}
+	interface INamedTypeSymbol : ITypeSymbol
+	{
+		string Name { get; }
+	}
+
+	class NamedTypeSymbol : INamedTypeSymbol
+	{
+		public int Id { get => 1; }
+		public string BaseType { get => "Type1"; }
+		public string Name { get => "Type2"; }
+		public bool Equals(ISymbol other)
+		{
+			return false;
+		}
+	}
+
 	interface IFoo
 	{
 		int this[int index] { get; }
@@ -284,6 +308,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			Array myExtremeArray = Array.CreateInstance (typeof (String), myLengthArray, myBoundArray);
 			myExtremeArray.SetValue ("b38c0da4-a009-409d-bc78-2a051267d05a", int.MinValue + 1);
 			BaseClass bar = new OverrideClass();
+			INamedTypeSymbol namedTypeSymbol = new NamedTypeSymbol ();
 
 			Console.WriteLine (n); /*break*/
 		}
