@@ -165,6 +165,20 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		}
 	}
 
+	public abstract class BaseClass
+	{
+		public enum MyEnum
+		{
+			Red,
+			Black
+		}
+		public virtual MyEnum Foo { get; set; }
+	}
+	public class OverrideClass : BaseClass
+	{
+		public override MyEnum Foo { get { return MyEnum.Black; } set { throw new NotImplementedException(); }}
+	}
+
 	class TestEvaluation : TestEvaluationParent
 	{
 		static string staticString = "some static";
@@ -269,6 +283,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			int [] myBoundArray = new int [1] { Int32.MinValue };
 			Array myExtremeArray = Array.CreateInstance (typeof (String), myLengthArray, myBoundArray);
 			myExtremeArray.SetValue ("b38c0da4-a009-409d-bc78-2a051267d05a", int.MinValue + 1);
+			BaseClass bar = new OverrideClass();
 
 			Console.WriteLine (n); /*break*/
 		}

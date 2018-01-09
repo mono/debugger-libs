@@ -2385,6 +2385,12 @@ namespace Mono.Debugging.Tests
 			}
 			Assert.AreEqual ("43", val.Value);
 			Assert.AreEqual ("int", val.TypeName);
+
+			if (AllowTargetInvokes) {
+				val = Eval ("bar.Foo");
+				Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.BaseClass+MyEnum.Black", val.Value);
+				Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.BaseClass.MyEnum", val.TypeName);
+			}
 		}
 
 		[Test]
