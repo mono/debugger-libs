@@ -1899,6 +1899,8 @@ namespace Mono.Debugging.Soft
 			bool isExternal;
 			isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
 
+			OnAssemblyLoaded (asm.Location);
+
 			string flagExt = isExternal ? " [External]" : "";
 			OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
 		}
