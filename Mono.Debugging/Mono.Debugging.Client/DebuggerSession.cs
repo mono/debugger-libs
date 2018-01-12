@@ -126,6 +126,11 @@ namespace Mono.Debugging.Client
 		/// of an expression evaluation which can't be aborted.
 		/// </summary>
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
+
+		/// <summary>
+		/// Raised when an assembly is loaded
+		/// </summary>
+		public event EventHandler<AssemblyEventArgs> AssemblyLoaded;
 		
 		protected DebuggerSession ()
 		{
@@ -1182,6 +1187,11 @@ namespace Mono.Debugging.Client
 			} else {
 				OnDebuggerOutput (false, string.Format ("[{0}:{1}] {2}", level, category, message));
 			}
+		}
+
+		internal protected void OnAssemblyLoaded (string assemblyLocation)
+		{
+			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assemblyLocation));
 		}
 		
 		internal protected void SetBusyState (BusyStateEventArgs args)
