@@ -109,7 +109,7 @@ namespace Mono.Debugging.Evaluation
 			} catch (NotSupportedExpressionException ex) {
 				return DC.ObjectValue.CreateNotSupported (this, new ObjectPath (Name), Context.Adapter.GetDisplayTypeName (GetContext (options), Type), ex.Message, Flags);
 			} catch (EvaluatorException ex) {
-				return DC.ObjectValue.CreateError (this, new ObjectPath (Name), "", ex.Message, Flags);
+				return DC.ObjectValue.CreateError (this, new ObjectPath (Name), Context.Adapter.GetDisplayTypeName (GetContext (options), Type), ex.Message, Flags);
 			} catch (Exception ex) {
 				Context.WriteDebuggerError (ex);
 				return DC.ObjectValue.CreateUnknown (Name);

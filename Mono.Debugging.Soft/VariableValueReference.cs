@@ -98,8 +98,8 @@ namespace Mono.Debugging.Soft
 						value = batch != null ? batch.GetValue (variable) : ctx.Frame.GetValue (variable);
 
 					return NormalizeValue (ctx, value);
-				} catch (AbsentInformationException) {
-					throw new EvaluatorException ("Value not available");
+				} catch (AbsentInformationException ex) {
+					throw new EvaluatorException (ex, "Value not available");
 				} catch (ArgumentException ex) {
 					throw new EvaluatorException (ex.Message);
 				}
