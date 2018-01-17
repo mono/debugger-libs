@@ -32,6 +32,7 @@ using System.Threading;
 using System.Collections.Generic;
 
 using Mono.Debugging.Backend;
+using Mono.Debugging.Evaluation;
 
 namespace Mono.Debugging.Client
 {
@@ -51,6 +52,7 @@ namespace Mono.Debugging.Client
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
+		readonly EvaluationStatistics evaluationStats = new EvaluationStatistics ();
 		BreakpointStore breakpointStore;
 		DebuggerSessionOptions options;
 		ProcessInfo[] currentProcesses;
@@ -213,6 +215,10 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public BreakEventHitHandler CustomBreakEventHitHandler {
 			get; set;
+		}
+
+		public EvaluationStatistics EvaluationStats {
+			get { return evaluationStats; }
 		}
 		
 		/// <summary>

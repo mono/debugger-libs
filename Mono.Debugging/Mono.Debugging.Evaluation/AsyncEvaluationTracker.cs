@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Mono.Debugging.Client;
 using Mono.Debugging.Backend;
 
@@ -58,6 +59,8 @@ namespace Mono.Debugging.Evaluation
 			get { return runner.IsEvaluating; }
 		}
 
+		internal DebuggerSession Session { get; set; }
+
 		public ObjectValue Run (string name, ObjectValueFlags flags, ObjectEvaluatorDelegate evaluator)
 		{
 			string id;
@@ -69,8 +72,32 @@ namespace Mono.Debugging.Evaluation
 			
 			ObjectValue val = null;
 			bool done = runner.Run (delegate {
-					if (tid >= cancelTimestamp)
+				if (tid >= cancelTimestamp) {
+					var session = Session;
+					if (session == null || (flags == ObjectValueFlags.EvaluatingGroup)) {
+						// Cannot report timing if session is null. If a group is being
+						// evaluated then individual timings are not possible and must
+						// be done elsewhere.
 						val = evaluator ();
+					} else {
+						var timer = new Stopwatch ();
+						timer.Start ();
+						try {
+							val = evaluator ();
+							timer.Stop ();
+							if (val.IsEvaluating || val.IsEvaluatingGroup) {
+								// Should not happen.
+							} else {
+								session.EvaluationStats.AddTime (timer.Elapsed);
+							}
+						} catch (Exception) {
+							// No need to re-throw since the runner would catch the
+							// exception and ignore it.
+							timer.Stop ();
+							session.EvaluationStats.IncrementFailureCount ();
+						}
+					}
+				}
 			},
 			delegate {
 				if (tid >= cancelTimestamp)
