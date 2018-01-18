@@ -748,6 +748,8 @@ namespace Mono.Debugging.Soft
 			object val;
 			try {
 				val = vthis.Value;
+			} catch (AbsentInformationException) {
+				return new ValueReference [0];
 			} catch (EvaluatorException ex) when (ex.InnerException is AbsentInformationException) {
 				return new ValueReference [0];
 			}
