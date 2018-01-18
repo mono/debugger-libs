@@ -80,21 +80,9 @@ namespace Mono.Debugging.Evaluation
 						// be done elsewhere.
 						val = evaluator ();
 					} else {
-						var timer = new Stopwatch ();
-						timer.Start ();
-						try {
+						using (var timer = session.EvaluationStats.StartTimer ()) {
 							val = evaluator ();
-							timer.Stop ();
-							if (val.IsEvaluating || val.IsEvaluatingGroup) {
-								// Should not happen.
-							} else {
-								session.EvaluationStats.AddTime (timer.Elapsed);
-							}
-						} catch (Exception) {
-							// No need to re-throw since the runner would catch the
-							// exception and ignore it.
-							timer.Stop ();
-							session.EvaluationStats.IncrementFailureCount ();
+							timer.Stop (val);
 						}
 					}
 				}

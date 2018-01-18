@@ -24,6 +24,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
+using System.Diagnostics;
+using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Evaluation
 {
@@ -61,6 +63,15 @@ namespace Mono.Debugging.Evaluation
 			get { return timingsCount; }
 		}
 
+		public EvaluationTimer StartTimer ()
+		{
+			var timer = new EvaluationTimer (this) {
+				Success = false
+			};
+			timer.Start ();
+			return timer;
+		}
+
 		public void AddTime (TimeSpan duration)
 		{
 			lock (lockObject) {
@@ -81,6 +92,57 @@ namespace Mono.Debugging.Evaluation
 		{
 			lock (lockObject) {
 				failureCount++;
+			}
+		}
+	}
+
+	public class EvaluationTimer : IDisposable
+	{
+		EvaluationStatistics evaluationStats;
+		Stopwatch stopwatch;
+
+		public EvaluationTimer (EvaluationStatistics evaluationStats)
+		{
+			this.evaluationStats = evaluationStats;
+			Success = true;
+		}
+
+		/// <summary>
+		/// Indicates if the evaluation was successful. If this is false the
+		/// timing will not be reported and a failure will be indicated.
+		/// </summary>
+		public bool Success { get; set; }
+
+		public void Start ()
+		{
+			stopwatch = new Stopwatch ();
+			stopwatch.Start ();
+		}
+
+		public void Stop (ObjectValue val)
+		{
+			stopwatch.Stop ();
+
+			if (val.IsEvaluating || val.IsEvaluatingGroup) {
+				// Do not capture timing - evaluation not finished.
+			} else if (val.IsError || val.IsImplicitNotSupported || val.IsNotSupported || val.IsUnknown) {
+				evaluationStats.IncrementFailureCount ();
+			} else {
+				// Success
+				evaluationStats.AddTime (stopwatch.Elapsed);
+			}
+		}
+
+		public void Dispose ()
+		{
+			if (stopwatch.IsRunning) {
+				stopwatch.Stop ();
+
+				if (Success) {
+					evaluationStats.AddTime (stopwatch.Elapsed);
+				} else {
+					evaluationStats.IncrementFailureCount ();
+				}
 			}
 		}
 	}
