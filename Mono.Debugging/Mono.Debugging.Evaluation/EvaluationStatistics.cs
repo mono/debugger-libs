@@ -123,6 +123,10 @@ namespace Mono.Debugging.Evaluation
 		{
 			stopwatch.Stop ();
 
+			if (evaluationStats == null) {
+				return;
+			}
+
 			if (val.IsEvaluating || val.IsEvaluatingGroup) {
 				// Do not capture timing - evaluation not finished.
 			} else if (val.IsError || val.IsImplicitNotSupported || val.IsNotSupported || val.IsUnknown) {
@@ -137,6 +141,10 @@ namespace Mono.Debugging.Evaluation
 		{
 			if (stopwatch.IsRunning) {
 				stopwatch.Stop ();
+
+				if (evaluationStats == null) {
+					return;
+				}
 
 				if (Success) {
 					evaluationStats.AddTime (stopwatch.Elapsed);

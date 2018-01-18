@@ -56,8 +56,13 @@ namespace Mono.Debugging.Evaluation
 			if (frame == null) {
 				var val = Adaptor.CreateObjectValueAsync ("Local Variables", ObjectValueFlags.EvaluatingGroup, delegate {
 					frame = GetFrameInfo (frameIndex, options, true);
-					foreach (var local in frame.LocalVariables)
-						list.Add (local.CreateObjectValue (false, options));
+					foreach (var local in frame.LocalVariables) {
+						using (var timer = StartEvaluationTimer ()) {
+							var localValue = local.CreateObjectValue (false, options);
+							timer.Stop (localValue);
+							list.Add (localValue);
+						}
+					}
 
 					return ObjectValue.CreateArray (null, new ObjectPath ("Local Variables"), "", list.Count, ObjectValueFlags.EvaluatingGroup, list.ToArray ());
 				});
@@ -79,8 +84,13 @@ namespace Mono.Debugging.Evaluation
 			if (frame == null) {
 				var value = Adaptor.CreateObjectValueAsync ("Parameters", ObjectValueFlags.EvaluatingGroup, delegate {
 					frame = GetFrameInfo (frameIndex, options, true);
-					foreach (var param in frame.Parameters)
-						values.Add (param.CreateObjectValue (false, options));
+					foreach (var param in frame.Parameters) {
+						using (var timer = StartEvaluationTimer ()) {
+							var paramValue = param.CreateObjectValue (false, options);
+							timer.Stop (paramValue);
+							values.Add (paramValue);
+						}
+					}
 
 					return ObjectValue.CreateArray (null, new ObjectPath ("Parameters"), "", values.Count, ObjectValueFlags.EvaluatingGroup, values.ToArray ());
 				});
@@ -103,9 +113,13 @@ namespace Mono.Debugging.Evaluation
 					frame = GetFrameInfo (frameIndex, options, true);
 					ObjectValue[] values;
 
-					if (frame.This != null)
-						values = new [] { frame.This.CreateObjectValue (false, options) };
-					else
+					if (frame.This != null) {
+						using (var timer = StartEvaluationTimer ()) {
+							var thisValue = frame.This.CreateObjectValue (false, options);
+							timer.Stop (thisValue);
+							values = new [] { thisValue };
+						}
+					} else
 						values = new ObjectValue [0];
 
 					return ObjectValue.CreateArray (null, new ObjectPath ("this"), "", values.Length, ObjectValueFlags.EvaluatingGroup, values);
@@ -125,9 +139,13 @@ namespace Mono.Debugging.Evaluation
 					frame = GetFrameInfo (frameIndex, options, true);
 					ObjectValue[] values;
 
-					if (frame.Exception != null)
-						values = new [] { frame.Exception.CreateObjectValue (false, options) };
-					else
+					if (frame.Exception != null) {
+						using (var timer = StartEvaluationTimer ()) {
+							var exceptionValue = frame.Exception.CreateObjectValue (false, options);
+							timer.Stop (exceptionValue);
+							values = new [] { exceptionValue };
+						}
+					} else
 						values = new ObjectValue [0];
 
 					return ObjectValue.CreateArray (null, new ObjectPath (options.CurrentExceptionTag), "", values.Length, ObjectValueFlags.EvaluatingGroup, values);
@@ -150,9 +168,13 @@ namespace Mono.Debugging.Evaluation
 					frame = GetFrameInfo (frameIndex, options, true);
 					ObjectValue[] values;
 
-					if (frame.Exception != null)
-						values = new [] { frame.Exception.Exception.CreateObjectValue (false, options) };
-					else
+					if (frame.Exception != null) {
+						using (var timer = StartEvaluationTimer ()) {
+							var exceptionValue = frame.Exception.Exception.CreateObjectValue (false, options);
+							timer.Stop (exceptionValue);
+							values = new [] { exceptionValue };
+						}
+					} else
 						values = new ObjectValue [0];
 
 					return ObjectValue.CreateArray (null, new ObjectPath (options.CurrentExceptionTag), "", values.Length, ObjectValueFlags.EvaluatingGroup, values);
@@ -249,6 +271,18 @@ namespace Mono.Debugging.Evaluation
 			frameInfo[frameIndex] = finfo;
 
 			return finfo;
+		}
+
+		EvaluationTimer StartEvaluationTimer ()
+		{
+			var evaluationStats = Adaptor.DebuggerSession?.EvaluationStats;
+
+			var timer = new EvaluationTimer (evaluationStats) {
+				Success = false
+			};
+			timer.Start ();
+
+			return timer;
 		}
 	}
 	
