@@ -602,7 +602,12 @@ namespace Mono.Debugging.Evaluation
 
 			if (assignmentExpression.Operator == AssignmentOperatorType.Assign) {
 				var right = assignmentExpression.Right.AcceptVisitor<ValueReference> (this);
-				left.Value = right.Value;
+				if (left is UserVariableReference) {
+					left.Value = right.Value;
+				} else {
+					var castedValue = ctx.Adapter.TryCast (ctx, right.Value, left.Type);
+					left.Value = castedValue;
+				}
 			} else {
 				BinaryOperatorType op;
 
@@ -1113,6 +1118,10 @@ namespace Mono.Debugging.Evaluation
 			case UnaryOperatorType.Minus:
 				if (val is decimal) {
 					val = -(decimal)val;
+				} else if (val is double) {
+					val = -(double)val;
+				} else if (val is float) {
+					val = -(float)val;
 				} else {
 					num = -GetInteger (val);
 					val = Convert.ChangeType (num, val.GetType ());
@@ -1125,23 +1134,55 @@ namespace Mono.Debugging.Evaluation
 				val = !(bool) val;
 				break;
 			case UnaryOperatorType.PostDecrement:
-				num = GetInteger (val) - 1;
-				newVal = Convert.ChangeType (num, val.GetType ());
+				if (val is decimal) {
+					newVal = ((decimal)val) - 1;
+				} else if (val is double) {
+					newVal = ((double)val) - 1;
+				} else if (val is float) {
+					newVal = ((float)val) - 1;
+				} else {
+					num = GetInteger (val) - 1;
+					newVal = Convert.ChangeType (num, val.GetType ());
+				}
 				vref.Value = ctx.Adapter.CreateValue (ctx, newVal);
 				break;
 			case UnaryOperatorType.Decrement:
-				num = GetInteger (val) - 1;
-				val = Convert.ChangeType (num, val.GetType ());
+				if (val is decimal) {
+					val = ((decimal)val) - 1;
+				} else if (val is double) {
+					val = ((double)val) - 1;
+				} else if (val is float) {
+					val = ((float)val) - 1;
+				} else {
+					num = GetInteger (val) - 1;
+					val = Convert.ChangeType (num, val.GetType ());
+				}
 				vref.Value = ctx.Adapter.CreateValue (ctx, val);
 				break;
 			case UnaryOperatorType.PostIncrement:
-				num = GetInteger (val) + 1;
-				newVal = Convert.ChangeType (num, val.GetType ());
+				if (val is decimal) {
+					newVal = ((decimal)val) + 1;
+				} else if (val is double) {
+					newVal = ((double)val) + 1;
+				} else if (val is float) {
+					newVal = ((float)val) + 1;
+				} else {
+					num = GetInteger (val) + 1;
+					newVal = Convert.ChangeType (num, val.GetType ());
+				}
 				vref.Value = ctx.Adapter.CreateValue (ctx, newVal);
 				break;
 			case UnaryOperatorType.Increment:
-				num = GetInteger (val) + 1;
-				val = Convert.ChangeType (num, val.GetType ());
+				if (val is decimal) {
+					val = ((decimal)val) + 1;
+				} else if (val is double) {
+					val = ((double)val) + 1;
+				} else if (val is float) {
+					val = ((float)val) + 1;
+				} else {
+					num = GetInteger (val) + 1;
+					val = Convert.ChangeType (num, val.GetType ());
+				}
 				vref.Value = ctx.Adapter.CreateValue (ctx, val);
 				break;
 			case UnaryOperatorType.Plus:

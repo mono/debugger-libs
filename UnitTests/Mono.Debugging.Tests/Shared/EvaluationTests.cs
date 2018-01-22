@@ -1531,6 +1531,9 @@ namespace Mono.Debugging.Tests
 			val = Eval ("(ulong)1 + (long)2");
 			Assert.AreEqual ("3", val.Value);
 			Assert.AreEqual ("ulong", val.TypeName);
+
+			val = Eval ("-(2.3)");
+			Assert.AreEqual ("-2.3", val.Value);
 		}
 
 		[Test]
@@ -1670,6 +1673,10 @@ namespace Mono.Debugging.Tests
 		{
 			AssertAssignment ("n = 6", "n", "6", "int");
 			AssertAssignment ("n = 32", "n", "32", "int");
+
+			AssertAssignment ("d = 33", "d", "33", "double");
+			AssertAssignment ("d = 34.0", "d", "34", "double");
+			AssertAssignment ("d = 35.0f", "d", "35", "double");
 
 			AssertAssignment ("someString = \"test\"", "someString", "\"test\"", "string");
 			AssertAssignment ("someString = \"hi\"", "someString", "\"hi\"", "string");
