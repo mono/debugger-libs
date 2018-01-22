@@ -1650,9 +1650,13 @@ namespace Mono.Debugging.Soft
 
 		public override bool IsPrimitiveType (object type)
 		{
-			var tm = type as TypeMirror;
-
-			return tm != null && tm.IsPrimitive;
+			if (!(type is TypeMirror tm))
+				return false;
+			if (tm.IsPrimitive)
+				return true;
+			if (tm.IsValueType && tm.Namespace == "System" && (tm.Name == "nfloat" || tm.Name == "nint"))
+				return true;
+			return false;
 		}
 
 		public override bool IsClass (EvaluationContext ctx, object type)
@@ -1669,7 +1673,15 @@ namespace Mono.Debugging.Soft
 
 		public override bool IsPrimitive (EvaluationContext ctx, object val)
 		{
-			return val is PrimitiveValue || val is StringMirror || ((val is StructMirror) && ((StructMirror)val).Type.IsPrimitive) || val is PointerValue;
+			if (val is PrimitiveValue || val is StringMirror || val is PointerValue)
+				return true;
+			if (!(val is StructMirror sm))
+				return false;
+			if (sm.Type.IsPrimitive)
+				return true;
+			if (sm.Type.Namespace == "System" && (sm.Type.Name == "nfloat" || sm.Type.Name == "nint"))
+				return true;
+			return false;
 		}
 
 		public override bool IsPointer (EvaluationContext ctx, object val)

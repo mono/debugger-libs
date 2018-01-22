@@ -1092,13 +1092,13 @@ namespace Mono.Debugging.Evaluation
 				return new EvaluationResult ("{" + ename + tn + "}");
 			}
 
+			object type = GetValueType (ctx, obj);
+			string typeName = GetTypeName (ctx, type);
 			if (IsEnum (ctx, obj)) {
-				object type = GetValueType (ctx, obj);
 				object longType = GetType (ctx, "System.Int64");
 				object c = Cast (ctx, obj, longType);
 				long val = (long) TargetObjectToObject (ctx, c);
 				long rest = val;
-				string typeName = GetTypeName (ctx, type);
 				string composed = string.Empty;
 				string composedDisplay = string.Empty;
 
@@ -1123,12 +1123,16 @@ namespace Mono.Debugging.Evaluation
 				return new EvaluationResult (val.ToString ());
 			}
 
-			if (GetValueTypeName (ctx, obj) == "System.Decimal") {
+			if (typeName == "System.Decimal") {
 				string res = CallToString (ctx, obj);
 				// This returns the decimal formatted using the current culture. It has to be converted to invariant culture.
 				decimal dec = decimal.Parse (res);
 				res = dec.ToString (System.Globalization.CultureInfo.InvariantCulture);
 				return new EvaluationResult (res);
+			}
+
+			if (typeName == "System.nfloat" || typeName == "System.nint") {
+				return TargetObjectToObject (ctx, GetMembersSorted (ctx, null, type, obj, BindingFlags.Instance | BindingFlags.NonPublic).Single ().Value);
 			}
 
 			if (IsClassInstance (ctx, obj)) {

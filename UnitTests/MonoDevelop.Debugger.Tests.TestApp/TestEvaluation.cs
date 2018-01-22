@@ -223,6 +223,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		{
 			int intZero = 0, intOne = 1;
 			int n = 32;
+			double d;
 			decimal dec = 123.456m;
 			var stringList = new List<string> ();
 			stringList.Add ("aaa");
