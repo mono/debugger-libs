@@ -121,6 +121,20 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		}
 	}
 
+	public delegate int del (int x, int y);
+
+	public class SomeOuterClass
+	{
+		public class SomeInnerClass
+		{
+			public int n;
+			public SomeInnerClass(int n)
+			{
+				this.n = n;
+			}
+		}
+	}
+
 	class TestEvaluationParent
 	{
 		public int TestMethodBase ()
@@ -186,6 +200,16 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			get {
 				return "6";
 			}
+		}
+
+		public override int OverridenInvokeFuncInt (Func<int> f)
+		{
+			return f () + 1;
+		}
+
+		public override string OverridenInvokeFuncString (Func<string> f)
+		{
+			return f () + "-in-overriden";
 		}
 	}
 
@@ -298,6 +322,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			Foo = new FooBar ();
 			Bar = new FooBar ();
 
+			var inst1 = new SomeOuterClass.SomeInnerClass (5);
+			var inst2 = new SomeOuterClass.SomeInnerClass (10);
+			var instList = new List<SomeOuterClass.SomeInnerClass> { inst1, inst2 };
+			var instArray = instList.ToArray ();
+
 			Bug57425.IEx bug57425 = new Bug57425.MainClass ();
 
 			var testEvaluationChild = new TestEvaluationChild ();
@@ -385,6 +414,36 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			return a.ToString ();
 		}
 
+		public int InvokeFuncInt (Func<int> f)
+		{
+			return f ();
+		}
+
+		public string InvokeFuncString (Func<string> f)
+		{
+			return f ();
+		}
+
+		public bool InvokePredicateString (Predicate<string> f)
+		{
+			return f ("abc");
+		}
+
+		public int InvokeUserDelegate (del f)
+		{
+			return f (5, 1);
+		}
+
+		public int OverloadedInvokeFunc (Func<int> f)
+		{
+			return f ();
+		}
+
+		public string OverloadedInvokeFunc (Func<string> f)
+		{
+			return f ();
+		}
+
 		public string EscapedStrings {
 			get { return " \" \\ \a \b \f \v \n \r \t"; }
 		}
@@ -403,6 +462,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 				list.Add (value);
 			}
 			return list;
+		}
+
+		public static T InvokeGenericFunc<T> (T value, Func<T, T> f)
+		{
+			return f (value);
 		}
 
 		class NestedClass
@@ -449,6 +513,16 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			get {
 				return "5";
 			}
+		}
+
+		public virtual int OverridenInvokeFuncInt (Func<int> f)
+		{
+			return f ();
+		}
+
+		public virtual string OverridenInvokeFuncString (Func<string> f)
+		{
+			return f ();
 		}
 	}
 

@@ -530,6 +530,19 @@ namespace Mono.Debugging.Evaluation
 			throw ParseError ("Could not resolve type: {0}", ResolveTypeName (type));
 		}
 
+		static object[] UpdateDelayedTypes (object[] types, Tuple<int, object>[] updates, ref bool alreadyUpdated)
+		{
+			if (alreadyUpdated || types == null || updates == null || types.Length < updates.Length || updates.Length == 0)
+				return types;
+
+			for (int x = 0; x < updates.Length; x++) {
+				int index = updates[x].Item1;
+				types[index] = updates[x].Item2;
+			}
+			alreadyUpdated = true;
+			return types;
+		}
+
 		#region IAstVisitor implementation
 
 		public ValueReference VisitAnonymousMethodExpression (AnonymousMethodExpression anonymousMethodExpression)
@@ -856,6 +869,7 @@ namespace Mono.Debugging.Evaluation
 				throw new ImplicitEvaluationDisabledException ();
 
 			bool invokeBaseMethod = false;
+			bool allArgTypesAreResolved = true;
 			ValueReference target = null;
 			string methodName;
 
@@ -868,9 +882,14 @@ namespace Mono.Debugging.Evaluation
 				var vref = arg.AcceptVisitor<ValueReference> (this);
 				args[n] = vref.Value;
 				types[n] = ctx.Adapter.GetValueType (ctx, args[n]);
+
+				if (ctx.Adapter.IsDelayedType (ctx, types[n]))
+					allArgTypesAreResolved = false;
 				n++;
 			}
 			object vtype = null;
+			Tuple<int, object>[] resolvedLambdaTypes;
+
 			if (invocationExpression.Target is MemberReferenceExpression) {
 				var field = (MemberReferenceExpression) invocationExpression.Target;
 				target = field.Target.AcceptVisitor<ValueReference> (this);
@@ -883,7 +902,7 @@ namespace Mono.Debugging.Evaluation
 
 				methodName = ResolveMethodName (method, out typeArgs);
 
-				if (vref != null && ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, null, BindingFlags.Instance)) {
+				if (vref != null && ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, types, BindingFlags.Instance)) {
 					vtype = ctx.Adapter.GetEnclosingType (ctx);
 					// There is an instance method for 'this', although it may not have an exact signature match. Check it now.
 					if (ctx.Adapter.HasMethod (ctx, vref.Type, methodName, typeArgs, types, BindingFlags.Instance)) {
@@ -908,9 +927,13 @@ namespace Mono.Debugging.Evaluation
 				vtype = target != null ? target.Type : ctx.Adapter.GetEnclosingType (ctx);
 			object vtarget = (target is TypeValueReference) || target == null ? null : target.Value;
 
+			var hasMethod = ctx.Adapter.HasMethod (ctx, vtype, methodName, typeArgs, types, BindingFlags.Instance | BindingFlags.Static, out resolvedLambdaTypes);
+			if (hasMethod)
+				types = UpdateDelayedTypes (types, resolvedLambdaTypes, ref allArgTypesAreResolved);
+
 			if (invokeBaseMethod) {
 				vtype = ctx.Adapter.GetBaseType (ctx, vtype);
-			} else if (target != null && !ctx.Adapter.HasMethod (ctx, vtype, methodName, typeArgs, types, BindingFlags.Instance | BindingFlags.Static)) {
+			} else if (target != null && !hasMethod) {
 				// Look for LINQ extension methods...
 				var linq = ctx.Adapter.GetType (ctx, "System.Linq.Enumerable");
 				if (linq != null) {
@@ -926,6 +949,10 @@ namespace Mono.Debugging.Evaluation
 							xtypeArgs = ctx.Adapter.GetTypeArgs (ctx, xtype);
 					}
 
+					if (xtypeArgs == null && ctx.Adapter.IsArray (ctx, vtarget)) {
+						xtypeArgs = new object [] { ctx.Adapter.CreateArrayAdaptor (ctx, vtarget).ElementType };
+					}
+
 					if (xtypeArgs != null) {
 						var xtypes = new object[types.Length + 1];
 						Array.Copy (types, 0, xtypes, 1, types.Length);
@@ -935,16 +962,25 @@ namespace Mono.Debugging.Evaluation
 						Array.Copy (args, 0, xargs, 1, args.Length);
 						xargs[0] = vtarget;
 
-						if (ctx.Adapter.HasMethod (ctx, linq, methodName, xtypeArgs, xtypes, BindingFlags.Static)) {
+						if (ctx.Adapter.HasMethod (ctx, linq, methodName, xtypeArgs, xtypes, BindingFlags.Static, out resolvedLambdaTypes)) {
 							vtarget = null;
 							vtype = linq;
 
 							typeArgs = xtypeArgs;
-							types = xtypes;
+							types = UpdateDelayedTypes (xtypes, resolvedLambdaTypes, ref allArgTypesAreResolved);
 							args = xargs;
 						}
 					}
 				}
+			}
+
+			if (!allArgTypesAreResolved) {
+				// TODO: Show detailed error message for why lambda types were not
+				// resolved. Major causes are:
+				// 1. there is no matched method
+				// 2. matched method exists, but the lambda body has some invalid
+				// expressions and does not compile
+				throw NotSupported ();
 			}
 
 			object result = ctx.Adapter.RuntimeInvoke (ctx, vtype, vtarget, methodName, typeArgs, types, args);
@@ -975,6 +1011,25 @@ namespace Mono.Debugging.Evaluation
 
 		public ValueReference VisitLambdaExpression (LambdaExpression lambdaExpression)
 		{
+			if (lambdaExpression.IsAsync)
+				throw NotSupported ();
+
+			AstNode parent = lambdaExpression.Parent;
+			while (parent != null && parent is ParenthesizedExpression)
+				parent = parent.Parent;
+
+			if (parent is InvocationExpression || parent is CastExpression) {
+				var writer = new System.IO.StringWriter ();
+				var visitor = new LambdaBodyOutputVisitor (ctx, userVariables, writer);
+
+				lambdaExpression.AcceptVisitor (visitor);
+				var body = writer.ToString ();
+				var values = visitor.GetLocalValues ();
+				object val = ctx.Adapter.CreateDelayedLambdaValue (ctx, body, values);
+				if (val != null)
+					return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, val);
+			}
+
 			throw NotSupported ();
 		}
 
