@@ -274,25 +274,38 @@ namespace Mono.Debugging.Soft
 			var cx = (SoftEvaluationContext) ctx;
 			MethodMirror method;
 
-			// check for explicit and implicit cast operators in the target type
+			if (CanCast (ctx, fromType, toType))
+				return true;
+
+			// check for explicit cast operators in the target type
 			method = OverloadResolve (cx, toType, "op_Explicit", null, new [] { fromType }, false, true, false, false);
 			if (method != null)
 				return true;
 
-			method = OverloadResolve (cx, toType, "op_Implicit", null, new [] { fromType }, false, true, false, false);
-			if (method != null)
-				return true;
-
-			// check for explicit and implicit cast operators on the source type
+			// check for explicit cast operators on the source type
 			method = OverloadResolve (cx, fromType.Type, "op_Explicit", null, toType, new [] { fromType }, false, true, false, false);
 			if (method != null)
 				return true;
 
-			method = OverloadResolve (cx, fromType.Type, "op_Implicit", null, toType, new [] { fromType }, false, true, false, false);
+			method = OverloadResolve (cx, toType, ".ctor", null, new [] { fromType }, true, false, false, false);
 			if (method != null)
 				return true;
 
-			method = OverloadResolve (cx, toType, ".ctor", null, new [] { fromType }, true, false, false, false);
+			return false;
+		}
+
+		static bool CanCast (EvaluationContext ctx, ArgumentType fromType, TypeMirror toType)
+		{
+			var cx = (SoftEvaluationContext)ctx;
+			MethodMirror method;
+
+			// check for implicit cast operators in the target type
+			method = OverloadResolve (cx, toType, "op_Implicit", null, new [] { fromType }, false, true, false, false);
+			if (method != null)
+				return true;
+
+			// check for implicit cast operators on the source type
+			method = OverloadResolve (cx, fromType.Type, "op_Implicit", null, toType, new [] { fromType }, false, true, false, false);
 			if (method != null)
 				return true;
 
@@ -2506,7 +2519,7 @@ namespace Mono.Debugging.Soft
 					}
 				}
 
-				if (tryCasting && CanForceCast (ctx, types [i], param_type))
+				if (tryCasting && CanCast (ctx, types [i], param_type))
 					continue;
 
 				if (CanDoPrimaryCast(types[i].Type, param_type))
