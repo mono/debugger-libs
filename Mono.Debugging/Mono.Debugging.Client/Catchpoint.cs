@@ -68,10 +68,12 @@ namespace Mono.Debugging.Client
 		
 		public string ExceptionName {
 			get { return exceptionName; }
+			set { exceptionName = value; }
 		}
 
 		public bool IncludeSubclasses {
 			get { return includeSubclasses; }
+			set { includeSubclasses = value; }
 		}
 		
 		public override void CopyFrom (BreakEvent ev)
