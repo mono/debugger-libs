@@ -896,7 +896,7 @@ namespace Mono.Debugging.Tests
 		{
 			//It seems CorDebugger has different definition of what is user code and what is not.
 			IgnoreCorDebugger ("CorDebugger: TODO");
-
+			IgnoreSoftDebugger ("Ignored because randomly fails, #519942");
 			InitializeTest ();
 			Session.Options.ProjectAssembliesOnly = true;
 			AddBreakpoint ("999b8a83-8c32-4640-a8e1-f74309cda79c");

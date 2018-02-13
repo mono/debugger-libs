@@ -300,6 +300,11 @@ namespace Mono.Debugging.Evaluation
 		public abstract object[] GetTypeArgs (EvaluationContext ctx, object type);
 		public abstract object GetBaseType (EvaluationContext ctx, object type);
 
+		public virtual bool IsDelayedType (EvaluationContext ctx, object type)
+		{
+			return false;
+		}
+
 		public virtual bool IsGenericType (EvaluationContext ctx, object type)
 		{
 			return type != null && GetTypeName (ctx, type).IndexOf ('`') != -1;
@@ -376,6 +381,11 @@ namespace Mono.Debugging.Evaluation
 		{
 			return false;
 		}
+
+		public virtual bool IsPublic (EvaluationContext ctx, object type)
+		{
+			return false;
+		}
 		
 		public object GetType (EvaluationContext ctx, string name)
 		{
@@ -430,6 +440,11 @@ namespace Mono.Debugging.Evaluation
 		public virtual object GetBaseValue (EvaluationContext ctx, object val)
 		{
 			return val;
+		}
+
+		public virtual object CreateDelayedLambdaValue (EvaluationContext ctx, string expression, Tuple<string, object>[] localVariables)
+		{
+			return null;
 		}
 
 		public virtual string[] GetImportedNamespaces (EvaluationContext ctx)
@@ -1097,13 +1112,13 @@ namespace Mono.Debugging.Evaluation
 				return new EvaluationResult ("{" + ename + tn + "}");
 			}
 
+			object type = GetValueType (ctx, obj);
+			string typeName = GetTypeName (ctx, type);
 			if (IsEnum (ctx, obj)) {
-				object type = GetValueType (ctx, obj);
 				object longType = GetType (ctx, "System.Int64");
 				object c = Cast (ctx, obj, longType);
 				long val = (long) TargetObjectToObject (ctx, c);
 				long rest = val;
-				string typeName = GetTypeName (ctx, type);
 				string composed = string.Empty;
 				string composedDisplay = string.Empty;
 
@@ -1128,12 +1143,16 @@ namespace Mono.Debugging.Evaluation
 				return new EvaluationResult (val.ToString ());
 			}
 
-			if (GetValueTypeName (ctx, obj) == "System.Decimal") {
+			if (typeName == "System.Decimal") {
 				string res = CallToString (ctx, obj);
 				// This returns the decimal formatted using the current culture. It has to be converted to invariant culture.
 				decimal dec = decimal.Parse (res);
 				res = dec.ToString (System.Globalization.CultureInfo.InvariantCulture);
 				return new EvaluationResult (res);
+			}
+
+			if (typeName == "System.nfloat" || typeName == "System.nint") {
+				return TargetObjectToObject (ctx, GetMembersSorted (ctx, null, type, obj, BindingFlags.Instance | BindingFlags.NonPublic).Single ().Value);
 			}
 
 			if (IsClassInstance (ctx, obj)) {
@@ -1404,6 +1423,11 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
+		public virtual bool HasMethodWithParamLength (EvaluationContext ctx, object targetType, string methodName, BindingFlags flags, int paramLength)
+		{
+			return false;
+		}
+
 		public bool HasMethod (EvaluationContext ctx, object targetType, string methodName)
 		{
 			BindingFlags flags = BindingFlags.Instance | BindingFlags.Static;
@@ -1429,6 +1453,14 @@ namespace Mono.Debugging.Evaluation
 		// argTypes can be null, meaning that it has to return true if there is any method with that name
 		// flags will only contain Static or Instance flags
 		public abstract bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] genericTypeArgs, object[] argTypes, BindingFlags flags);
+
+		// outarg `untyped lambda`
+		// if one of argtypes is untyped lambda, this will resolve its type.
+		public virtual bool HasMethod (EvaluationContext ctx, object targetType, string methodName, object[] genericTypeArgs, object[] argTypes, BindingFlags flags, out Tuple<int, object>[] resolvedLambdaTypes)
+		{
+			resolvedLambdaTypes = null;
+			return HasMethod (ctx, targetType, methodName, genericTypeArgs, argTypes, flags);
+		}
 
 		public object RuntimeInvoke (EvaluationContext ctx, object targetType, object target, string methodName, object[] argTypes, object[] argValues)
 		{

@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -90,6 +91,14 @@ namespace Mono.Debugger.Soft
 			if (index < 0 || index > Length - values.Length)
 				throw new IndexOutOfRangeException ();
 			vm.conn.Array_SetValues (id, index, vm.EncodeValues (values));
+		}
+
+		public void SetByteValues (byte[] bytes)
+		{
+			if (bytes != null && bytes.Length != Length) {
+				throw new IndexOutOfRangeException ();
+			}
+			vm.conn.ByteArray_SetValues (id, bytes);
 		}
 
 		IEnumerator IEnumerable.GetEnumerator ()

@@ -60,6 +60,30 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		}
 	}
 
+	interface ISymbol : IEquatable<ISymbol>
+	{
+		int Id { get; }
+	}
+	interface ITypeSymbol : ISymbol
+	{
+		string BaseType { get; }
+	}
+	interface INamedTypeSymbol : ITypeSymbol
+	{
+		string Name { get; }
+	}
+
+	class NamedTypeSymbol : INamedTypeSymbol
+	{
+		public int Id { get => 1; }
+		public string BaseType { get => "Type1"; }
+		public string Name { get => "Type2"; }
+		public bool Equals(ISymbol other)
+		{
+			return false;
+		}
+	}
+
 	interface IFoo
 	{
 		int this[int index] { get; }
@@ -93,6 +117,20 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			get
 			{
 				return -index;
+			}
+		}
+	}
+
+	public delegate int del (int x, int y);
+
+	public class SomeOuterClass
+	{
+		public class SomeInnerClass
+		{
+			public int n;
+			public SomeInnerClass(int n)
+			{
+				this.n = n;
 			}
 		}
 	}
@@ -163,6 +201,30 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 				return "6";
 			}
 		}
+
+		public override int OverridenInvokeFuncInt (Func<int> f)
+		{
+			return f () + 1;
+		}
+
+		public override string OverridenInvokeFuncString (Func<string> f)
+		{
+			return f () + "-in-overriden";
+		}
+	}
+
+	public abstract class BaseClass
+	{
+		public enum MyEnum
+		{
+			Red,
+			Black
+		}
+		public virtual MyEnum Foo { get; set; }
+	}
+	public class OverrideClass : BaseClass
+	{
+		public override MyEnum Foo { get { return MyEnum.Black; } set { throw new NotImplementedException(); }}
 	}
 
 	class TestEvaluation : TestEvaluationParent
@@ -185,6 +247,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		{
 			int intZero = 0, intOne = 1;
 			int n = 32;
+			double d;
 			decimal dec = 123.456m;
 			var stringList = new List<string> ();
 			stringList.Add ("aaa");
@@ -259,6 +322,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			Foo = new FooBar ();
 			Bar = new FooBar ();
 
+			var inst1 = new SomeOuterClass.SomeInnerClass (5);
+			var inst2 = new SomeOuterClass.SomeInnerClass (10);
+			var instList = new List<SomeOuterClass.SomeInnerClass> { inst1, inst2 };
+			var instArray = instList.ToArray ();
+
 			Bug57425.IEx bug57425 = new Bug57425.MainClass ();
 
 			var testEvaluationChild = new TestEvaluationChild ();
@@ -269,6 +337,8 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			int [] myBoundArray = new int [1] { Int32.MinValue };
 			Array myExtremeArray = Array.CreateInstance (typeof (String), myLengthArray, myBoundArray);
 			myExtremeArray.SetValue ("b38c0da4-a009-409d-bc78-2a051267d05a", int.MinValue + 1);
+			BaseClass bar = new OverrideClass();
+			INamedTypeSymbol namedTypeSymbol = new NamedTypeSymbol ();
 
 			Console.WriteLine (n); /*break*/
 		}
@@ -344,6 +414,36 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			return a.ToString ();
 		}
 
+		public int InvokeFuncInt (Func<int> f)
+		{
+			return f ();
+		}
+
+		public string InvokeFuncString (Func<string> f)
+		{
+			return f ();
+		}
+
+		public bool InvokePredicateString (Predicate<string> f)
+		{
+			return f ("abc");
+		}
+
+		public int InvokeUserDelegate (del f)
+		{
+			return f (5, 1);
+		}
+
+		public int OverloadedInvokeFunc (Func<int> f)
+		{
+			return f ();
+		}
+
+		public string OverloadedInvokeFunc (Func<string> f)
+		{
+			return f ();
+		}
+
 		public string EscapedStrings {
 			get { return " \" \\ \a \b \f \v \n \r \t"; }
 		}
@@ -362,6 +462,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 				list.Add (value);
 			}
 			return list;
+		}
+
+		public static T InvokeGenericFunc<T> (T value, Func<T, T> f)
+		{
+			return f (value);
 		}
 
 		class NestedClass
@@ -408,6 +513,16 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			get {
 				return "5";
 			}
+		}
+
+		public virtual int OverridenInvokeFuncInt (Func<int> f)
+		{
+			return f ();
+		}
+
+		public virtual string OverridenInvokeFuncString (Func<string> f)
+		{
+			return f ();
 		}
 	}
 

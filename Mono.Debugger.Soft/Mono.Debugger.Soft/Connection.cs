@@ -2452,6 +2452,21 @@ namespace Mono.Debugger.Soft
 			SendReceive (CommandSet.ARRAY_REF, (int)CmdArrayRef.SET_VALUES, new PacketWriter ().WriteId (id).WriteInt (index).WriteInt (values.Length).WriteValues (values));
 		}
 
+		// This is a special case when setting values of an array that
+		// consists of a large number of bytes. This saves much time and
+		// cost than we create ValueImpl object for each byte.
+		internal void ByteArray_SetValues (long id, byte[] bytes)
+		{
+			int index = 0;
+			var typ = (byte)ElementType.U1;
+			var w = new PacketWriter ().WriteId (id).WriteInt (index).WriteInt (bytes.Length);
+			for (int i = 0; i < bytes.Length; i++) {
+				w.WriteByte (typ);
+				w.WriteInt (bytes[i]);
+			}
+			SendReceive (CommandSet.ARRAY_REF, (int)CmdArrayRef.SET_VALUES, w);
+		}
+
 		/*
 		 * STRINGS
 		 */
