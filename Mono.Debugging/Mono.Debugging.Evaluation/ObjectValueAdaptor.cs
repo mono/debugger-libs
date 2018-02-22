@@ -46,6 +46,11 @@ namespace Mono.Debugging.Evaluation
 		
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
 
+		public DebuggerSession DebuggerSession {
+			get { return asyncEvaluationTracker.Session; }
+			set { asyncEvaluationTracker.Session = value; }
+		}
+
 		static readonly Dictionary<string, string> CSharpTypeNames = new Dictionary<string, string> ();
 		readonly AsyncEvaluationTracker asyncEvaluationTracker = new AsyncEvaluationTracker ();
 		readonly AsyncOperationManager asyncOperationManager = new AsyncOperationManager ();

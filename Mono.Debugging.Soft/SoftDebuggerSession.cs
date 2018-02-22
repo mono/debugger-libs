@@ -119,7 +119,7 @@ namespace Mono.Debugging.Soft
 		{
 			Adaptor = CreateSoftDebuggerAdaptor ();
 			Adaptor.BusyStateChanged += (sender, e) => SetBusyState (e);
-			Adaptor.Session = this;
+			Adaptor.DebuggerSession = this;
 		}
 
 		protected virtual SoftDebuggerAdaptor CreateSoftDebuggerAdaptor ()
@@ -1898,6 +1898,8 @@ namespace Mono.Debugging.Soft
 			RegisterAssembly (asm);
 			bool isExternal;
 			isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
+
+			OnAssemblyLoaded (asm.Location);
 
 			string flagExt = isExternal ? " [External]" : "";
 			OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));

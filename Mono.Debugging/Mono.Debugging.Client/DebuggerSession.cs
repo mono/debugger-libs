@@ -32,6 +32,7 @@ using System.Threading;
 using System.Collections.Generic;
 
 using Mono.Debugging.Backend;
+using Mono.Debugging.Evaluation;
 
 namespace Mono.Debugging.Client
 {
@@ -51,6 +52,7 @@ namespace Mono.Debugging.Client
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
+		readonly EvaluationStatistics evaluationStats = new EvaluationStatistics ();
 		BreakpointStore breakpointStore;
 		DebuggerSessionOptions options;
 		ProcessInfo[] currentProcesses;
@@ -126,6 +128,11 @@ namespace Mono.Debugging.Client
 		/// of an expression evaluation which can't be aborted.
 		/// </summary>
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
+
+		/// <summary>
+		/// Raised when an assembly is loaded
+		/// </summary>
+		public event EventHandler<AssemblyEventArgs> AssemblyLoaded;
 		
 		protected DebuggerSession ()
 		{
@@ -208,6 +215,10 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public BreakEventHitHandler CustomBreakEventHitHandler {
 			get; set;
+		}
+
+		public EvaluationStatistics EvaluationStats {
+			get { return evaluationStats; }
 		}
 		
 		/// <summary>
@@ -1182,6 +1193,11 @@ namespace Mono.Debugging.Client
 			} else {
 				OnDebuggerOutput (false, string.Format ("[{0}:{1}] {2}", level, category, message));
 			}
+		}
+
+		internal protected void OnAssemblyLoaded (string assemblyLocation)
+		{
+			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assemblyLocation));
 		}
 		
 		internal protected void SetBusyState (BusyStateEventArgs args)

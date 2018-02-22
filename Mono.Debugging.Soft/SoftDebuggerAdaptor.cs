@@ -69,7 +69,8 @@ namespace Mono.Debugging.Soft
 		}
 
 		public SoftDebuggerSession Session {
-			get; set;
+			get { return (SoftDebuggerSession)DebuggerSession; }
+			set { DebuggerSession = value; }
 		}
 
 		static string GetPrettyMethodName (EvaluationContext ctx, MethodMirror method)
