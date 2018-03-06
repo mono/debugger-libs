@@ -1355,19 +1355,20 @@ namespace Mono.Debugging.Soft
 				(bindingFlags & BindingFlags.Public) == 0) {
 				yield break;
 			}
-
-			var interfaces = type.GetInterfaces ();
-			foreach (var intr in interfaces) {
-				var map = type.GetInterfaceMap (intr);
-				foreach (PropertyInfoMirror prop in intr.GetProperties (bindingFlags)) {
-					var getter = prop.GetGetMethod (true);
-					if (getter == null || getter.GetParameters ().Length != 0)
-						continue;
-					var implementationGetter = map.TargetMethods [Array.IndexOf (map.InterfaceMethods, getter)];
-					//We are only intersted into private(explicit) implementations because public ones are already handled before
-					if (implementationGetter.IsPublic)
-						continue;
-					yield return new PropertyValueReference (ctx, prop, co, type, getter, null);
+			if (Session.VirtualMachine.Version.AtLeast (2, 11)) {
+				var interfaces = type.GetInterfaces ();
+				foreach (var intr in interfaces) {
+					var map = type.GetInterfaceMap (intr);
+					foreach (PropertyInfoMirror prop in intr.GetProperties (bindingFlags)) {
+						var getter = prop.GetGetMethod (true);
+						if (getter == null || getter.GetParameters ().Length != 0)
+							continue;
+						var implementationGetter = map.TargetMethods [Array.IndexOf (map.InterfaceMethods, getter)];
+						//We are only intersted into private(explicit) implementations because public ones are already handled before
+						if (implementationGetter.IsPublic)
+							continue;
+						yield return new PropertyValueReference (ctx, prop, co, type, getter, null);
+					}
 				}
 			}
 		}
