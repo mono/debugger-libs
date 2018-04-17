@@ -199,4 +199,17 @@ namespace Mono.Debugging.Client
 	}
 	
 	public delegate bool BreakEventHitHandler (string actionId, BreakEvent be);
+
+	public class Logpoint : Breakpoint
+	{
+		public Logpoint (string fileName, int line, int column) : base (fileName, line, column)
+		{
+			HitAction = HitAction.PrintExpression;
+			TraceExpression = $"Logpoint: {fileName} ({line}:{column})";
+		}
+
+		internal Logpoint (XmlElement elem, string baseDir) : base (elem, baseDir)
+		{
+		}
+	}
 }

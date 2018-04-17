@@ -358,6 +358,23 @@ namespace Mono.Debugging.Client
 			return breakpoints.Contains (item);
 		}
 
+		public bool ContainsLogpoint (string filename, int line)
+		{
+			try {
+				filename = Path.GetFullPath (filename);
+			} catch {
+				return false;
+			}
+
+			foreach (var lp in breakpoints.OfType<Logpoint> ()) {
+				if (FileNameEquals (lp.FileName, filename) && (lp.OriginalLine == line || lp.Line == line)) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		public void CopyTo (BreakEvent[] array, int arrayIndex)
 		{
 			breakpoints.CopyTo (array, arrayIndex);

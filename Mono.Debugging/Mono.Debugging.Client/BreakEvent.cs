@@ -116,6 +116,8 @@ namespace Mono.Debugging.Client
 				return new Breakpoint (elem, baseDir);
 			if (elem.Name == "Catchpoint")
 				return new Catchpoint (elem, baseDir);
+			if (elem.Name == "Logpoint")
+				return new Logpoint (elem, baseDir);
 
 			return null;
 		}
