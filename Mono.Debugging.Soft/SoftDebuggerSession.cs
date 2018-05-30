@@ -185,7 +185,7 @@ namespace Mono.Debugging.Soft
 				try {
 					if (timeBetweenAttempts > 0)
 						Thread.Sleep (timeBetweenAttempts);
-					ConnectionStarting (startArgs.ConnectionProvider.BeginConnect (dsi, callback), dsi, false, 0);
+					ConnectionStarting (startArgs.ConnectionProvider.BeginConnect (dsi, callback), dsi, false, attemptNumber);
 				} catch (Exception ex2) {
 					OnConnectionError (ex2);
 				}
