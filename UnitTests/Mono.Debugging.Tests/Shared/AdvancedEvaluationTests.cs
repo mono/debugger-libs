@@ -167,6 +167,60 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
+		public void LocalFunctionNoCaptureVariablesTest ()
+		{
+			InitializeTest ();
+			AddBreakpoint ("056bb4b5-1c7a-4e21-bd93-abd7389809d0");
+			StartTest ("LocalFunctionNoCaptureVariablesTest");
+			CheckPosition ("056bb4b5-1c7a-4e21-bd93-abd7389809d0");
+
+			var val = Eval ("a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("17", val.Value);
+
+			var frame = Session.ActiveThread.Backtrace.GetFrame (0);
+			var locals = frame.GetAllLocals ();
+			Assert.AreEqual (3, locals.Length);
+
+			val = locals.Single (l => l.Name == "a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("17", val.Value);
+
+			val = locals.Single (l => l.Name == "b");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("23", val.Value);
+
+			val = locals.Single (l => l.Name == "c");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("31", val.Value);
+		}
+
+		[Test]
+		public void LocalFunctionCaptureDelegateVariablesTest ()
+		{
+			InitializeTest ();
+			AddBreakpoint ("94100486-d7c4-4239-9d87-ad61287117d5");
+			StartTest ("LocalFunctionCaptureDelegateVariablesTest");
+			CheckPosition ("94100486-d7c4-4239-9d87-ad61287117d5");
+
+			var val = Eval ("a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("5", val.Value);
+
+			var frame = Session.ActiveThread.Backtrace.GetFrame (0);
+			var locals = frame.GetAllLocals ();
+			Assert.AreEqual (2, locals.Length);
+
+			val = locals.Single (l => l.Name == "a");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("5", val.Value);
+
+			val = locals.Single (l => l.Name == "i");
+			Assert.AreEqual ("int", val.TypeName);
+			Assert.AreEqual ("7", val.Value);
+		}
+
+		[Test]
 		public void YieldMethodTest ()
 		{
 			InitializeTest ();
