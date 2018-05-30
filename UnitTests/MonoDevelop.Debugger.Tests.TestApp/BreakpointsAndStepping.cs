@@ -113,7 +113,9 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		public void TestOperators ()
 		{
 			var testClass = new TestClass ();
+#pragma warning disable 1718 // comparison to same variable
 			var output = testClass == testClass;/*6049ea77-e04a-43ba-907a-5d198727c448*/
+#pragma warning restore 1718 // comparison to same variable
 			var a = output;/*49737db6-e62b-4c5e-8758-1a9d655be11a*/
 		}
 
@@ -202,6 +204,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			button.MakeClick ();/*67ae4cce-22b3-49d8-8221-7e5b26a5e79b*/
 		}
 
+#pragma warning disable 1998 // async without await
 		public void BreakpointInsideOneLineDelegateAsync ()
 		{
 			var button = new Button ();
@@ -209,6 +212,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			button.Clicked += async (sender, e) => button.SetTitle (String.Format ("clicked {0} times", numClicks++));/*b6a65e9e-5db2-4850-969a-b3747b2459af*/
 			button.MakeClick ();
 		}
+#pragma warning restore 1998 // async without await
 
 		public class Button
 		{
@@ -244,7 +248,9 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			var obj = new EmptyClassWithoutConstructor ();/*84fc04b2-ede2-4d8b-acc4-28441e1c5f55*/
 		}
 
+#pragma warning disable 1998 // async without await
 		static async Task<string> AsyncBug13401 ()
+#pragma warning restore 1998
 		{
 			return "Hello from Bar";
 		}
@@ -498,8 +504,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 		}
 
+#pragma warning disable 660, 661 // implements == but not Equals/GetHashCode
 		public class TestClass
+#pragma warning restore 660, 661
 		{
+
 			private string oneLineProperty = "";
 
 			public string OneLineProperty {
