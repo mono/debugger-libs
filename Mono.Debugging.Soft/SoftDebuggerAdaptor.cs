@@ -1070,11 +1070,23 @@ namespace Mono.Debugging.Soft
 				return GetHoistedLocalVariables (cx, vthis).Union (GetLocalVariables (cx));
 			}
 			if (IsLocalFunction (cx)) {
-				//We are assuming here that last parameter is LocalFunction hoisted struct
-				var par = cx.Frame.Method.GetLocals ().Where (p => p.IsArg).Last ();
-				return GetHoistedLocalVariables (cx, new VariableValueReference (cx, par.Name, par)).Union (GetLocalVariables (cx));
+				VariableValueReference vthis = GetClosureReference (cx);
+				// if there's no closure reference then it didn't capture anything
+				if (vthis != null) {
+					return GetHoistedLocalVariables (cx, vthis).Union (GetLocalVariables (cx));
+				}
 			}
 			return GetLocalVariables (cx);
+		}
+
+		static VariableValueReference GetClosureReference (SoftEvaluationContext cx)
+		{
+			foreach (var local in cx.Frame.Method.GetLocals ()) {
+				if (IsClosureReferenceLocal (local)) {
+					return new VariableValueReference (cx, local.Name, local);
+				}
+			}
+			return null;
 		}
 		
 		IEnumerable<ValueReference> GetLocalVariables (SoftEvaluationContext cx)
@@ -1518,9 +1530,7 @@ namespace Mono.Debugging.Soft
 			LocalVariable[] locals;
 
 			try {
-				locals = soft.Frame.Method.GetLocals ().Where (x => x.IsArg).ToArray ();
-				if (IsLocalFunction (ctx))//We are assuming here that last parameter is LocalFunction hoisted struct
-					locals = locals.Take (locals.Length - 1).ToArray ();//So exclude it from Parameters list
+				locals = soft.Frame.Method.GetLocals ().Where (x => x.IsArg && !IsClosureReferenceLocal (x)).ToArray ();
 			} catch (AbsentInformationException) {
 				yield break;
 			}

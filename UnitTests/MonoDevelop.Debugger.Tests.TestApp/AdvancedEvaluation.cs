@@ -52,15 +52,42 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 		}
 
-		public void LocalFunctionVariablesTest ()
+		public static void LocalFunctionVariablesTest()
 		{
 			var a = 23;
-			int localFunction (int b, string c)
+			localFunction(24, "hi");
+
+			int localFunction(int b, string c)
 			{
 				var d = 25;
 				return a + b + d;/*07a0e6ef-e1d2-4f11-ab67-78e6ae5ea3bb*/
 			}
-			localFunction (24, "hi");
+		}
+
+		public static void LocalFunctionNoCaptureVariablesTest()
+		{
+			localFunction(17, 23, 31);
+
+			int localFunction(int a, int b, int c)
+			{
+				return a + b + c;/*056bb4b5-1c7a-4e21-bd93-abd7389809d0*/
+			}
+		}
+
+		public static void LocalFunctionCaptureDelegateVariablesTest()
+		{
+			var add = LocalFunctionCaptureDelegateVariablesTest_CreateAdder(7);
+			add(5);
+		}
+
+		static Func<int, int> LocalFunctionCaptureDelegateVariablesTest_CreateAdder(int i)
+		{
+			return localFunction;
+
+			int localFunction(int a)
+			{
+				return a + i;/*94100486-d7c4-4239-9d87-ad61287117d5*/
+			}
 		}
 
 		public void YieldMethodTest ()
