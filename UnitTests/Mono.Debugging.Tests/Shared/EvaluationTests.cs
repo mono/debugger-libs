@@ -2825,26 +2825,41 @@ namespace Mono.Debugging.Tests
 
 			val = Eval ("5 is byte?");
 			Assert.AreEqual ("bool", val.TypeName);
-			Assert.AreEqual ((5 is byte?).ToString ().ToLower (), val.Value);
+			#pragma warning disable 184 //expression never of provided type
+			var expected = (5 is byte?).ToString ().ToLower ();
+			#pragma warning restore 184
+			Assert.AreEqual (expected, val.Value);
 
 
 			val = Eval ("((byte)5) is byte?");
 			Assert.AreEqual ("bool", val.TypeName);
-			Assert.AreEqual ((((byte)5) is byte?).ToString ().ToLower (), val.Value);
+			#pragma warning disable 183 //expression always of provided type
+			expected = (((byte)5) is byte?).ToString ().ToLower ();
+			#pragma warning restore 183
+			Assert.AreEqual (expected, val.Value);
 
 
 			val = Eval ("5.0 is double");
 			Assert.AreEqual ("bool", val.TypeName);
-			Assert.AreEqual ((5.0 is double).ToString ().ToLower (), val.Value);
+			#pragma warning disable 183 //expression always of provided type
+			expected = (5.0 is double).ToString ().ToLower ();
+			#pragma warning restore 183
+			Assert.AreEqual (expected, val.Value);
 
 
 			val = Eval ("5.0 is float");
 			Assert.AreEqual ("bool", val.TypeName);
-			Assert.AreEqual ((5.0 is float).ToString ().ToLower (), val.Value);
+			#pragma warning disable 184 //expression never of provided type
+			expected = (5.0 is float).ToString ().ToLower ();
+			#pragma warning restore 184
+			Assert.AreEqual (expected, val.Value);
 
 			val = Eval ("null is object");
 			Assert.AreEqual ("bool", val.TypeName);
-			Assert.AreEqual ((null is object).ToString ().ToLower (), val.Value);
+			#pragma warning disable 184 //expression never of provided type
+			expected = (null is object).ToString ().ToLower ();
+			#pragma warning restore 184
+			Assert.AreEqual (expected, val.Value);
 		}
 
 		[Test]
