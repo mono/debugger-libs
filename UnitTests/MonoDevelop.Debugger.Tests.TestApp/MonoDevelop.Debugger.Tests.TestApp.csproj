@@ -65,7 +65,7 @@
       <HintPath>..\MonoDevelop.Debugger.Tests.NonUserCodeTestLib\bin\Debug\MonoDevelop.Debugger.Tests.NonUserCodeTestLib.dll</HintPath>
     </Reference>
     <Reference Include="System.ValueTuple">
-      <HintPath>$(SolutionDir)\packages\System.ValueTuple.4.3.1\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+      <HintPath>$(SolutionDir)packages\System.ValueTuple.4.3.1\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
