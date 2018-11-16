@@ -2758,11 +2758,11 @@ namespace Mono.Debugging.Soft
 
 			if (assemblyFileName == null)
 				return false;
-			string debugFile = assemblyFileName + ".mdb";
-			if (!LoadDebugFile (assemblyFileName, debugFile, LoadMdbFile)) {
-				debugFile = Path.ChangeExtension (assemblyFileName, ".pdb");
-				if (!LoadDebugFile (assemblyFileName, debugFile, LoadPdbFile)) {
-						return false;
+			string debugFile = Path.ChangeExtension (assemblyFileName, ".pdb");
+			if (!LoadDebugFile (assemblyFileName, debugFile, LoadPdbFile)) {
+				debugFile = assemblyFileName + ".mdb";
+				if (!LoadDebugFile (assemblyFileName, debugFile, LoadMdbFile)) {
+					return false;
 				}
 			}
 			Dictionary<string, List<SourceFileDebugInfo>> fileToSourceFileInfos;
