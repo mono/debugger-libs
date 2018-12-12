@@ -9,7 +9,5 @@ Dependencies
 
 The libraries in this repository have external dependencies, specifically:
 
-* cecil (git://github.com/mono/cecil.git)
-* nrefactory (git://github.com/icsharpcode/NRefactory.git)
-
-Those libraries must be cloned side by side with debugger-libs.
+* cecil (https://www.nuget.org/packages/Mono.Cecil/).
+* nrefactory (git://github.com/icsharpcode/NRefactory.git). Must be cloned side by side with debugger-libs.

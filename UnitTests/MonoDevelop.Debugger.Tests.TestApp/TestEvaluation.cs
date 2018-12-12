@@ -102,7 +102,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 	{
 		int IBar.Prop { get { return 1; } }
 		int IFoo.Prop { get { return 2; } }
-		public int Prop { get { return 3; } }
+		public new int Prop { get { return 3; } }
 
 		int IFoo.this[int index]
 		{
@@ -169,13 +169,13 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 
 	class TestEvaluationChild : TestEvaluation
 	{
-		public int HiddenField = 6;
-		public int HiddenProperty {
+		public new int HiddenField = 6;
+		public new int HiddenProperty {
 			get {
 				return 6;
 			}
 		}
-		public int HiddenMethod ()
+		public new int HiddenMethod ()
 		{
 			return 6;
 		}
@@ -368,7 +368,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			return a + 1;
 		}
 
-		public int TestMethodBase ()
+		public new int TestMethodBase ()
 		{
 			float c = 4;
 			return 1;
@@ -676,7 +676,7 @@ class B: A
 
 	public new int IntField = 2;
 
-	public int TestMethod ()
+	public new int TestMethod ()
 	{
 		float c = 4;
 		return 2;
@@ -806,7 +806,9 @@ struct SimpleStruct
 {
 	public int IntField;
 	public string StringField;
+#pragma warning disable 649 // never assigned
 	public int? NulledIntField;
+#pragma warning restore 649
 
 	public override string ToString ()
 	{
@@ -852,7 +854,9 @@ struct myNint
 	}
 }
 
+#pragma warning disable 660, 661 // implements == but not Equals/GetHashCode
 class BinaryOperatorOverrides
+#pragma warning restore 660, 661 // implements == but not Equals/GetHashCode
 {
 	int value;
 
