@@ -77,38 +77,38 @@ namespace Mono.Debugging.Tests
 
 		// TODO: implement in another part of the class
 		#region Partial Definitions
-
+		/*
 		/// <summary>
 		/// Returns parent directory of target executable
 		/// </summary>
-		//protected string TargetExeDirectory { get { throw new NotImplementedException (); } }
+		protected string TargetExeDirectory { get { throw new NotImplementedException (); } }
 
 		/// <summary>
 		/// Returns parent directory of target project sources
 		/// </summary>
-		//protected string TargetProjectSourceDir { get { throw new NotImplementedException (); } }
+		protected string TargetProjectSourceDir { get { throw new NotImplementedException (); } }
 
 		/// <summary>
 		/// Creates debugger session. The type of session is dependent on <paramref name="engineId"/>
 		/// </summary>
 		/// <param name="test">test name, usually used as entry point method in target exe</param>
 		/// <param name="engineId">the ID of debugger engine</param>
-		//protected DebuggerSession CreateSession (string test, string engineId);
+		protected DebuggerSession CreateSession (string test, string engineId);
 
 		/// <summary>
 		/// Creates start info to run the app
 		/// </summary>
 		/// <param name="test">test name</param>
 		/// <param name="engineId">the ID of debugger engine</param>
-		//protected DebuggerStartInfo CreateStartInfo (string test, string engineId);
+		protected DebuggerStartInfo CreateStartInfo (string test, string engineId);
 
 		/// <summary>
 		/// Reads file from given path
 		/// </summary>
 		/// <param name="sourcePath"></param>
 		/// <returns></returns>
-		//protected ITextFile ReadFile (string sourcePath)
-
+		protected ITextFile ReadFile (string sourcePath)
+		*/
 		#endregion
 
 

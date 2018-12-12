@@ -731,7 +731,7 @@ namespace Mono.Debugging.Soft
 
 		public override bool NullableHasValue (EvaluationContext ctx, object type, object obj)
 		{
-			var hasValue = GetMember (ctx, type, obj, "has_value");
+			var hasValue = GetMember (ctx, type, obj, "hasValue") ?? GetMember (ctx, type, obj, "has_value");
 
 			return (bool) hasValue.ObjectValue;
 		}

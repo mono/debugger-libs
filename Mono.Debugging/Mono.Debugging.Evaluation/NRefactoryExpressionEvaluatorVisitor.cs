@@ -1254,6 +1254,7 @@ namespace Mono.Debugging.Evaluation
 			throw NotSupported ();
 		}
 
+		[Obsolete]
 		public ValueReference VisitEmptyExpression (EmptyExpression emptyExpression)
 		{
 			throw NotSupported ();
