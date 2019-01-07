@@ -754,10 +754,20 @@ namespace Mono.Debugging.Soft
 		{
 			return GetThreadBacktrace (GetThread (threadId));
 		}
-		
+
+		protected override long OnGetElapsedTime (long processId, long threadId)
+		{
+			return GetElapsedTime (GetThread (threadId));
+		}
+
 		Backtrace GetThreadBacktrace (ThreadMirror thread)
 		{
 			return new Backtrace (new SoftDebuggerBacktrace (this, thread));
+		}
+
+		long GetElapsedTime (ThreadMirror thread)
+		{
+			return thread.ElapsedTime ();
 		}
 
 		string GetThreadName (ThreadMirror t)
@@ -1409,9 +1419,10 @@ namespace Mono.Debugging.Soft
 		{
 			Step (StepDepth.Over, StepSize.Line);
 		}
-		
+
 		void Step (StepDepth depth, StepSize size)
 		{
+
 			ThreadPool.QueueUserWorkItem (delegate {
 				try {
 					Adaptor.CancelAsyncOperations (); // This call can block, so it has to run in background thread to avoid keeping the main session lock

@@ -507,7 +507,8 @@ namespace Mono.Debugger.Soft
 			GET_ID = 5,
 			/* Ditto */
 			GET_TID = 6,
-			SET_IP = 7
+			SET_IP = 7,
+			GET_ELAPSED_TIME = 8
 		}
 
 		enum CmdEventRequest {
@@ -2041,7 +2042,9 @@ namespace Mono.Debugger.Soft
 		internal string Thread_GetName (long id) {
 			return SendReceive (CommandSet.THREAD, (int)CmdThread.GET_NAME, new PacketWriter ().WriteId (id)).ReadString ();
 		}
-
+		internal long Thread_GetElapsedTime (long id) {
+			return SendReceive (CommandSet.THREAD, (int)CmdThread.GET_ELAPSED_TIME, new PacketWriter ().WriteId (id)).ReadLong ();
+		}
 		internal void Thread_GetFrameInfo (long id, int start_frame, int length, Action<FrameInfo[]> resultCallaback) {
 			Send (CommandSet.THREAD, (int)CmdThread.GET_FRAME_INFO, new PacketWriter ().WriteId (id).WriteInt (start_frame).WriteInt (length), (res) => {
 				int count = res.ReadInt ();
