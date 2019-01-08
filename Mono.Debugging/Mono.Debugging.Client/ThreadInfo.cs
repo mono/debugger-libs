@@ -80,7 +80,14 @@ namespace Mono.Debugging.Client
 				return backtrace;
 			}
 		}
-		
+
+		public long ElapsedTime {
+			get {
+				long elapsedTime = session.GetElapsedTime (processId, id);
+				return elapsedTime;
+			}
+		}
+
 		public void SetActive ()
 		{
 			session.ActiveThread = this;
