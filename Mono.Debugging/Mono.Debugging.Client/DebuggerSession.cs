@@ -1606,7 +1606,7 @@ namespace Mono.Debugging.Client
 		protected abstract Backtrace OnGetThreadBacktrace (long processId, long threadId);
 
 		/// <summary>
-		/// Called to get the elapsedTime of last step of a thread
+		/// Called to get the elapsedTime of last step of a thread in milliseconds
 		/// </summary>
 		/// <param name='processId'>
 		/// Process identifier.
@@ -1616,10 +1616,11 @@ namespace Mono.Debugging.Client
 		/// </param>
 		/// <remarks>
 		/// This method can only be called when the debuggee is stopped by the debugger
+		/// This method will return -1 if time measurement is not available
 		/// </remarks>
 		protected virtual long OnGetElapsedTime (long processId, long threadId)
 		{
-			return 0;
+			return -1;
 		}
 
 		/// <summary>
