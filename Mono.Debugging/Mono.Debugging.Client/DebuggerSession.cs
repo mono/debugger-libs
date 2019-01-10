@@ -1617,7 +1617,10 @@ namespace Mono.Debugging.Client
 		/// <remarks>
 		/// This method can only be called when the debuggee is stopped by the debugger
 		/// </remarks>
-		protected abstract long OnGetElapsedTime (long processId, long threadId);
+		protected virtual long OnGetElapsedTime (long processId, long threadId)
+		{
+			return 0;
+		}
 
 		/// <summary>
 		/// Called to gets the disassembly of a source code file
