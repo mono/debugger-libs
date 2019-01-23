@@ -2734,7 +2734,7 @@ namespace Mono.Debugging.Soft
 
 	class MethodCall: AsyncOperation
 	{
-		readonly InvokeOptions options = InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded;
+		readonly InvokeOptions options = InvokeOptions.DisableBreakpoints;
 
 		readonly ManualResetEvent shutdownEvent = new ManualResetEvent (false);
 		readonly SoftEvaluationContext ctx;
