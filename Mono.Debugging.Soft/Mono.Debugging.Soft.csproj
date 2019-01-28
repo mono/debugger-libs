@@ -63,10 +63,14 @@
     <Compile Include="FieldReferenceBatch.cs" />
     <Compile Include="PortablePdbData.cs" />
   </ItemGroup>
+  <PropertyGroup>
+    <NuGetVersionRoslyn Condition="$(NuGetVersionRoslyn) == ''">2.10.0</NuGetVersionRoslyn>
+    <NuGetVersionCecil Condition="$(NuGetVersionCecil) == ''">0.10.1</NuGetVersionCecil>
+  </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Mono.Cecil" Version="0.10.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="2.10.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="2.10.0" PrivateAssets="all" />
+    <PackageReference Include="Mono.Cecil" Version="$(NuGetVersionCecil)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

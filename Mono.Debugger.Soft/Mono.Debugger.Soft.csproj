@@ -119,8 +119,11 @@
     <None Include="Makefile.am" />
     <None Include="mono-git-revision" />
   </ItemGroup>
+  <PropertyGroup>
+    <NuGetVersionCecil Condition="$(NuGetVersionCecil) == ''">0.10.1</NuGetVersionCecil>
+  </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Mono.Cecil" Version="0.10.1" PrivateAssets="all" />
+    <PackageReference Include="Mono.Cecil" Version="$(NuGetVersionCecil)" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Core" />
