@@ -297,7 +297,11 @@ namespace Mono.Debugging.Client
 									}
 								}
 								lock (slock) {
-									actionToExecute ();
+									try {
+										actionToExecute ();
+									} catch (Exception ex) {
+										HandleException (ex);
+									}
 								}
 							}
 						});
