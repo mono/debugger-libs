@@ -75,7 +75,8 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="Mono.Posix" />
+    <Reference        Condition=" '$(OS)' != 'Windows_NT' " Include="Mono.Posix" />
+    <PackageReference Condition=" '$(OS)' == 'Windows_NT' " Include="Mono.Posix-4.5" Version="4.5.0" />
   </ItemGroup>
   <Import Project="..\Mono.Debugging.settings" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
