@@ -89,6 +89,19 @@ namespace Mono.Debugging.Soft
 			return ctx.Adapter.IsNull (ctx, value) ? null : value;
 		}
 
+		public override object GetValue (EvaluationContext ctx)
+		{
+			try {
+				value = ((SoftEvaluationContext) ctx).Frame.GetValue (variable);
+
+				return NormalizeValue (ctx, value);
+			} catch (AbsentInformationException ex) {
+				throw new EvaluatorException (ex, "Value not available");
+			} catch (ArgumentException ex) {
+				throw new EvaluatorException (ex.Message);
+			}
+		}
+
 		public override object Value {
 			get {
 				var ctx = (SoftEvaluationContext) Context;
