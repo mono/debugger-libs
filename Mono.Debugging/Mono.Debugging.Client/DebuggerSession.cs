@@ -51,6 +51,7 @@ namespace Mono.Debugging.Client
 		readonly Dictionary<BreakEvent, BreakEventInfo> breakpoints = new Dictionary<BreakEvent, BreakEventInfo> ();
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
 		readonly InternalDebuggerSession frontend;
+		readonly object bslock = new object ();
 		readonly object slock = new object ();
 		readonly EvaluationStatistics evaluationStats = new EvaluationStatistics ();
 		BreakpointStore breakpointStore;
@@ -226,7 +227,7 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public BreakpointStore Breakpoints {
 			get {
-				lock (slock) {
+				lock (bslock) {
 					if (breakpointStore == null) {
 						Breakpoints = new BreakpointStore ();
 						ownedBreakpointStore = true;
@@ -235,7 +236,7 @@ namespace Mono.Debugging.Client
 				}
 			}
 			set {
-				lock (slock) {
+				lock (bslock) {
 					if (breakpointStore != null) {
 						lock (breakpointStore) {
 							foreach (BreakEvent bp in breakpointStore) {
@@ -1158,12 +1159,8 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				if (!HasExited) {
 					IsConnected = true;
-					if (breakpointStore != null) {
-						lock (breakpointStore) {
-							foreach (BreakEvent bp in breakpointStore)
-								AddBreakEvent (bp);
-						}
-					}
+					foreach (BreakEvent bp in Breakpoints)
+						AddBreakEvent (bp);
 				}
 			}
 		}
