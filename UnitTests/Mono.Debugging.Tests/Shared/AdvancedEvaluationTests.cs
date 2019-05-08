@@ -29,46 +29,6 @@ using NUnit.Framework;
 
 namespace Mono.Debugging.Tests
 {
-	namespace Soft
-	{
-		[TestFixture]
-		public class SdbAdvancedEvaluationAllowTargetInvokesTests : AdvancedEvaluationTests
-		{
-			public SdbAdvancedEvaluationAllowTargetInvokesTests () : base ("Mono.Debugger.Soft", true)
-			{
-			}
-		}
-
-		[TestFixture]
-		public class SdbAdvancedEvaluationNoTargetInvokesTests : AdvancedEvaluationTests
-		{
-			public SdbAdvancedEvaluationNoTargetInvokesTests () : base ("Mono.Debugger.Soft", false)
-			{
-			}
-		}
-	}
-
-	namespace Win32
-	{
-		[TestFixture]
-		[Platform(Include = "Win")]
-		public class CorAdvancedEvaluationAllowTargetInvokesTests : AdvancedEvaluationTests
-		{
-			public CorAdvancedEvaluationAllowTargetInvokesTests () : base ("MonoDevelop.Debugger.Win32", true)
-			{
-			}
-		}
-
-		[TestFixture]
-		[Platform(Include = "Win")]
-		public class CorAdvancedEvaluationNoTargetInvokesTests : AdvancedEvaluationTests
-		{
-			public CorAdvancedEvaluationNoTargetInvokesTests () : base ("MonoDevelop.Debugger.Win32", false)
-			{
-			}
-		}
-	}
-
 	[TestFixture]
 	public abstract class AdvancedEvaluationTests : DebugTests
 	{

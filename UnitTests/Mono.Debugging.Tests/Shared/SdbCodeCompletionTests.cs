@@ -1,10 +1,10 @@
-﻿//
-// CodeCompletionTests.cs
+//
+// SdbCodeCompletionTests.cs
 //
 // Author:
-//       David Karlaš <david.karlas@microsoft.com>
+//       Jeffrey Stedfast <jestedfa@microsoft.com>
 //
-// Copyright (c) 2017 Microsoft Corp.
+// Copyright (c) 2019 
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,28 +26,13 @@
 
 using NUnit.Framework;
 
-namespace Mono.Debugging.Tests
+namespace Mono.Debugging.Tests.Soft
 {
 	[TestFixture]
-	public abstract class CodeCompletionTests : DebugTests
+	public class SdbCodeCompletionTests : CodeCompletionTests
 	{
-		public CodeCompletionTests (string engineId) : base (engineId)
+		public SdbCodeCompletionTests () : base ("Mono.Debugger.Soft")
 		{
-		}
-
-		[TestFixtureSetUp]
-		public override void SetUp ()
-		{
-			base.SetUp ();
-
-			Start ("TestEvaluation");
-		}
-
-		[Test]
-		public void SimpleVariablesList ()
-		{
-			var completionData = Session.ActiveThread.Backtrace.GetFrame (0).GetExpressionCompletionData ("");
-			Assert.Less (0, completionData.Items.Count);
 		}
 	}
 }

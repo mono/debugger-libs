@@ -1,10 +1,10 @@
-﻿//
-// CodeCompletionTests.cs
+//
+// CorAdvancedEvaluationTests.cs
 //
 // Author:
-//       David Karlaš <david.karlas@microsoft.com>
+//       Jeffrey Stedfast <jestedfa@microsoft.com>
 //
-// Copyright (c) 2017 Microsoft Corp.
+// Copyright (c) 2019 
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,28 +26,23 @@
 
 using NUnit.Framework;
 
-namespace Mono.Debugging.Tests
+namespace Mono.Debugging.Tests.Win32
 {
 	[TestFixture]
-	public abstract class CodeCompletionTests : DebugTests
+	[Platform (Include = "Win")]
+	public class CorAdvancedEvaluationAllowTargetInvokesTests : AdvancedEvaluationTests
 	{
-		public CodeCompletionTests (string engineId) : base (engineId)
+		public CorAdvancedEvaluationAllowTargetInvokesTests () : base ("MonoDevelop.Debugger.Win32", true)
 		{
 		}
+	}
 
-		[TestFixtureSetUp]
-		public override void SetUp ()
+	[TestFixture]
+	[Platform (Include = "Win")]
+	public class CorAdvancedEvaluationNoTargetInvokesTests : AdvancedEvaluationTests
+	{
+		public CorAdvancedEvaluationNoTargetInvokesTests () : base ("MonoDevelop.Debugger.Win32", false)
 		{
-			base.SetUp ();
-
-			Start ("TestEvaluation");
-		}
-
-		[Test]
-		public void SimpleVariablesList ()
-		{
-			var completionData = Session.ActiveThread.Backtrace.GetFrame (0).GetExpressionCompletionData ("");
-			Assert.Less (0, completionData.Items.Count);
 		}
 	}
 }
