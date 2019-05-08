@@ -1,10 +1,10 @@
 //
-// MyClass.cs
+// SdbBreakpointsAndSteppingTests.cs
 //
 // Author:
 //       David Karlaš <david.karlas@xamarin.com>
 //
-// Copyright (c) 2015 Xamarin, Inc (http://www.xamarin.com)
+// Copyright (c) 2014 Xamarin, Inc (http://www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,29 +24,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
-using System.Threading.Tasks;
+using NUnit.Framework;
 
-namespace MonoDevelop.Debugger.Tests.NonUserCodeTestLib
+namespace Mono.Debugging.Tests.Soft
 {
-	public class NonUserCodeClass
+	[TestFixture]
+	public class SdbBreakpointsAndSteppingTests: BreakpointsAndSteppingTests
 	{
-		// Trick with NonUserCode is that we are referencing output.dll instead of project
-		// in MonoDevelop.Debugger.Tests.TestApp.
-
-		//We must delay exception so stacktrace is not getting back to user code(in TestApp)
-		public static void ThrowDelayedHandledException ()
+		public SdbBreakpointsAndSteppingTests () : base ("Mono.Debugger.Soft")
 		{
-			Task.Delay (100).ContinueWith ((obj) => {
-				try {
-					throw new Exception ("3913936e-3f89-4f07-a863-7275aaaa5fc9");
-				} catch {
-				}
-			});
-		}
-
-		public static void NonUserMethod()
-		{
-			new NonUserCodeClass();/*ce16b8fd-dd76-440e-886a-8278820ce908*/
 		}
 	}
 }

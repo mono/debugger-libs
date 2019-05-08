@@ -1,4 +1,4 @@
-﻿//
+//
 // BreakpointsAndSteppingTests.cs
 //
 // Author:
@@ -51,6 +51,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void OneLineProperty ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			AddBreakpoint ("8e7787ed-699f-4512-b52a-5a0629a0b9eb");
 			StartTest ("OneLineProperty");
@@ -68,6 +70,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void StepOverPropertiesAndOperatorsSetting ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			//This is default but lets set again for code readability
 			Session.Options.StepOverPropertiesAndOperators = false;
@@ -105,6 +109,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void StaticConstructorStepping ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			AddBreakpoint ("6c42f31b-ca4f-4963-bca1-7d7c163087f1");
 			StartTest ("StaticConstructorStepping");
@@ -115,6 +121,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void SteppingInsidePropertyWhenStepInPropertyDisabled ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			Session.Options.StepOverPropertiesAndOperators = true;
 			AddBreakpoint ("e0082b9a-26d7-4279-8749-31cd13866abf");
@@ -150,6 +158,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void SimpleConstrutor ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			AddBreakpoint ("d62ff7ab-02fa-4205-a432-b4569709eab6");
 			StartTest ("SimpleConstrutor");
@@ -168,6 +178,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void NoConstructor ()
 		{
+			IgnoreVsDebugger ("ProjectAssembliesOnly is not yet implemented for the VsCode debugger");
+
 			InitializeTest ();
 			Session.Options.ProjectAssembliesOnly = true;
 			AddBreakpoint ("84fc04b2-ede2-4d8b-acc4-28441e1c5f55");
@@ -179,6 +191,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void IfPropertyStepping ()
 		{
+			IgnoreVsDebugger ("StepOverPropertiesAndOperators is not yet implemented for the VsCode debugger");
+
 			InitializeTest ();
 			Session.Options.StepOverPropertiesAndOperators = true;
 			AddBreakpoint ("0c64d51c-40b3-4d20-b7e3-4e3e641ec52a");
@@ -578,6 +592,7 @@ namespace Mono.Debugging.Tests
 		public void ForeachEnumerable ()
 		{
 			IgnoreSoftDebugger ("Sdb has some problems when stepping into yeild methods. Have to investigate");
+			IgnoreVsDebugger ("VsCode has some problems when stepping into yeild methods. Have to investigate");
 
 			InitializeTest ();
 			AddBreakpoint ("b73bec88-2c43-4157-8574-ad517730bc74");
@@ -607,6 +622,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void SetBreakpointOnColumn ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger due to the ForeachEnumerable test. Need to investigate");
+
 			InitializeTest ();
 			AddBreakpoint ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "testClass.Iter_1");
 			AddBreakpoint ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
@@ -625,6 +642,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void RunToCursorTest ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger due to the ForeachEnumerable test. Need to investigate");
+
 			InitializeTest ();
 			AddBreakpoint ("b73bec88-2c43-4157-8574-ad517730bc74");
 			StartTest ("ForeachEnumerable");
@@ -639,6 +658,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void RunToCursorTest2 ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			AddBreakpoint ("f4e3a214-229e-44dd-9da2-db82ddfbec11", 1);
 			StartTest ("SimpleMethod");
@@ -653,6 +674,7 @@ namespace Mono.Debugging.Tests
 		public void PListSchemeTest ()
 		{
 			IgnoreSoftDebugger ("Sdb is reapeating StepIn in StaticConstructor instead of StepOut. Resulting in step stopping at unexpected location.");
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
 
 			InitializeTest ();
 			AddBreakpoint ("41eb3a30-3b19-4ea5-a7dc-e4c76871f391");
@@ -817,6 +839,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void SetNextStatementTest ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			AddBreakpoint ("eef5bea2-aaa6-4718-b26f-b35be6a6a13e");
 			StartTest ("ForLoop10");
@@ -829,6 +853,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void SetNextStatementTest2 ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			AddBreakpoint ("eef5bea2-aaa6-4718-b26f-b35be6a6a13e");
 			StartTest ("ForLoop10");
@@ -840,6 +866,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void SetNextStatementTest3 ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			AddBreakpoint ("f4e3a214-229e-44dd-9da2-db82ddfbec11", 1);
 			StartTest ("SimpleMethod");
@@ -966,6 +994,8 @@ namespace Mono.Debugging.Tests
 			ObjectValue val;
 			Breakpoint bp;
 
+			IgnoreVsDebugger ("Not yet implemented for the VsCode debugger");
+
 			InitializeTest ();
 			AddBreakpoint ("3e2e4759-f6d9-4839-98e6-4fa96b227458");
 			bp = AddBreakpoint ("eef5bea2-aaa6-4718-b26f-b35be6a6a13e");
@@ -1086,6 +1116,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void OutputAndDebugWriter ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			//Interesting fact... Debug.Write(""); produces log entry
 			//but Console.Write(""); does not
 
@@ -1225,6 +1257,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void StopOnBreakpointsEvenIfInNonUserCode ()
 		{
+			IgnoreVsDebugger ("This hangs the VsCode debugger. Need to investigate");
+
 			InitializeTest ();
 			Session.Options.ProjectAssembliesOnly = true;
 			var file = ReadFile (Path.Combine (Path.GetDirectoryName (TargetProjectSourceDir), "MonoDevelop.Debugger.Tests.NonUserCodeTestLib", "NonUserCodeClass.cs"));

@@ -1,10 +1,10 @@
 //
-// MyClass.cs
+// CorEvaluationTests.cs
 //
 // Author:
-//       David Karlaš <david.karlas@xamarin.com>
+//       Therzok <teromario@yahoo.com>
 //
-// Copyright (c) 2015 Xamarin, Inc (http://www.xamarin.com)
+// Copyright (c) 2013 Xamarin Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,31 +23,27 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using System;
-using System.Threading.Tasks;
 
-namespace MonoDevelop.Debugger.Tests.NonUserCodeTestLib
+using NUnit.Framework;
+
+namespace Mono.Debugging.Tests.Win32
 {
-	public class NonUserCodeClass
+	[TestFixture]
+	[Platform (Include = "Win")]
+	public class CorEvaluationAllowTargetInvokesTests: EvaluationTests
 	{
-		// Trick with NonUserCode is that we are referencing output.dll instead of project
-		// in MonoDevelop.Debugger.Tests.TestApp.
-
-		//We must delay exception so stacktrace is not getting back to user code(in TestApp)
-		public static void ThrowDelayedHandledException ()
+		public CorEvaluationAllowTargetInvokesTests (): base ("MonoDevelop.Debugger.Win32", true)
 		{
-			Task.Delay (100).ContinueWith ((obj) => {
-				try {
-					throw new Exception ("3913936e-3f89-4f07-a863-7275aaaa5fc9");
-				} catch {
-				}
-			});
 		}
+	}
 
-		public static void NonUserMethod()
+	[TestFixture]
+	[Platform (Include = "Win")]
+	[Ignore ("Disabled for now")]
+	public class CorEvaluationNoTargetInvokesTests: EvaluationTests
+	{
+		public CorEvaluationNoTargetInvokesTests (): base ("MonoDevelop.Debugger.Win32", false)
 		{
-			new NonUserCodeClass();/*ce16b8fd-dd76-440e-886a-8278820ce908*/
 		}
 	}
 }
-

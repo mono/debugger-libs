@@ -1,4 +1,4 @@
-﻿//
+//
 // AdvancedEvaluationTests.cs
 //
 // Author:
