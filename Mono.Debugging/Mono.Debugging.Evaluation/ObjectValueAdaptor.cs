@@ -255,7 +255,7 @@ namespace Mono.Debugging.Evaluation
 			return i;
 		}
 		
-		public virtual string GetShortTypeName (string typeName)
+		public static string GetCSharpTypeName (string typeName)
 		{
 			int star = typeName.IndexOf ('*');
 			string name, ptr, csharp;
@@ -273,7 +273,12 @@ namespace Mono.Debugging.Evaluation
 
 			return typeName;
 		}
-		
+
+		public virtual string GetShortTypeName (string typeName)
+		{
+			return GetCSharpTypeName (typeName);
+		}
+
 		public virtual void OnBusyStateChanged (BusyStateEventArgs e)
 		{
 			EventHandler<BusyStateEventArgs> evnt = BusyStateChanged;

@@ -41,7 +41,7 @@ namespace Mono.Debugging.Tests
 	public abstract partial class DebugTests
 	{
 		protected readonly ManualResetEvent targetStoppedEvent = new ManualResetEvent (false);
-		readonly string EngineId;
+		public readonly string EngineId;
 		string TestName = "";
 		ITextFile SourceFile;
 
@@ -58,21 +58,33 @@ namespace Mono.Debugging.Tests
 			EngineId = engineId;
 		}
 
+		public bool IsCorDebugger {
+			get { return EngineId == "MonoDevelop.Debugger.Win32"; }
+		}
+
 		public void IgnoreCorDebugger (string message = "")
 		{
-			if (EngineId == "MonoDevelop.Debugger.Win32")
+			if (IsCorDebugger)
 				Assert.Ignore (message);
+		}
+
+		public bool IsSoftDebugger {
+			get { return Session is SoftDebuggerSession; }
 		}
 
 		public void IgnoreSoftDebugger (string message = "")
 		{
-			if (EngineId == "MonoDevelop.Debugger.Soft")
+			if (IsSoftDebugger)
 				Assert.Ignore (message);
+		}
+
+		public bool IsVsDebugger {
+			get { return EngineId == "NetCoreDebugger"; }
 		}
 
 		public void IgnoreVsDebugger (string message = "")
 		{
-			if (EngineId == "NetCoreDebugger")
+			if (IsVsDebugger)
 				Assert.Ignore (message);
 		}
 

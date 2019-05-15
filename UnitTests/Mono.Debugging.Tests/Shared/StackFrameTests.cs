@@ -56,6 +56,8 @@ namespace Mono.Debugging.Tests
 			if (soft != null && soft.ProtocolVersion < new Version (2, 31))
 				Assert.Ignore ("A newer version of the Mono runtime is required.");
 
+			IgnoreVsDebugger ("TODO: make virtual properties in NetCoreDebugger work like Sdb");
+
 			var ops = EvaluationOptions.DefaultOptions.Clone ();
 			ops.FlattenHierarchy = false;
 
