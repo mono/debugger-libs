@@ -1,4 +1,4 @@
-﻿//
+//
 // TestEvaluation.cs
 // 
 // Author:

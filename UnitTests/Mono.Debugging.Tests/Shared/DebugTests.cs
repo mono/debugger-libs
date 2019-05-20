@@ -40,11 +40,8 @@ namespace Mono.Debugging.Tests
 	[TestFixture]
 	public abstract partial class DebugTests
 	{
-		const string TestAppExeName = "MonoDevelop.Debugger.Tests.TestApp.exe";
-		const string TestAppProjectDirName = "MonoDevelop.Debugger.Tests.TestApp";
-
 		protected readonly ManualResetEvent targetStoppedEvent = new ManualResetEvent (false);
-		readonly string EngineId;
+		public readonly string EngineId;
 		string TestName = "";
 		ITextFile SourceFile;
 
@@ -61,18 +58,34 @@ namespace Mono.Debugging.Tests
 			EngineId = engineId;
 		}
 
-		public virtual void IgnoreCorDebugger (string message = "")
-		{
-			if (!(Session is SoftDebuggerSession)) {
-				Assert.Ignore (message);
-			}
+		public bool IsCorDebugger {
+			get { return EngineId == "MonoDevelop.Debugger.Win32"; }
 		}
 
-		public virtual void IgnoreSoftDebugger (string message = "")
+		public void IgnoreCorDebugger (string message = "")
 		{
-			if (Session is SoftDebuggerSession) {
+			if (IsCorDebugger)
 				Assert.Ignore (message);
-			}
+		}
+
+		public bool IsSoftDebugger {
+			get { return Session is SoftDebuggerSession; }
+		}
+
+		public void IgnoreSoftDebugger (string message = "")
+		{
+			if (IsSoftDebugger)
+				Assert.Ignore (message);
+		}
+
+		public bool IsVsDebugger {
+			get { return EngineId == "NetCoreDebugger"; }
+		}
+
+		public void IgnoreVsDebugger (string message = "")
+		{
+			if (IsVsDebugger)
+				Assert.Ignore (message);
 		}
 
 		// TODO: implement in another part of the class
@@ -118,8 +131,7 @@ namespace Mono.Debugging.Tests
 			SetUpPartial ();
 		}
 
-		partial void SetUpPartial();
-
+		partial void SetUpPartial ();
 
 		[TestFixtureTearDown]
 		public virtual void TearDown ()
@@ -134,11 +146,8 @@ namespace Mono.Debugging.Tests
 
 		partial void TearDownPartial ();
 
-		protected virtual string TargetExePath
-		{
-			get{
-				return Path.Combine (TargetExeDirectory, TestAppExeName);
-			}
+		protected virtual string TargetExePath {
+			get { return Path.Combine (TargetExeDirectory, TestAppExeName); }
 		}
 
 		protected virtual void Start (string test)
@@ -154,13 +163,13 @@ namespace Mono.Debugging.Tests
 
 				soft.UserAssemblyNames = new List<AssemblyName> {assemblyName};
 			}
+
 			var ops = new DebuggerSessionOptions {
 				ProjectAssembliesOnly = true,
 				EvaluationOptions = EvaluationOptions.DefaultOptions
 			};
 			ops.EvaluationOptions.AllowTargetInvoke = AllowTargetInvokes;
 			ops.EvaluationOptions.EvaluationTimeout = 100000;
-
 
 			var sourcePath = Path.Combine (TargetProjectSourceDir, test + ".cs");
 			SourceFile = ReadFile(sourcePath);
@@ -220,9 +229,9 @@ namespace Mono.Debugging.Tests
 			default:
 				throw new Exception ("Timeout while waiting for initial breakpoint");
 			}
-			if (Session is SoftDebuggerSession) {
+
+			if (Session is SoftDebuggerSession)
 				Console.WriteLine ("SDB protocol version:" + ((SoftDebuggerSession)Session).ProtocolVersion);
-			}
 		}
 
 		void GetLineAndColumn (string breakpointMarker, int offset, string statement, out int line, out int col, ITextFile file)
@@ -230,6 +239,7 @@ namespace Mono.Debugging.Tests
 			int i = file.Text.IndexOf ("/*" + breakpointMarker + "*/", StringComparison.Ordinal);
 			if (i == -1)
 				Assert.Fail ("Break marker not found: " + breakpointMarker + " in " + file.Name);
+
 			file.GetLineColumnFromPosition (i, out line, out col);
 			line += offset;
 			if (statement != null) {
@@ -286,9 +296,8 @@ namespace Mono.Debugging.Tests
 
 		public void WaitStop (int miliseconds)
 		{
-			if (!targetStoppedEvent.WaitOne (miliseconds)) {
+			if (!targetStoppedEvent.WaitOne (miliseconds))
 				Assert.Fail ("WaitStop failure: Target stop timeout");
-			}
 		}
 
 		public bool CheckPosition (string guid, int offset = 0, string statement = null, bool silent = false, ITextFile file = null)
@@ -299,6 +308,7 @@ namespace Mono.Debugging.Tests
 					Assert.Fail ("CheckPosition failure: Target stop timeout");
 				return false;
 			}
+
 			if (lastStoppedPosition.FileName == file.Name) {
 				int i = file.Text.IndexOf ("/*" + guid + "*/", StringComparison.Ordinal);
 				if (i == -1) {
@@ -306,6 +316,7 @@ namespace Mono.Debugging.Tests
 						Assert.Fail ("CheckPosition failure: Guid marker not found:" + guid + " in file:" + file.Name);
 					return false;
 				}
+
 				int line, col;
 				file.GetLineColumnFromPosition (i, out line, out col);
 				if ((line + offset) != lastStoppedPosition.Line) {
@@ -313,6 +324,7 @@ namespace Mono.Debugging.Tests
 						Assert.Fail ("CheckPosition failure: Wrong line Expected:" + (line + offset) + " Actual:" + lastStoppedPosition.Line + " in file:" + file.Name);
 					return false;
 				}
+
 				if (!string.IsNullOrEmpty (statement)) {
 					int position = file.GetPositionFromLineColumn (lastStoppedPosition.Line, lastStoppedPosition.Column);
 					string actualStatement = file.GetText (position, position + statement.Length);
@@ -327,6 +339,7 @@ namespace Mono.Debugging.Tests
 					Assert.Fail ("CheckPosition failure: Wrong file Excpected:" + file.Name + " Actual:" + lastStoppedPosition.FileName);
 				return false;
 			}
+
 			return true;
 		}
 
@@ -380,9 +393,9 @@ namespace Mono.Debugging.Tests
 
 		public void StartTest (string methodName)
 		{
-			if (!targetStoppedEvent.WaitOne (3000)) {
+			if (!targetStoppedEvent.WaitOne (3000))
 				Assert.Fail ("StartTest failure: Target stop timeout");
-			}
+
 			Assert.AreEqual ('"' + methodName + '"', Eval ("NextMethodToCall = \"" + methodName + "\";").Value);
 			targetStoppedEvent.Reset ();
 			Session.Continue ();

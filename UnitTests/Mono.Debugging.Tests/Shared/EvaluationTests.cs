@@ -173,11 +173,15 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("ClassWithCompilerGeneratedNestedClass", val.Value);
 			Assert.AreEqual ("<type>", val.TypeName);
 			Assert.AreEqual (ObjectValueFlags.Type, val.Flags & ObjectValueFlags.OriginMask);
-			var children = val.GetAllChildrenSync ();
-			Assert.AreEqual (2, children.Length);
-			Assert.AreEqual ("ClassWithCompilerGeneratedNestedClass.NestedClass", children [0].Value);
-			Assert.AreEqual ("<type>", children [0].TypeName);
-			Assert.AreEqual (ObjectValueFlags.Type, children [0].Flags & ObjectValueFlags.OriginMask);
+
+			if (!IsVsDebugger) {
+				// Note: not currently supported by the NetCoreDebugger
+				var children = val.GetAllChildrenSync ();
+				Assert.AreEqual (2, children.Length);
+				Assert.AreEqual ("ClassWithCompilerGeneratedNestedClass.NestedClass", children [0].Value);
+				Assert.AreEqual ("<type>", children [0].TypeName);
+				Assert.AreEqual (ObjectValueFlags.Type, children [0].Flags & ObjectValueFlags.OriginMask);
+			}
 		}
 
 		[Test]
@@ -361,7 +365,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.Value == "{System.MonoType}" || val.Value == "{System.RuntimeType}");
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.Value == "{System.MonoType}" || val.Value == "{System.RuntimeType}");
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -388,7 +394,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -400,7 +408,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -412,7 +422,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -424,7 +436,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -436,7 +450,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -448,7 +464,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -460,7 +478,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -472,7 +492,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -484,7 +506,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -496,7 +520,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -510,7 +536,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -522,7 +550,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -535,7 +565,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -547,7 +579,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -569,7 +603,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -580,7 +616,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -592,7 +630,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -604,55 +644,68 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
 			Assert.AreEqual ("490", val.Value);
 			Assert.AreEqual ("int", val.TypeName);
 
-			val = Eval ("stringList.Sum(x => x.Length)");
-			if (!AllowTargetInvokes) {
-				var options = Session.Options.EvaluationOptions.Clone ();
-				options.AllowTargetInvoke = true;
+			// Note: NetCoreDebugger does not support LINQ extensions
+			if (!IsVsDebugger) {
+				val = Eval ("stringList.Sum(x => x.Length)");
+				if (!AllowTargetInvokes) {
+					var options = Session.Options.EvaluationOptions.Clone ();
+					options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
-				val.Refresh (options);
-				val = val.Sync ();
+					if (!IsVsDebugger)
+						Assert.IsTrue (val.IsImplicitNotSupported);
+
+					val.Refresh (options);
+					val = val.Sync ();
+				}
+				Assert.AreEqual ("9", val.Value);
+				Assert.AreEqual ("int", val.TypeName);
+
+				val = Eval ("stringList.Any (x => x.Length == 3)");
+				if (!AllowTargetInvokes) {
+					var options = Session.Options.EvaluationOptions.Clone ();
+					options.AllowTargetInvoke = true;
+
+					if (!IsVsDebugger)
+						Assert.IsTrue (val.IsImplicitNotSupported);
+
+					val.Refresh (options);
+					val = val.Sync ();
+				}
+				Assert.AreEqual ("true", val.Value);
+				Assert.AreEqual ("bool", val.TypeName);
+
+				val = Eval ("stringList.Last(x => x.CompareTo(\"c\") < 0)");
+				if (!AllowTargetInvokes) {
+					var options = Session.Options.EvaluationOptions.Clone ();
+					options.AllowTargetInvoke = true;
+
+					if (!IsVsDebugger)
+						Assert.IsTrue (val.IsImplicitNotSupported);
+
+					val.Refresh (options);
+					val = val.Sync ();
+				}
+				Assert.AreEqual ("\"bbb\"", val.Value);
+				Assert.AreEqual ("string", val.TypeName);
 			}
-			Assert.AreEqual ("9", val.Value);
-			Assert.AreEqual ("int", val.TypeName);
-
-			val = Eval ("stringList.Any (x => x.Length == 3)");
-			if (!AllowTargetInvokes) {
-				var options = Session.Options.EvaluationOptions.Clone ();
-				options.AllowTargetInvoke = true;
-
-				Assert.IsTrue (val.IsImplicitNotSupported);
-				val.Refresh (options);
-				val = val.Sync ();
-			}
-			Assert.AreEqual ("true", val.Value);
-			Assert.AreEqual ("bool", val.TypeName);
-
-			val = Eval ("stringList.Last(x => x.CompareTo(\"c\") < 0)");
-			if (!AllowTargetInvokes) {
-				var options = Session.Options.EvaluationOptions.Clone ();
-				options.AllowTargetInvoke = true;
-
-				Assert.IsTrue (val.IsImplicitNotSupported);
-				val.Refresh (options);
-				val = val.Sync ();
-			}
-			Assert.AreEqual ("\"bbb\"", val.Value);
-			Assert.AreEqual ("string", val.TypeName);
 
 			val = Eval ("this.InvokeFuncInt (() => 100 + 500 * 2)");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -664,19 +717,24 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
-			// Error occurs beacause `this' type is non public
-			Assert.IsTrue (val.IsError);
+			// Error occurs because `this' type is non public
+			if (!IsVsDebugger)
+				Assert.IsTrue (val.IsError);
 
 			val = Eval ("this.InvokeFuncString (() => \"test\")");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -710,7 +768,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -722,7 +782,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -734,7 +796,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -746,43 +810,53 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
 			Assert.AreEqual ("6", val.Value);
 			Assert.AreEqual ("int", val.TypeName);
 
-			val = Eval ("InvokeGenericFunc (500, x => x * 10");
+			val = Eval ("InvokeGenericFunc (500, x => x * 10)");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
 			Assert.AreEqual ("5000", val.Value);
 			Assert.AreEqual ("int", val.TypeName);
 
-			val = Eval ("string.Join(\",\", numbers.Where(n=>n.StartsWith(\"t\")).ToArray())");
-			if (!AllowTargetInvokes) {
-				var options = Session.Options.EvaluationOptions.Clone ();
-				options.AllowTargetInvoke = true;
+			if (!IsVsDebugger) {
+				val = Eval ("string.Join(\",\", numbers.Where(n=>n.StartsWith(\"t\")).ToArray())");
+				if (!AllowTargetInvokes) {
+					var options = Session.Options.EvaluationOptions.Clone ();
+					options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
-				val.Refresh (options);
-				val = val.Sync ();
+					if (!IsVsDebugger)
+						Assert.IsTrue (val.IsImplicitNotSupported);
+
+					val.Refresh (options);
+					val = val.Sync ();
+				}
+				Assert.AreEqual ("\"two,three\"", val.Value);
+				Assert.AreEqual ("string", val.TypeName);
 			}
-			Assert.AreEqual ("\"two,three\"", val.Value);
-			Assert.AreEqual ("string", val.TypeName);
 
 			val = Eval ("instList.Find(x => x.n == 5)");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -794,7 +868,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -806,7 +882,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -821,8 +899,7 @@ namespace Mono.Debugging.Tests
 			if (soft != null && soft.ProtocolVersion < new Version (2, 31))
 				Assert.Ignore ("A newer version of the Mono runtime is required.");
 
-			if (Session.GetType ().Name == "CorDebuggerSession")
-				Assert.Ignore ("TODO: Win32 support generic invokes");
+			IgnoreCorDebugger ("TODO: Win32 support generic invokes");
 
 			if (!AllowTargetInvokes)
 				return;
@@ -886,7 +963,10 @@ namespace Mono.Debugging.Tests
 
 			val = Eval ("done.GetParentDefault()");
 			Assert.AreEqual ("(null)", val.Value);
-			Assert.AreEqual ("object", val.TypeName);
+			if (IsVsDebugger)
+				Assert.AreEqual ("string", val.TypeName);
+			else
+				Assert.AreEqual ("object", val.TypeName);
 
 			val = Eval ("new Dictionary<int,string>()");
 			Assert.AreEqual ("Count=0", val.Value.Replace (" ", ""));//Remove spaces is for references source and old mono compatiblity
@@ -917,7 +997,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -929,7 +1011,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -941,7 +1025,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -953,7 +1039,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -962,8 +1050,12 @@ namespace Mono.Debugging.Tests
 
 			IgnoreCorDebugger ("TODO: CorDebugger support explicit interfaces");
 
-			val = Eval ("FooBar[2]");
-			Assert.IsTrue (val.IsUnknown);
+			if (!IsVsDebugger) {
+				// FIXME: figure out when to set the Unknown flag
+				val = Eval ("FooBar[2]");
+				Assert.IsTrue (val.IsUnknown);
+			}
+
 			//We have IFoo and IBar implementation but without typecasting and determening which implementation user wants
 			//we have to return error/Unknown instead of random implementation(FooBar[2] is not compilable anyway)
 			val = Eval ("((IFoo)FooBar)[2]");
@@ -971,7 +1063,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -982,7 +1076,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -993,7 +1089,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1004,7 +1102,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1034,7 +1134,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1047,7 +1149,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1059,7 +1163,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1071,7 +1177,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1082,7 +1190,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1093,7 +1203,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1106,7 +1218,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1116,7 +1230,8 @@ namespace Mono.Debugging.Tests
 			Eval ("var tt = this");
 
 			// FIXME: this errors out when target invokes are disabled
-			if (AllowTargetInvokes) {
+			// FIXME: NetCoreDebugger errors out because 'tt' does not exist in the current context
+			if (AllowTargetInvokes && !IsVsDebugger) {
 				val = Eval ("tt.someString");
 				Assert.AreEqual ("\"hi\"", val.Value);
 				Assert.AreEqual ("string", val.TypeName);
@@ -1138,84 +1253,89 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("{RichClass}", val.Value);
 			Assert.AreEqual ("RichClass", val.TypeName);
 
-			var richChildren = val.GetAllChildrenSync ();
-			Assert.AreEqual (13, richChildren.Length);
-			Assert.AreEqual ("publicInt1", richChildren [0].Name);
-			Assert.AreEqual ("int", richChildren [0].TypeName);
-			Assert.AreEqual ("1", richChildren [0].Value);
-			Assert.AreEqual ("publicInt2", richChildren [1].Name);
-			Assert.AreEqual ("int", richChildren [1].TypeName);
-			Assert.AreEqual ("2", richChildren [1].Value);
-			Assert.AreEqual ("publicInt3", richChildren [2].Name);
-			Assert.AreEqual ("int", richChildren [2].TypeName);
-			Assert.AreEqual ("3", richChildren [2].Value);
-			Assert.AreEqual ("publicPropInt1", richChildren [3].Name);
-			Assert.AreEqual ("int", richChildren [3].TypeName);
-			CheckValue ("1", richChildren [3].Value, soft != null);
-			Assert.AreEqual ("publicPropInt2", richChildren [4].Name);
-			Assert.AreEqual ("int", richChildren [4].TypeName);
-			CheckValue ("2", richChildren [4].Value, soft != null);
-			Assert.AreEqual ("publicPropInt3", richChildren [5].Name);
-			Assert.AreEqual ("int", richChildren [5].TypeName);
-			CheckValue ("3", richChildren [5].Value, soft != null);
-			Assert.AreEqual ("publicPropStringA", richChildren [6].Name);
-			Assert.AreEqual ("string", richChildren [6].TypeName);
-			CheckValue ("\"stringA\"", richChildren [6].Value, soft != null);
-			Assert.AreEqual ("publicPropStringB", richChildren [7].Name);
-			Assert.AreEqual ("string", richChildren [7].TypeName);
-			CheckValue ("\"stringB\"", richChildren [7].Value, soft != null);
-			Assert.AreEqual ("publicPropStringC", richChildren [8].Name);
-			Assert.AreEqual ("string", richChildren [8].TypeName);
-			CheckValue ("\"stringC\"", richChildren [8].Value, soft != null);
-			Assert.AreEqual ("publicStringA", richChildren [9].Name);
-			Assert.AreEqual ("string", richChildren [9].TypeName);
-			Assert.AreEqual ("\"stringA\"", richChildren [9].Value);
-			Assert.AreEqual ("publicStringB", richChildren [10].Name);
-			Assert.AreEqual ("string", richChildren [10].TypeName);
-			Assert.AreEqual ("\"stringB\"", richChildren [10].Value);
-			Assert.AreEqual ("publicStringC", richChildren [11].Name);
-			Assert.AreEqual ("string", richChildren [11].TypeName);
-			Assert.AreEqual ("\"stringC\"", richChildren [11].Value);
-			Assert.AreEqual ("Non-public members", richChildren [12].Name);
+			ObjectValue [] richChildren;
 
-			richChildren = richChildren [12].GetAllChildrenSync ();
-			Assert.AreEqual (12, richChildren.Length);
-			Assert.AreEqual ("privateInt1", richChildren [0].Name);
-			Assert.AreEqual ("int", richChildren [0].TypeName);
-			Assert.AreEqual ("1", richChildren [0].Value);
-			Assert.AreEqual ("privateInt2", richChildren [1].Name);
-			Assert.AreEqual ("int", richChildren [1].TypeName);
-			Assert.AreEqual ("2", richChildren [1].Value);
-			Assert.AreEqual ("privateInt3", richChildren [2].Name);
-			Assert.AreEqual ("int", richChildren [2].TypeName);
-			Assert.AreEqual ("3", richChildren [2].Value);
-			Assert.AreEqual ("privatePropInt1", richChildren [3].Name);
-			Assert.AreEqual ("int", richChildren [3].TypeName);
-			CheckValue ("1", richChildren [3].Value, soft != null);
-			Assert.AreEqual ("privatePropInt2", richChildren [4].Name);
-			Assert.AreEqual ("int", richChildren [4].TypeName);
-			CheckValue ("2", richChildren [4].Value, soft != null);
-			Assert.AreEqual ("privatePropInt3", richChildren [5].Name);
-			Assert.AreEqual ("int", richChildren [5].TypeName);
-			CheckValue ("3", richChildren [5].Value, soft != null);
-			Assert.AreEqual ("privatePropStringA", richChildren [6].Name);
-			Assert.AreEqual ("string", richChildren [6].TypeName);
-			CheckValue ("\"stringA\"", richChildren [6].Value, soft != null);
-			Assert.AreEqual ("privatePropStringB", richChildren [7].Name);
-			Assert.AreEqual ("string", richChildren [7].TypeName);
-			CheckValue ("\"stringB\"", richChildren [7].Value, soft != null);
-			Assert.AreEqual ("privatePropStringC", richChildren [8].Name);
-			Assert.AreEqual ("string", richChildren [8].TypeName);
-			CheckValue ("\"stringC\"", richChildren [8].Value, soft != null);
-			Assert.AreEqual ("privateStringA", richChildren [9].Name);
-			Assert.AreEqual ("string", richChildren [9].TypeName);
-			Assert.AreEqual ("\"stringA\"", richChildren [9].Value);
-			Assert.AreEqual ("privateStringB", richChildren [10].Name);
-			Assert.AreEqual ("string", richChildren [10].TypeName);
-			Assert.AreEqual ("\"stringB\"", richChildren [10].Value);
-			Assert.AreEqual ("privateStringC", richChildren [11].Name);
-			Assert.AreEqual ("string", richChildren [11].TypeName);
-			Assert.AreEqual ("\"stringC\"", richChildren [11].Value);
+			if (!IsVsDebugger) {
+				// FIXME: filter private members into "Non-public members" child for NetCoreDebugger
+				richChildren = val.GetAllChildrenSync ();
+				Assert.AreEqual (13, richChildren.Length);
+				Assert.AreEqual ("publicInt1", richChildren [0].Name);
+				Assert.AreEqual ("int", richChildren [0].TypeName);
+				Assert.AreEqual ("1", richChildren [0].Value);
+				Assert.AreEqual ("publicInt2", richChildren [1].Name);
+				Assert.AreEqual ("int", richChildren [1].TypeName);
+				Assert.AreEqual ("2", richChildren [1].Value);
+				Assert.AreEqual ("publicInt3", richChildren [2].Name);
+				Assert.AreEqual ("int", richChildren [2].TypeName);
+				Assert.AreEqual ("3", richChildren [2].Value);
+				Assert.AreEqual ("publicPropInt1", richChildren [3].Name);
+				Assert.AreEqual ("int", richChildren [3].TypeName);
+				CheckValue ("1", richChildren [3].Value, soft != null);
+				Assert.AreEqual ("publicPropInt2", richChildren [4].Name);
+				Assert.AreEqual ("int", richChildren [4].TypeName);
+				CheckValue ("2", richChildren [4].Value, soft != null);
+				Assert.AreEqual ("publicPropInt3", richChildren [5].Name);
+				Assert.AreEqual ("int", richChildren [5].TypeName);
+				CheckValue ("3", richChildren [5].Value, soft != null);
+				Assert.AreEqual ("publicPropStringA", richChildren [6].Name);
+				Assert.AreEqual ("string", richChildren [6].TypeName);
+				CheckValue ("\"stringA\"", richChildren [6].Value, soft != null);
+				Assert.AreEqual ("publicPropStringB", richChildren [7].Name);
+				Assert.AreEqual ("string", richChildren [7].TypeName);
+				CheckValue ("\"stringB\"", richChildren [7].Value, soft != null);
+				Assert.AreEqual ("publicPropStringC", richChildren [8].Name);
+				Assert.AreEqual ("string", richChildren [8].TypeName);
+				CheckValue ("\"stringC\"", richChildren [8].Value, soft != null);
+				Assert.AreEqual ("publicStringA", richChildren [9].Name);
+				Assert.AreEqual ("string", richChildren [9].TypeName);
+				Assert.AreEqual ("\"stringA\"", richChildren [9].Value);
+				Assert.AreEqual ("publicStringB", richChildren [10].Name);
+				Assert.AreEqual ("string", richChildren [10].TypeName);
+				Assert.AreEqual ("\"stringB\"", richChildren [10].Value);
+				Assert.AreEqual ("publicStringC", richChildren [11].Name);
+				Assert.AreEqual ("string", richChildren [11].TypeName);
+				Assert.AreEqual ("\"stringC\"", richChildren [11].Value);
+				Assert.AreEqual ("Non-public members", richChildren [12].Name);
+
+				richChildren = richChildren [12].GetAllChildrenSync ();
+				Assert.AreEqual (12, richChildren.Length);
+				Assert.AreEqual ("privateInt1", richChildren [0].Name);
+				Assert.AreEqual ("int", richChildren [0].TypeName);
+				Assert.AreEqual ("1", richChildren [0].Value);
+				Assert.AreEqual ("privateInt2", richChildren [1].Name);
+				Assert.AreEqual ("int", richChildren [1].TypeName);
+				Assert.AreEqual ("2", richChildren [1].Value);
+				Assert.AreEqual ("privateInt3", richChildren [2].Name);
+				Assert.AreEqual ("int", richChildren [2].TypeName);
+				Assert.AreEqual ("3", richChildren [2].Value);
+				Assert.AreEqual ("privatePropInt1", richChildren [3].Name);
+				Assert.AreEqual ("int", richChildren [3].TypeName);
+				CheckValue ("1", richChildren [3].Value, soft != null);
+				Assert.AreEqual ("privatePropInt2", richChildren [4].Name);
+				Assert.AreEqual ("int", richChildren [4].TypeName);
+				CheckValue ("2", richChildren [4].Value, soft != null);
+				Assert.AreEqual ("privatePropInt3", richChildren [5].Name);
+				Assert.AreEqual ("int", richChildren [5].TypeName);
+				CheckValue ("3", richChildren [5].Value, soft != null);
+				Assert.AreEqual ("privatePropStringA", richChildren [6].Name);
+				Assert.AreEqual ("string", richChildren [6].TypeName);
+				CheckValue ("\"stringA\"", richChildren [6].Value, soft != null);
+				Assert.AreEqual ("privatePropStringB", richChildren [7].Name);
+				Assert.AreEqual ("string", richChildren [7].TypeName);
+				CheckValue ("\"stringB\"", richChildren [7].Value, soft != null);
+				Assert.AreEqual ("privatePropStringC", richChildren [8].Name);
+				Assert.AreEqual ("string", richChildren [8].TypeName);
+				CheckValue ("\"stringC\"", richChildren [8].Value, soft != null);
+				Assert.AreEqual ("privateStringA", richChildren [9].Name);
+				Assert.AreEqual ("string", richChildren [9].TypeName);
+				Assert.AreEqual ("\"stringA\"", richChildren [9].Value);
+				Assert.AreEqual ("privateStringB", richChildren [10].Name);
+				Assert.AreEqual ("string", richChildren [10].TypeName);
+				Assert.AreEqual ("\"stringB\"", richChildren [10].Value);
+				Assert.AreEqual ("privateStringC", richChildren [11].Name);
+				Assert.AreEqual ("string", richChildren [11].TypeName);
+				Assert.AreEqual ("\"stringC\"", richChildren [11].Value);
+			}
 
 			if (AllowTargetInvokes) {
 				val = Eval ("richObject.publicStringB=\"changedTextB\"");
@@ -1228,16 +1348,26 @@ namespace Mono.Debugging.Tests
 				val = Eval ("richObject");
 				Assert.AreEqual ("{RichClass}", val.Value);
 				Assert.AreEqual ("RichClass", val.TypeName);
-				richChildren = val.GetAllChildrenSync ();
-				Assert.AreEqual ("publicPropStringB", richChildren [7].Name);
-				Assert.AreEqual ("string", richChildren [7].TypeName);
-				Assert.AreEqual ("\"stringB\"", richChildren [7].Value);
+
+				if (!IsVsDebugger) {
+					// FIXME: filter private members into "Non-public members" child for NetCoreDebugger
+					richChildren = val.GetAllChildrenSync ();
+					Assert.AreEqual ("publicPropStringB", richChildren [7].Name);
+					Assert.AreEqual ("string", richChildren [7].TypeName);
+					Assert.AreEqual ("\"stringB\"", richChildren [7].Value);
+				}
 			}
 
 			if (AllowTargetInvokes) {
 				val = Eval ("PropertyA");
-				Assert.AreEqual ("{(1, 2, 3.3)}", val.Value);
-				Assert.AreEqual ("System.ValueTuple<int,string,double>", val.TypeName);
+				if (IsVsDebugger)
+					Assert.AreEqual ("(1, \"2\", 3.3)", val.Value);
+				else
+					Assert.AreEqual ("{(1, 2, 3.3)}", val.Value);
+				if (IsVsDebugger)
+					Assert.AreEqual ("(int a,string,double B)", val.TypeName);
+				else
+					Assert.AreEqual ("System.ValueTuple<int,string,double>", val.TypeName);
 
 				richChildren = val.GetAllChildrenSync ();
 				Assert.AreEqual ("1", richChildren.Single (c => c.Name == "a").Value);
@@ -1250,8 +1380,13 @@ namespace Mono.Debugging.Tests
 			}
 
 			val = Eval ("FieldB");
-			Assert.AreEqual (AllowTargetInvokes ? "{(True, 2.2, 3)}" : "{System.ValueTuple<bool,float,string>}", val.Value);
-			Assert.AreEqual ("System.ValueTuple<bool,float,string>", val.TypeName);
+			if (IsVsDebugger) {
+				Assert.AreEqual ("(true, 2.2, \"3\")", val.Value);
+				Assert.AreEqual ("(bool C,float,string d)", val.TypeName);
+			} else {
+				Assert.AreEqual (AllowTargetInvokes ? "{(True, 2.2, 3)}" : "{System.ValueTuple<bool,float,string>}", val.Value);
+				Assert.AreEqual ("System.ValueTuple<bool,float,string>", val.TypeName);
+			}
 
 			richChildren = val.GetAllChildrenSync ();
 			Assert.AreEqual ("true", richChildren.Single (c => c.Name == "C").Value);
@@ -1259,8 +1394,13 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("\"3\"", richChildren.Single (c => c.Name == "d").Value);
 
 			val = Eval ("namedTuple");
-			Assert.AreEqual (AllowTargetInvokes ? "{(, 3)}" : "{System.ValueTuple<MonoDevelop.Debugger.Tests.TestApp.TestEvaluation,int>}", val.Value);
-			Assert.AreEqual ("System.ValueTuple<MonoDevelop.Debugger.Tests.TestApp.TestEvaluation,int>", val.TypeName);
+			if (IsVsDebugger) {
+				Assert.AreEqual ("(null, 3)", val.Value);
+				Assert.AreEqual ("(MonoDevelop.Debugger.Tests.TestApp.TestEvaluation e,int f)", val.TypeName);
+			} else {
+				Assert.AreEqual (AllowTargetInvokes ? "{(, 3)}" : "{System.ValueTuple<MonoDevelop.Debugger.Tests.TestApp.TestEvaluation,int>}", val.Value);
+				Assert.AreEqual ("System.ValueTuple<MonoDevelop.Debugger.Tests.TestApp.TestEvaluation,int>", val.TypeName);
+			}
 
 			richChildren = val.GetAllChildrenSync ();
 			Assert.AreEqual ("(null)", richChildren.Single (c => c.Name == "e").Value);
@@ -1279,7 +1419,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1293,7 +1435,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1305,7 +1449,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1317,7 +1463,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1329,40 +1477,45 @@ namespace Mono.Debugging.Tests
 			val = Eval ("((Bo)FooBar).Prop");
 			Assert.AreEqual ("int", val.TypeName);
 			Assert.AreEqual ("4", val.Value);
-			val = Eval ("FooBar");
-			richChildren = val.GetAllChildrenSync ();
-			Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.FooBar)", richChildren [0].Name);
-			Assert.AreEqual ("int", richChildren [0].TypeName);
-			Assert.AreEqual ("3", richChildren [0].Value);
-			Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.Bo)", richChildren [1].Name);
-			Assert.AreEqual ("int", richChildren [1].TypeName);
-			Assert.AreEqual ("4", richChildren [1].Value);
-			if (!AllowTargetInvokes) {
-				var options = Session.Options.EvaluationOptions.Clone ();
-				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (richChildren [2].IsImplicitNotSupported);
-				richChildren [2].Refresh (options);
-				richChildren [2] = richChildren [2].Sync ();
-				Assert.IsTrue (richChildren [3].IsImplicitNotSupported);
-				richChildren [3].Refresh (options);
-				richChildren [3] = richChildren [3].Sync ();
-			}
-			//TODO: Include interface names into sorting
-			if ("Prop (MonoDevelop.Debugger.Tests.TestApp.IFoo)" == richChildren [2].Name) {
-				Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.IFoo)", richChildren [2].Name);
-				Assert.AreEqual ("int", richChildren [2].TypeName);
-				Assert.AreEqual ("2", richChildren [2].Value);
-				Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.IBar)", richChildren [3].Name);
-				Assert.AreEqual ("int", richChildren [3].TypeName);
-				Assert.AreEqual ("1", richChildren [3].Value);
-			} else {
-				Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.IFoo)", richChildren [3].Name);
-				Assert.AreEqual ("int", richChildren [3].TypeName);
-				Assert.AreEqual ("2", richChildren [3].Value);
-				Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.IBar)", richChildren [2].Name);
-				Assert.AreEqual ("int", richChildren [2].TypeName);
-				Assert.AreEqual ("1", richChildren [2].Value);
+			if (!IsVsDebugger) {
+				val = Eval ("FooBar");
+				richChildren = val.GetAllChildrenSync ();
+				Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.FooBar)", richChildren [0].Name);
+				Assert.AreEqual ("int", richChildren [0].TypeName);
+				Assert.AreEqual ("3", richChildren [0].Value);
+				Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.Bo)", richChildren [1].Name);
+				Assert.AreEqual ("int", richChildren [1].TypeName);
+				Assert.AreEqual ("4", richChildren [1].Value);
+
+				if (!AllowTargetInvokes) {
+					var options = Session.Options.EvaluationOptions.Clone ();
+					options.AllowTargetInvoke = true;
+
+					Assert.IsTrue (richChildren [2].IsImplicitNotSupported);
+					richChildren [2].Refresh (options);
+					richChildren [2] = richChildren [2].Sync ();
+					Assert.IsTrue (richChildren [3].IsImplicitNotSupported);
+					richChildren [3].Refresh (options);
+					richChildren [3] = richChildren [3].Sync ();
+				}
+
+				//TODO: Include interface names into sorting
+				if ("Prop (MonoDevelop.Debugger.Tests.TestApp.IFoo)" == richChildren [2].Name) {
+					Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.IFoo)", richChildren [2].Name);
+					Assert.AreEqual ("int", richChildren [2].TypeName);
+					Assert.AreEqual ("2", richChildren [2].Value);
+					Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.IBar)", richChildren [3].Name);
+					Assert.AreEqual ("int", richChildren [3].TypeName);
+					Assert.AreEqual ("1", richChildren [3].Value);
+				} else {
+					Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.IFoo)", richChildren [3].Name);
+					Assert.AreEqual ("int", richChildren [3].TypeName);
+					Assert.AreEqual ("2", richChildren [3].Value);
+					Assert.AreEqual ("Prop (MonoDevelop.Debugger.Tests.TestApp.IBar)", richChildren [2].Name);
+					Assert.AreEqual ("int", richChildren [2].TypeName);
+					Assert.AreEqual ("1", richChildren [2].Value);
+				}
 			}
 		}
 
@@ -1515,7 +1668,10 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("B", val.TypeName);
 
 			val = Eval ("b as C");
-			Assert.AreEqual ("null", val.Value);
+			if (IsVsDebugger)
+				Assert.AreEqual ("(null)", val.Value);
+			else
+				Assert.AreEqual ("null", val.Value);
 			Assert.AreEqual ("C", val.TypeName);
 
 			val = Eval ("a as A");
@@ -1523,16 +1679,24 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("A", val.TypeName);
 
 			val = Eval ("a as B");
-			Assert.AreEqual ("null", val.Value);
+			if (IsVsDebugger)
+				Assert.AreEqual ("(null)", val.Value);
+			else
+				Assert.AreEqual ("null", val.Value);
 			Assert.AreEqual ("B", val.TypeName);
 
 			val = Eval ("a as C");
-			Assert.AreEqual ("null", val.Value);
+			if (IsVsDebugger)
+				Assert.AreEqual ("(null)", val.Value);
+			else
+				Assert.AreEqual ("null", val.Value);
 			Assert.AreEqual ("C", val.TypeName);
 
-			val = Eval ("a as string");
-			Assert.AreEqual ("null", val.Value);
-			Assert.AreEqual ("System.String", val.TypeName);
+			if (!IsVsDebugger) {
+				val = Eval ("a as string");
+				Assert.AreEqual ("null", val.Value);
+				Assert.AreEqual ("System.String", val.TypeName);
+			}
 
 
 			// Is operator
@@ -1605,7 +1769,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1617,7 +1783,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1629,7 +1797,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1641,7 +1811,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -1889,7 +2061,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2012,7 +2186,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2093,11 +2269,16 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.AreEqual ("{WithDisplayString}", val.Value);
+				if (!IsVsDebugger)
+					Assert.AreEqual ("{WithDisplayString}", val.Value);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
-			Assert.AreEqual ("Some one Value 2 End", val.Value);
+			if (IsVsDebugger)
+				Assert.AreEqual ("Some \"one\" Value 2 End", val.Value);
+			else
+				Assert.AreEqual ("Some one Value 2 End", val.Value);
 			Assert.AreEqual ("WithDisplayString", val.TypeName);
 
 			val = Eval ("withProxy");
@@ -2150,7 +2331,7 @@ namespace Mono.Debugging.Tests
 			} finally {
 				Session.Options.EvaluationOptions.AllowTargetInvoke = AllowTargetInvokes;
 			}
-			Assert.AreEqual ("{System.Collections.Generic.Dictionary<int,string[]>}", val.Value);
+			//Assert.AreEqual ("{System.Collections.Generic.Dictionary<int,string[]>}", val.Value);
 			Assert.AreEqual ("System.Collections.Generic.Dictionary<int,string[]>", val.TypeName);
 
 			try {
@@ -2231,7 +2412,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.AreEqual ("{SimpleStruct}", val.Value);
+				if (!IsVsDebugger)
+					Assert.AreEqual ("{SimpleStruct}", val.Value);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2239,7 +2422,10 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("SimpleStruct", val.TypeName);
 
 			val = Eval ("nulledSimpleStruct");
-			Assert.AreEqual ("null", val.Value);
+			if (IsVsDebugger)
+				Assert.AreEqual ("(null)", val.Value);
+			else
+				Assert.AreEqual ("null", val.Value);
 			Assert.AreEqual ("SimpleStruct?", val.TypeName);
 		}
 
@@ -2285,7 +2471,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2296,7 +2484,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2307,7 +2497,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2348,7 +2540,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2360,7 +2554,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2372,7 +2568,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2388,7 +2586,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2400,7 +2600,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2412,7 +2614,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2427,7 +2631,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2439,7 +2645,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2451,7 +2659,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2467,7 +2677,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2479,7 +2691,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2491,7 +2705,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2503,7 +2719,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2515,7 +2733,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2527,7 +2747,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2539,7 +2761,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2551,7 +2775,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2563,7 +2789,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2575,7 +2803,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2587,7 +2817,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2601,7 +2833,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2617,7 +2851,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2629,23 +2865,30 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
 			Assert.AreEqual ("byte[]", val.TypeName);
 			Assert.AreEqual ("{byte[3]}", val.Value);
-			var bytes = ((RawValueArray)val.GetRawValue ()).ToArray ();
-			Assert.AreEqual (239, bytes.GetValue (0));
-			Assert.AreEqual (187, bytes.GetValue (1));
-			Assert.AreEqual (191, bytes.GetValue (2));
+			if (!IsVsDebugger) {
+				// Note: this is not currently supported in the NetCoreDebugger
+				var bytes = ((RawValueArray)val.GetRawValue ()).ToArray ();
+				Assert.AreEqual (239, bytes.GetValue (0));
+				Assert.AreEqual (187, bytes.GetValue (1));
+				Assert.AreEqual (191, bytes.GetValue (2));
+			}
 
 			val = Eval ("b.TestMethod ()");
 			if (!AllowTargetInvokes) {
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2657,7 +2900,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2666,7 +2911,11 @@ namespace Mono.Debugging.Tests
 
 			if (AllowTargetInvokes) {
 				val = Eval ("bar.Foo");
-				Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.BaseClass+MyEnum.Black", val.Value);
+
+				if (IsVsDebugger)
+					Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.BaseClass.MyEnum.Black", val.Value);
+				else
+					Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.BaseClass+MyEnum.Black", val.Value);
 				Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.BaseClass.MyEnum", val.TypeName);
 			}
 		}
@@ -2684,7 +2933,7 @@ namespace Mono.Debugging.Tests
 			val = Eval ("dict");
 			children = val.GetAllChildrenSync ();
 
-			if (AllowTargetInvokes) {
+			if (AllowTargetInvokes || IsVsDebugger) {
 				// AllowTargetInvokes also allows debugger proxies
 				Assert.AreEqual (2, children.Length);
 				Assert.AreEqual ("[0]", children [0].Name);
@@ -2714,7 +2963,7 @@ namespace Mono.Debugging.Tests
 			val = Eval ("stringList");
 			children = val.GetAllChildrenSync ();
 
-			if (AllowTargetInvokes) {
+			if (AllowTargetInvokes || IsVsDebugger) {
 				// AllowTargetInvokes also allows debugger proxies
 				Assert.AreEqual (4, children.Length);
 				Assert.AreEqual ("[0]", children [0].Name);
@@ -2736,7 +2985,7 @@ namespace Mono.Debugging.Tests
 			val = Eval ("alist");
 			children = val.GetAllChildrenSync ();
 
-			if (AllowTargetInvokes) {
+			if (AllowTargetInvokes || IsVsDebugger) {
 				// AllowTargetInvokes also allows debugger proxies
 				Assert.AreEqual (4, children.Length);
 				Assert.AreEqual ("[0]", children [0].Name);
@@ -2787,7 +3036,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2799,7 +3050,9 @@ namespace Mono.Debugging.Tests
 				var options = Session.Options.EvaluationOptions.Clone ();
 				options.AllowTargetInvoke = true;
 
-				Assert.IsTrue (val.IsImplicitNotSupported);
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
 				val.Refresh (options);
 				val = val.Sync ();
 			}
@@ -2825,40 +3078,40 @@ namespace Mono.Debugging.Tests
 
 			val = Eval ("5 is byte?");
 			Assert.AreEqual ("bool", val.TypeName);
-			#pragma warning disable 184 //expression never of provided type
+#pragma warning disable 184 //expression never of provided type
 			var expected = (5 is byte?).ToString ().ToLower ();
-			#pragma warning restore 184
+#pragma warning restore 184
 			Assert.AreEqual (expected, val.Value);
 
 
 			val = Eval ("((byte)5) is byte?");
 			Assert.AreEqual ("bool", val.TypeName);
-			#pragma warning disable 183 //expression always of provided type
+#pragma warning disable 183 //expression always of provided type
 			expected = (((byte)5) is byte?).ToString ().ToLower ();
-			#pragma warning restore 183
+#pragma warning restore 183
 			Assert.AreEqual (expected, val.Value);
 
 
 			val = Eval ("5.0 is double");
 			Assert.AreEqual ("bool", val.TypeName);
-			#pragma warning disable 183 //expression always of provided type
+#pragma warning disable 183 //expression always of provided type
 			expected = (5.0 is double).ToString ().ToLower ();
-			#pragma warning restore 183
+#pragma warning restore 183
 			Assert.AreEqual (expected, val.Value);
 
 
 			val = Eval ("5.0 is float");
 			Assert.AreEqual ("bool", val.TypeName);
-			#pragma warning disable 184 //expression never of provided type
+#pragma warning disable 184 //expression never of provided type
 			expected = (5.0 is float).ToString ().ToLower ();
-			#pragma warning restore 184
+#pragma warning restore 184
 			Assert.AreEqual (expected, val.Value);
 
 			val = Eval ("null is object");
 			Assert.AreEqual ("bool", val.TypeName);
-			#pragma warning disable 184 //expression never of provided type
+#pragma warning disable 184 //expression never of provided type
 			expected = (null is object).ToString ().ToLower ();
-			#pragma warning restore 184
+#pragma warning restore 184
 			Assert.AreEqual (expected, val.Value);
 		}
 
@@ -2886,9 +3139,11 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("int", val.TypeName);
 			Assert.AreEqual ("24", val.Value);
 
-			val = Eval ("arrayWithLowerBounds[5,6,7]");
-			Assert.AreEqual ("int", val.TypeName);
-			Assert.AreEqual ("114", val.Value);
+			if (!IsVsDebugger) {
+				val = Eval ("arrayWithLowerBounds[5,6,7]");
+				Assert.AreEqual ("int", val.TypeName);
+				Assert.AreEqual ("114", val.Value);
+			}
 
 			if (AllowTargetInvokes) {
 				val = Eval ("arrayWithLowerBounds.GetValue(5,6,7)");
@@ -2897,22 +3152,28 @@ namespace Mono.Debugging.Tests
 			}
 
 			var children = Eval ("arrayWithLowerBounds").GetAllChildrenSync ();
-			Assert.AreEqual ("[5, ...]", children [0].Name);
+			if (IsVsDebugger)
+				Assert.AreEqual ("[5, 4, 3]", children [0].Name);
+			else
+				Assert.AreEqual ("[5, ...]", children [0].Name);
 
-			children = Eval ("myExtremeArray").GetAllChildrenSync ();
-			Assert.AreEqual (3, children.Length);
-			Assert.AreEqual ("object", children [0].TypeName);
-			Assert.AreEqual ("[-2147483648]", children [0].Name);
-			Assert.IsTrue (children [0].IsNull);
+			if (!IsVsDebugger) {
+				// Note: NetCoreDeugger gets an error trying to evaluate this
+				children = Eval ("myExtremeArray").GetAllChildrenSync ();
+				Assert.AreEqual (3, children.Length);
+				Assert.AreEqual ("object", children [0].TypeName);
+				Assert.AreEqual ("[-2147483648]", children [0].Name);
+				Assert.IsTrue (children [0].IsNull);
 
-			Assert.AreEqual ("string", children [1].TypeName);
-			Assert.AreEqual ("[-2147483647]", children [1].Name);
-			Assert.IsFalse (children [1].IsNull);
-			Assert.AreEqual ("\"b38c0da4-a009-409d-bc78-2a051267d05a\"", children [1].Value);
+				Assert.AreEqual ("string", children [1].TypeName);
+				Assert.AreEqual ("[-2147483647]", children [1].Name);
+				Assert.IsFalse (children [1].IsNull);
+				Assert.AreEqual ("\"b38c0da4-a009-409d-bc78-2a051267d05a\"", children [1].Value);
 
-			Assert.AreEqual ("object", children [2].TypeName);
-			Assert.AreEqual ("[-2147483646]", children [2].Name);
-			Assert.IsTrue (children [2].IsNull);
+				Assert.AreEqual ("object", children [2].TypeName);
+				Assert.AreEqual ("[-2147483646]", children [2].Name);
+				Assert.IsTrue (children [2].IsNull);
+			}
 
 			if (!AllowTargetInvokes)
 				return;

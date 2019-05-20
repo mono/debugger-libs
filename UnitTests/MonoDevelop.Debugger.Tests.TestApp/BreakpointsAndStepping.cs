@@ -1,4 +1,4 @@
-﻿//
+//
 // BreakpointsAndStepping.cs
 //
 // Author:
@@ -473,6 +473,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		{
 		}
 
+#if !NETSTANDARD_2_0
 		public void TestBug53371 ()
 		{
 			var domain1 = AppDomain.CreateDomain ("domain1", null, new AppDomainSetup () { ApplicationBase = "." });
@@ -492,6 +493,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			domain2.ExecuteAssembly ("MonoDevelop.Debugger.Tests.AppDomainClient.exe", new [] { "1", "2", "3" });
 			AppDomain.Unload (domain2);
 		}
+#endif
 
 		class DontUseThisClassInOtherTests
 		{

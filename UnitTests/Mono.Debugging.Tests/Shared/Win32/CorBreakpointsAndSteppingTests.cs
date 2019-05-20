@@ -1,10 +1,10 @@
 //
-// CodeCompletionTests.cs
+// CorBreakpointsAndSteppingTests.cs
 //
 // Author:
-//       David Karlaš <david.karlas@microsoft.com>
+//       David Karlaš <david.karlas@xamarin.com>
 //
-// Copyright (c) 2017 Microsoft Corp.
+// Copyright (c) 2014 Xamarin, Inc (http://www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,17 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
+using System;
 using NUnit.Framework;
 
-namespace Mono.Debugging.Tests
+namespace Mono.Debugging.Tests.Win32
 {
 	[TestFixture]
-	public abstract class CodeCompletionTests : DebugTests
+	[Platform (Include = "Win")]
+	public class CorBreakpointsAndSteppingTests: BreakpointsAndSteppingTests
 	{
-		public CodeCompletionTests (string engineId) : base (engineId)
+		public CorBreakpointsAndSteppingTests () : base ("MonoDevelop.Debugger.Win32")
 		{
-		}
-
-		[TestFixtureSetUp]
-		public override void SetUp ()
-		{
-			base.SetUp ();
-
-			Start ("TestEvaluation");
-		}
-
-		[Test]
-		public void SimpleVariablesList ()
-		{
-			var completionData = Session.ActiveThread.Backtrace.GetFrame (0).GetExpressionCompletionData ("");
-			if (!IsVsDebugger) // FIXME: how do we get an Items.Count of less than 0???
-				Assert.Less (0, completionData.Items.Count);
 		}
 	}
 }
