@@ -1076,10 +1076,7 @@ namespace Mono.Debugging.Tests
 			StartTest ("ConitionalBreakpointEnum");
 			CheckPosition ("ecf764bf-9182-48d6-adb0-0ba36e2653a7");
 			val = Eval ("en");
-			if (IsVsDebugger)
-				Assert.AreEqual ("False", val.Value); // TODO: VsDebugger still needs work to fixup enum values
-			else
-				Assert.AreEqual ("BooleanEnum.False", val.Value);
+			Assert.AreEqual ("BooleanEnum.False", val.Value);
 		}
 
 		[Test]
