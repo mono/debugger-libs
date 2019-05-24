@@ -990,10 +990,7 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("fcdc2412-c00e-4c95-b2ea-e3cf5d5bf856");
 			AddCatchpoint ("System.Exception", false);
 			StartTest ("Catchpoint1");
-			if (IsVsDebugger)
-				CheckPosition ("526795d3-ee9e-44a7-8423-df0b406e9e8d");// FIXME: VsDebugger always includes subclasses
-			else
-				CheckPosition ("fcdc2412-c00e-4c95-b2ea-e3cf5d5bf856");
+			CheckPosition ("fcdc2412-c00e-4c95-b2ea-e3cf5d5bf856");
 		}
 
 		[Test]
