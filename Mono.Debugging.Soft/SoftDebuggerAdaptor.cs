@@ -992,7 +992,18 @@ namespace Mono.Debugging.Soft
 		{
 			try {
 				var val = cx.Frame.GetThis ();
-				var type = (TypeMirror) GetValueType (cx, val);
+				var valueType = GetValueType (cx, val);
+				var type = valueType as TypeMirror;
+
+				if (type == null) {
+					var tt = valueType as Type;
+
+					if (tt == null)
+						return null;
+
+					type = (TypeMirror) ForceLoadType (cx, tt.FullName);
+				}
+
 				return GetHoistedThisReference (cx, type, val);
 			} catch (AbsentInformationException) {
 			}
