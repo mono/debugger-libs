@@ -123,7 +123,12 @@ namespace Mono.Debugging.Client
 			ResetAdjustedLine ();
 			line = newLine;
 		}
-		
+
+		internal void SetFileName (string newFileName)
+		{
+			this.fileName = newFileName;
+		}
+
 		internal void SetAdjustedColumn (int newColumn)
 		{
 			adjustedColumn = newColumn;

@@ -463,9 +463,7 @@ namespace Mono.Debugging.Client
 				return false;
 
 			OnChanged ();
-			EventHandler<BreakEventArgs> evnt = BreakEventEnableStatusChanged;
-			if (evnt != null)
-				evnt (this, new BreakEventArgs (be));
+			BreakEventEnableStatusChanged?.Invoke (this, new BreakEventArgs (be));
 			NotifyStatusChanged (be);
 
 			return true;
@@ -474,58 +472,38 @@ namespace Mono.Debugging.Client
 		void OnBreakEventAdded (BreakEvent be)
 		{
 			OnChanged ();
-			EventHandler<BreakEventArgs> breakEventAdded = BreakEventAdded;
-			if (breakEventAdded != null)
-				breakEventAdded (this, new BreakEventArgs (be));
-			if (be is Breakpoint) {
-				EventHandler<BreakpointEventArgs> breakpointAdded = BreakpointAdded;
-				if (breakpointAdded != null)
-					breakpointAdded (this, new BreakpointEventArgs ((Breakpoint)be));
-			} else if (be is Catchpoint) {
-				EventHandler<CatchpointEventArgs> catchpointAdded = CatchpointAdded;
-				if (catchpointAdded != null)
-					catchpointAdded (this, new CatchpointEventArgs ((Catchpoint)be));
+			BreakEventAdded?.Invoke (this, new BreakEventArgs (be));
+			if (be is Breakpoint bp) {
+				BreakpointAdded?.Invoke (this, new BreakpointEventArgs (bp));
+			} else if (be is Catchpoint ce) {
+				CatchpointAdded?.Invoke (this, new CatchpointEventArgs (ce));
 			}
 		}
 		
 		void OnBreakEventRemoved (BreakEvent be)
 		{
 			OnChanged ();
-			EventHandler<BreakEventArgs> breakEventRemoved = BreakEventRemoved;
-			if (breakEventRemoved != null)
-				breakEventRemoved (this, new BreakEventArgs (be));
-			if (be is Breakpoint) {
-				EventHandler<BreakpointEventArgs> breakpointRemoved = BreakpointRemoved;
-				if (breakpointRemoved != null)
-					breakpointRemoved (this, new BreakpointEventArgs ((Breakpoint)be));
-			} else if (be is Catchpoint) {
-				EventHandler<CatchpointEventArgs> catchpointRemoved = CatchpointRemoved;
-				if (catchpointRemoved != null)
-					catchpointRemoved (this, new CatchpointEventArgs ((Catchpoint)be));
+			BreakEventRemoved?.Invoke (this, new BreakEventArgs (be));
+			if (be is Breakpoint bp) {
+				BreakpointRemoved?.Invoke (this, new BreakpointEventArgs (bp));
+			} else if (be is Catchpoint ce) {
+				CatchpointRemoved?.Invoke (this, new CatchpointEventArgs (ce));
 			}
 		}
 		
 		void OnChanged ()
 		{
-			EventHandler changed = Changed;
-			if (changed != null)
-				changed (this, EventArgs.Empty);
+			Changed?.Invoke (this, EventArgs.Empty);
 		}
 		
 		internal void NotifyStatusChanged (BreakEvent be)
 		{
 			try {
-				EventHandler<BreakEventArgs> breakEventStatusChanged = BreakEventStatusChanged;
-				if (breakEventStatusChanged != null)
-					breakEventStatusChanged (this, new BreakEventArgs (be));
-				if (be is Breakpoint) {
-					EventHandler<BreakpointEventArgs> breakpointStatusChanged = BreakpointStatusChanged;
-					if (breakpointStatusChanged != null)
-						breakpointStatusChanged (this, new BreakpointEventArgs ((Breakpoint)be));
-				} else if (be is Catchpoint) {
-					EventHandler<CatchpointEventArgs > catchpointStatusChanged = CatchpointStatusChanged;
-					if (catchpointStatusChanged != null)
-						catchpointStatusChanged (this, new CatchpointEventArgs ((Catchpoint)be));
+				BreakEventStatusChanged?.Invoke (this, new BreakEventArgs (be));
+				if (be is Breakpoint bp) {
+					BreakpointStatusChanged?.Invoke (this, new BreakpointEventArgs (bp));
+				} else if (be is Catchpoint ce) {
+					CatchpointStatusChanged?.Invoke (this, new CatchpointEventArgs (ce));
 				}
 			} catch {
 				// Ignore
@@ -535,17 +513,11 @@ namespace Mono.Debugging.Client
 		internal void NotifyBreakEventChanged (BreakEvent be)
 		{
 			try {
-				EventHandler<BreakEventArgs> breakEventModified = BreakEventModified;
-				if (breakEventModified != null)
-					breakEventModified (this, new BreakEventArgs (be));
-				if (be is Breakpoint) {
-					EventHandler<BreakpointEventArgs > breakpointModified = BreakpointModified;
-					if (breakpointModified != null)
-						breakpointModified (this, new BreakpointEventArgs ((Breakpoint)be));
-				} else if (be is Catchpoint) {
-					EventHandler<CatchpointEventArgs >  catchpointModified = CatchpointModified;
-					if (catchpointModified != null)
-						catchpointModified (this, new CatchpointEventArgs ((Catchpoint)be));
+				BreakEventModified?.Invoke (this, new BreakEventArgs (be));
+				if (be is Breakpoint bp) {
+					BreakpointModified?.Invoke (this, new BreakpointEventArgs (bp));
+				} else if (be is Catchpoint ce) {
+					CatchpointModified?.Invoke (this, new CatchpointEventArgs (ce));
 				}
 				OnChanged ();
 			} catch {
@@ -557,17 +529,11 @@ namespace Mono.Debugging.Client
 		{
 
 			try {
-				EventHandler<BreakEventArgs> breakEventUpdated = BreakEventUpdated;
-				if (breakEventUpdated != null)
-					breakEventUpdated (this, new BreakEventArgs (be));
-				if (be is Breakpoint) {
-					EventHandler<BreakpointEventArgs> breakpointUpdated = BreakpointUpdated;
-					if (breakpointUpdated != null)
-						breakpointUpdated (this, new BreakpointEventArgs ((Breakpoint)be));
-				} else if (be is Catchpoint) {
-					EventHandler<CatchpointEventArgs>  catchpointUpdated = CatchpointUpdated;
-					if (catchpointUpdated != null)
-						catchpointUpdated (this, new CatchpointEventArgs ((Catchpoint)be));
+				BreakEventUpdated?.Invoke (this, new BreakEventArgs (be));
+				if (be is Breakpoint bp) {
+					BreakpointUpdated?.Invoke (this, new BreakpointEventArgs (bp));
+				} else if (be is Catchpoint ce) {
+					CatchpointUpdated?.Invoke (this, new CatchpointEventArgs (ce));
 				}
 			} catch {
 				// Ignore
@@ -593,6 +559,16 @@ namespace Mono.Debugging.Client
 		public event EventHandler<ReadOnlyCheckEventArgs> CheckingReadOnly;
 		
 		internal event EventHandler<BreakEventArgs> BreakEventEnableStatusChanged;
+
+		public void FileRenamed (string oldPath, string newPath)
+		{
+			if (IsReadOnly)
+				return;
+			foreach (var bp in GetBreakpointsAtFile (oldPath)) {
+				bp.SetFileName (newPath);
+				NotifyBreakEventChanged (bp);
+			}
+		}
 	}
 	
 	public class ReadOnlyCheckEventArgs: EventArgs
