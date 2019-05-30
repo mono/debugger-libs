@@ -565,8 +565,9 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return;
 			foreach (var bp in GetBreakpointsAtFile (oldPath)) {
+				Remove (bp);
 				bp.SetFileName (newPath);
-				NotifyBreakEventChanged (bp);
+				Add (bp);
 			}
 		}
 	}
