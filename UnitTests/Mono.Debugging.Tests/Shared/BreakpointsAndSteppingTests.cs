@@ -1357,6 +1357,17 @@ namespace Mono.Debugging.Tests
 			StartTest ("StopOnBreakpointsEvenIfInNonUserCodeTest");
 			CheckPosition ("ce16b8fd-dd76-440e-886a-8278820ce908", file: file);
 		}
+
+		[Test]
+		public void FileRename()
+		{
+			var store = new BreakpointStore ();
+			store.Add (new Breakpoint ("fileName1.cs", 10));
+			store.FileRenamed ("fileName1.cs", "fileName2.cs");
+			var bps = store.GetBreakpoints ();
+			Assert.AreEqual (1, bps.Count);
+			Assert.AreEqual ("fileName2.cs", bps [0].FileName);
+		}
 	}
 }
 
