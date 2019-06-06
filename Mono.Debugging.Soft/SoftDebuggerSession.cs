@@ -2874,53 +2874,6 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 
-		bool CheckFileHash (string file, byte[] hash)
-		{
-			if (hash == null)
-				return false;
-
-			if (File.Exists (file)) {
-				using (var fs = File.OpenRead (file)) {
-					// Roslyn SHA1 checksum always starts with 20
-					if (hash.Length > 0 && hash [0] == 20)
-						using (var sha1 = SHA1.Create ()) {
-							if (sha1.ComputeHash (fs).Take (15).SequenceEqual (hash.Skip (1))) {
-								return true;
-							}
-						}
-					if (hash.Length > 0 && hash [0] == 32)
-						using (var sha1 = SHA256.Create ()) {
-							if (sha1.ComputeHash (fs).Take (15).SequenceEqual (hash.Skip (1))) {
-								return true;
-							}
-						}
-					if (hash.Length == 20) {
-						using (var sha1 = SHA1.Create ()) {
-							fs.Position = 0;
-							if (sha1.ComputeHash (fs).SequenceEqual (hash)) {
-								return true;
-							}
-						}
-					}
-					if (hash.Length == 32) {
-						using (var sha256 = SHA256.Create ()) {
-							fs.Position = 0;
-							if (sha256.ComputeHash (fs).SequenceEqual (hash)) {
-								return true;
-							}
-						}
-					}
-					fs.Position = 0;
-					using (var md5 = MD5.Create ()) {
-						if (md5.ComputeHash (fs).SequenceEqual (hash)) {
-							return true;
-						}
-					}
-				}
-			}
-			return false;
-		}
-
 		Location FindLocationByMethod (MethodMirror method, string file, int line, int column, ref bool insideTypeRange)
 		{
 			int rangeFirstLine = int.MaxValue;
@@ -2938,7 +2891,7 @@ namespace Mono.Debugging.Soft
 					//1. For backward compatibility
 					//2. If full path matches user himself probably modified code and is aware of modifications
 					//OR if md5 match, useful for alternative location files with breakpoints
-					if (!PathsAreEqual (NormalizePath (srcFile), file) && !CheckFileHash (file, location.SourceFileHash))
+					if (!PathsAreEqual (NormalizePath (srcFile), file) && !SourceLocation.CheckFileHash (file, location.SourceFileHash))
 						continue;
 					if (location.LineNumber < rangeFirstLine)
 						rangeFirstLine = location.LineNumber;
