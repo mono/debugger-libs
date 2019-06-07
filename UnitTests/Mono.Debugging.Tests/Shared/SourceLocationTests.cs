@@ -47,18 +47,23 @@ namespace Mono.Debugging.Tests
 				string tmp;
 
 				tmp = Path.GetTempFileName ();
-				File.WriteAllBytes (tmp, buffer);
 
-				Assert.IsTrue (SourceLocation.CheckFileHash (tmp, checksum), "CheckFileHash {0} ({1})", algorithm, mode);
+				try {
+					File.WriteAllBytes (tmp, buffer);
 
-				if (checksum.Length > 16) {
-					var roslyn = new byte[16];
+					Assert.IsTrue (SourceLocation.CheckFileHash (tmp, checksum), "CheckFileHash {0} ({1})", algorithm, mode);
 
-					roslyn[0] = (byte) checksum.Length;
-					for (int i = 1; i < 16; i++)
-						roslyn[i] = checksum[i - 1];
+					if (checksum.Length > 16) {
+						var roslyn = new byte [16];
 
-					Assert.IsTrue (SourceLocation.CheckFileHash (tmp, checksum), "CheckFileHash Roslyn {0} ({1})", algorithm, mode);
+						roslyn [0] = (byte)checksum.Length;
+						for (int i = 1; i < 16; i++)
+							roslyn [i] = checksum [i - 1];
+
+						Assert.IsTrue (SourceLocation.CheckFileHash (tmp, checksum), "CheckFileHash Roslyn {0} ({1})", algorithm, mode);
+					}
+				} finally {
+					File.Delete (tmp);
 				}
 			}
 		}
