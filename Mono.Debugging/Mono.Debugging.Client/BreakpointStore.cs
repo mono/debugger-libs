@@ -336,10 +336,17 @@ namespace Mono.Debugging.Client
 
 		public void Clear ()
 		{
+			Clear (true);
+		}
+
+		public void Clear (bool clearNonUserBreakpoints)
+		{
 			var oldList = new List<BreakEvent> (breakpoints);
 
-			foreach (BreakEvent bp in oldList)
-				Remove (bp);
+			foreach (var bp in oldList) {
+				if (clearNonUserBreakpoints || !bp.NonUserBreakpoint)
+					Remove (bp);
+			}
 		}
 
 		public void ClearBreakpoints ()
