@@ -24,9 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System;
 using Mono.Debugging.Evaluation;
-using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Client
 {

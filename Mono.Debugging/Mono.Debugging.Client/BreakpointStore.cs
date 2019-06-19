@@ -56,12 +56,13 @@ namespace Mono.Debugging.Client
 		//From Managed.Windows.Forms/XplatUI
 		static bool IsRunningOnMac ()
 		{
-			IntPtr buf = IntPtr.Zero;
+			var buf = IntPtr.Zero;
+
 			try {
 				buf = Marshal.AllocHGlobal (8192);
 				// This is a hacktastic way of getting sysname from uname ()
 				if (uname (buf) == 0) {
-					string os = Marshal.PtrToStringAnsi (buf);
+					var os = Marshal.PtrToStringAnsi (buf);
 					if (os == "Darwin")
 						return true;
 				}
@@ -104,13 +105,13 @@ namespace Mono.Debugging.Client
 		public Breakpoint Add (string filename, int line, int column, bool activate)
 		{
 			if (filename == null)
-				throw new ArgumentNullException ("filename");
+				throw new ArgumentNullException (nameof (filename));
 
 			if (line < 1)
-				throw new ArgumentOutOfRangeException ("line");
+				throw new ArgumentOutOfRangeException (nameof (line));
 
 			if (column < 1)
-				throw new ArgumentOutOfRangeException ("column");
+				throw new ArgumentOutOfRangeException (nameof (column));
 
 			if (IsReadOnly)
 				return null;
@@ -129,7 +130,7 @@ namespace Mono.Debugging.Client
 		public bool Add (BreakEvent bp)
 		{
 			if (bp == null)
-				throw new ArgumentNullException ("bp");
+				throw new ArgumentNullException (nameof (bp));
 
 			if (IsReadOnly)
 				return false;
@@ -149,7 +150,7 @@ namespace Mono.Debugging.Client
 		public Catchpoint AddCatchpoint (string exceptionName, bool includeSubclasses)
 		{
 			if (exceptionName == null)
-				throw new ArgumentNullException ("exceptionName");
+				throw new ArgumentNullException (nameof (exceptionName));
 
 			if (IsReadOnly)
 				return null;
@@ -163,7 +164,7 @@ namespace Mono.Debugging.Client
 		public bool Remove (string filename, int line, int column)
 		{
 			if (filename == null)
-				throw new ArgumentNullException ("filename");
+				throw new ArgumentNullException (nameof (filename));
 
 			if (IsReadOnly)
 				return false;
@@ -187,7 +188,7 @@ namespace Mono.Debugging.Client
 		public bool RemoveCatchpoint (string exceptionName)
 		{
 			if (exceptionName == null)
-				throw new ArgumentNullException ("exceptionName");
+				throw new ArgumentNullException (nameof (exceptionName));
 
 			if (IsReadOnly)
 				return false;
@@ -223,7 +224,7 @@ namespace Mono.Debugging.Client
 		public bool Remove (BreakEvent bp)
 		{
 			if (bp == null)
-				throw new ArgumentNullException ("bp");
+				throw new ArgumentNullException (nameof (bp));
 
 			if (!IsReadOnly && breakpoints.Remove (bp)) {
 				OnBreakEventRemoved (bp);
@@ -236,13 +237,13 @@ namespace Mono.Debugging.Client
 		public Breakpoint Toggle (string filename, int line, int column)
 		{
 			if (filename == null)
-				throw new ArgumentNullException ("filename");
+				throw new ArgumentNullException (nameof (filename));
 
 			if (line < 1)
-				throw new ArgumentOutOfRangeException ("line");
+				throw new ArgumentOutOfRangeException (nameof (line));
 
 			if (column < 1)
-				throw new ArgumentOutOfRangeException ("column");
+				throw new ArgumentOutOfRangeException (nameof (column));
 
 			if (IsReadOnly)
 				return null;
@@ -282,7 +283,7 @@ namespace Mono.Debugging.Client
 		public ReadOnlyCollection<Breakpoint> GetBreakpointsAtFile (string filename)
 		{
 			if (filename == null)
-				throw new ArgumentNullException ("filename");
+				throw new ArgumentNullException (nameof (filename));
 
 			var list = new List<Breakpoint> ();
 			if (string.IsNullOrEmpty (filename))
@@ -305,7 +306,7 @@ namespace Mono.Debugging.Client
 		public ReadOnlyCollection<Breakpoint> GetBreakpointsAtFileLine (string filename, int line)
 		{
 			if (filename == null)
-				throw new ArgumentNullException ("filename");
+				throw new ArgumentNullException (nameof (filename));
 
 			var list = new List<Breakpoint> ();
 			

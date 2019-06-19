@@ -59,7 +59,7 @@ namespace Mono.Debugging.Client
 
 		internal override XmlElement ToXml (XmlDocument doc, string baseDir)
 		{
-			XmlElement elem = base.ToXml (doc, baseDir);
+			var elem = base.ToXml (doc, baseDir);
 			elem.SetAttribute ("exceptionName", exceptionName);
 			elem.SetAttribute ("includeSubclasses", includeSubclasses.ToString ());
 			return elem;
@@ -79,7 +79,8 @@ namespace Mono.Debugging.Client
 		public override void CopyFrom (BreakEvent ev)
 		{
 			base.CopyFrom (ev);
-			Catchpoint cp = (Catchpoint) ev;
+
+			var cp = (Catchpoint) ev;
 			exceptionName = cp.exceptionName;
 			includeSubclasses = cp.includeSubclasses;
 		}

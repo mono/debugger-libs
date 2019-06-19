@@ -26,20 +26,20 @@ namespace Mono.Debugging.Client
 				GetFrame (0, 1);
 		}
 		
-		internal void Attach (DebuggerSession session)
+		internal void Attach (DebuggerSession debuggerSession)
 		{
-			this.session = session;
+			session = debuggerSession;
 			serverBacktrace = session.WrapDebuggerObject (serverBacktrace);
+
 			if (frames != null) {
-				foreach (StackFrame f in frames) {
-					f.Attach (session);
-					f.SourceBacktrace = serverBacktrace;
+				foreach (var frame in frames) {
+					frame.Attach (debuggerSession);
+					frame.SourceBacktrace = serverBacktrace;
 				}
 			}
 		}
 
-		public int FrameCount
-		{
+		public int FrameCount {
 			get { return count; }
 		}
 
@@ -48,23 +48,23 @@ namespace Mono.Debugging.Client
 			return GetFrame (n, 20);
 		}
 
-		private StackFrame GetFrame(int index, int fetchMultipleCount)
+		StackFrame GetFrame (int index, int fetchMultipleCount)
 		{
 			if (frames == null)
 				frames = new List<StackFrame>();
 
 			if (index >= frames.Count) {
-				StackFrame[] newSet = serverBacktrace.GetStackFrames(frames.Count, index + fetchMultipleCount);
-				foreach (StackFrame sf in newSet) {
-					sf.SourceBacktrace = serverBacktrace;
-					sf.Index = frames.Count;
-					frames.Add (sf);
-					sf.Attach (session);
+				var stackFrames = serverBacktrace.GetStackFrames (frames.Count, index + fetchMultipleCount);
+				foreach (var frame in stackFrames) {
+					frame.SourceBacktrace = serverBacktrace;
+					frame.Index = frames.Count;
+					frames.Add (frame);
+					frame.Attach (session);
 				}
 			}
 			
 			if (frames.Count > 0)
-				return frames[System.Math.Min (System.Math.Max (0, index), frames.Count - 1)];
+				return frames[Math.Min (Math.Max (0, index), frames.Count - 1)];
 
 			return null;
 		}

@@ -29,17 +29,15 @@ using System;
 
 namespace Mono.Debugging.Client
 {
-	public class BreakpointEventArgs: EventArgs
+	public class BreakpointEventArgs : EventArgs
 	{
-		Breakpoint bp;
-		
 		public BreakpointEventArgs (Breakpoint bp)
 		{
-			this.bp = bp;
+			Breakpoint = bp;
 		}
 		
 		public Breakpoint Breakpoint {
-			get { return bp; }
+			get; private set;
 		}
 	}
 }

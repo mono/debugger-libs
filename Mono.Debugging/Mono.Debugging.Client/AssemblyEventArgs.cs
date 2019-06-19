@@ -28,17 +28,15 @@ using System;
 
 namespace Mono.Debugging.Client
 {
-	public class AssemblyEventArgs: EventArgs
+	public class AssemblyEventArgs : EventArgs
 	{
-		string location;
-
 		public AssemblyEventArgs (string location)
 		{
-			this.location = location;
+			Location = location;
 		}
 
 		public string Location {
-			get { return location; }
+			get; private set;
 		}
 	}
 }

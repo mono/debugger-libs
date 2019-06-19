@@ -29,17 +29,15 @@ using System;
 
 namespace Mono.Debugging.Client
 {
-	public class CatchpointEventArgs: EventArgs
+	public class CatchpointEventArgs : EventArgs
 	{
-		Catchpoint cp;
-		
 		public CatchpointEventArgs (Catchpoint cp)
 		{
-			this.cp = cp;
+			Catchpoint = cp;
 		}
 		
 		public Catchpoint Catchpoint {
-			get { return cp; }
+			get; private set;
 		}
 	}
 }

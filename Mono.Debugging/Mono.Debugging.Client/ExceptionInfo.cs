@@ -232,9 +232,9 @@ namespace Mono.Debugging.Client
 
 		public override string ToString ()
 		{
-			StringBuilder sb = new StringBuilder ();
+			var sb = new StringBuilder ();
 			var chain = new List<ExceptionInfo> ();
-			ExceptionInfo e = this;
+			var e = this;
 
 			while (e != null) {
 				chain.Insert (0, e);
@@ -285,7 +285,7 @@ namespace Mono.Debugging.Client
 
 		public string File {
 			get {
-				ObjectValue file = frame.GetChild ("File", EvaluationOptions.DefaultOptions);
+				var file = frame.GetChild ("File", EvaluationOptions.DefaultOptions);
 				if (file != null)
 					return file.Value;
 
@@ -295,7 +295,7 @@ namespace Mono.Debugging.Client
 
 		public int Line {
 			get {
-				ObjectValue val = frame.GetChild ("Line", EvaluationOptions.DefaultOptions);
+				var val = frame.GetChild ("Line", EvaluationOptions.DefaultOptions);
 				if (val != null)
 					return int.Parse (val.Value);
 
@@ -305,7 +305,7 @@ namespace Mono.Debugging.Client
 
 		public int Column {
 			get {
-				ObjectValue val = frame.GetChild ("Column", EvaluationOptions.DefaultOptions);
+				var val = frame.GetChild ("Column", EvaluationOptions.DefaultOptions);
 				if (val != null)
 					return int.Parse (val.Value);
 
@@ -318,4 +318,3 @@ namespace Mono.Debugging.Client
 		}
 	}
 }
-

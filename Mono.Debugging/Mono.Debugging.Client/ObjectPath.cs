@@ -56,24 +56,24 @@ namespace Mono.Debugging.Client
 		{
 			if (path != null)
 				return path;
-			else
-				return new string [0];
+
+			return new string [0];
 		}
-		
+
 		public ObjectPath GetSubpath (int start)
 		{
 			if (start == 0)
 				return this;
-			else {
-				string[] newPath = new string [path.Length - start];
-				Array.Copy (path, start, newPath, 0, newPath.Length);
-				return new ObjectPath (newPath);
-			}
+
+			var newPath = new string [path.Length - start];
+			Array.Copy (path, start, newPath, 0, newPath.Length);
+
+			return new ObjectPath (newPath);
 		}
 		
 		public ObjectPath Append (string name)
 		{
-			string[] newPath = new string [path.Length + 1];
+			var newPath = new string [path.Length + 1];
 			Array.Copy (path, newPath, path.Length);
 			newPath [path.Length] = name;
 			return new ObjectPath (newPath);
@@ -83,8 +83,8 @@ namespace Mono.Debugging.Client
 			get {
 				if (Length == 0)
 					return "";
-				else
-					return path [path.Length - 1];
+
+				return path[path.Length - 1];
 			}
 		}
 		

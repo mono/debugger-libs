@@ -235,7 +235,7 @@ namespace Mono.Debugging.Client
 				if (IsReadOnly || source == null)
 					throw new InvalidOperationException ("Value is not editable");
 
-				EvaluationResult res = source.SetValue (path, value, null);
+				var res = source.SetValue (path, value, null);
 				if (res != null) {
 					this.value = res.Value;
 					displayValue = res.DisplayValue;
@@ -284,7 +284,8 @@ namespace Mono.Debugging.Client
 		{
 			if (IsReadOnly || source == null)
 				throw new InvalidOperationException ("Value is not editable");
-			EvaluationResult res = source.SetValue (path, value, options);
+
+			var res = source.SetValue (path, value, options);
 			if (res != null) {
 				this.value = res.Value;
 				displayValue = res.DisplayValue;
@@ -306,7 +307,7 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public object GetRawValue ()
 		{
-			EvaluationOptions ops = parentFrame.DebuggerSession.EvaluationOptions.Clone ();
+			var ops = parentFrame.DebuggerSession.EvaluationOptions.Clone ();
 			ops.EllipsizeStrings = false;
 			
 			return GetRawValue (ops);
@@ -332,13 +333,14 @@ namespace Mono.Debugging.Client
 		{
 			if (source == null && (IsEvaluating || IsEvaluatingGroup)) {
 				if (!WaitHandle.WaitOne (options.EvaluationTimeout)) {
-					throw new Mono.Debugging.Evaluation.TimeOutException ();
+					throw new Evaluation.TimeOutException ();
 				}
 			}
-			object res = source.GetRawValue (path, options);
-			IRawObject val = res as IRawObject;
-			if (val != null)
-				val.Connect (parentFrame.DebuggerSession, options);
+
+			var res = source.GetRawValue (path, options);
+			if (res is IRawObject raw)
+				raw.Connect (parentFrame.DebuggerSession, options);
+
 			return res;
 		}
 		
@@ -372,7 +374,7 @@ namespace Mono.Debugging.Client
 		{
 			if (source == null && (IsEvaluating || IsEvaluatingGroup)) {
 				if (!WaitHandle.WaitOne (options.EvaluationTimeout)) {
-					throw new Mono.Debugging.Evaluation.TimeOutException ();
+					throw new Evaluation.TimeOutException ();
 				}
 			}
 			source.SetRawValue (path, value, options);
@@ -474,7 +476,7 @@ namespace Mono.Debugging.Client
 				children = new List<ObjectValue> ();
 				if (source != null) {
 					try {
-						ObjectValue[] cs = source.GetChildren (path, -1, -1, options);
+						var cs = source.GetChildren (path, -1, -1, options);
 						ConnectCallbacks (parentFrame, cs);
 						children.AddRange (cs);
 					} catch (Exception ex) {
@@ -484,9 +486,9 @@ namespace Mono.Debugging.Client
 				}
 			}
 			
-			foreach (ObjectValue ob in children) {
-				if (ob.Name == name)
-					return ob;
+			foreach (var child in children) {
+				if (child.Name == name)
+					return child;
 			}
 			
 			return null;
@@ -526,7 +528,7 @@ namespace Mono.Debugging.Client
 				children = new List<ObjectValue> ();
 				if (source != null) {
 					try {
-						ObjectValue[] cs = source.GetChildren (path, -1, -1, options);
+						var cs = source.GetChildren (path, -1, -1, options);
 						ConnectCallbacks (parentFrame, cs);
 						children.AddRange (cs);
 					} catch (Exception ex) {
@@ -554,7 +556,7 @@ namespace Mono.Debugging.Client
 				GetArrayItem (arrayCount - 1);
 				if (index >= ArrayCount)
 					return new ObjectValue[0];
-				return children.Skip (index).Take (System.Math.Min (count, ArrayCount - index)).ToArray ();
+				return children.Skip (index).Take (Math.Min (count, ArrayCount - index)).ToArray ();
 			}
 
 			if (children == null) {
@@ -577,7 +579,7 @@ namespace Mono.Debugging.Client
 			if (index >= children.Count)
 				return new ObjectValue[0];
 
-			return children.Skip (index).Take (System.Math.Min (count, children.Count - index)).ToArray ();
+			return children.Skip (index).Take (Math.Min (count, children.Count - index)).ToArray ();
 		}
 		
 		/// <summary>
@@ -826,7 +828,7 @@ namespace Mono.Debugging.Client
 				val.updater = parentFrame.DebuggerSession.WrapDebuggerObject (val.updater);
 				val.parentFrame = parentFrame;
 
-				UpdateCallback cb = val.GetUpdateCallback ();
+				var cb = val.GetUpdateCallback ();
 				if (cb != null) {
 					if (callbacks == null)
 						callbacks = new Dictionary<IObjectValueUpdater, List<UpdateCallback>> ();

@@ -26,7 +26,6 @@
 //
 //
 
-
 using System;
 using System.Threading;
 using System.Collections.Generic;
@@ -329,9 +328,9 @@ namespace Mono.Debugging.Client
 		public void Run (DebuggerStartInfo startInfo, DebuggerSessionOptions options)
 		{
 			if (startInfo == null)
-				throw new ArgumentNullException ("startInfo");
+				throw new ArgumentNullException (nameof (startInfo));
 			if (options == null)
-				throw new ArgumentNullException ("options");
+				throw new ArgumentNullException (nameof (options));
 			
 			lock (slock) {
 				this.options = options;
@@ -365,9 +364,9 @@ namespace Mono.Debugging.Client
 		public void AttachToProcess (ProcessInfo proc, DebuggerSessionOptions options)
 		{
 			if (proc == null)
-				throw new ArgumentNullException ("proc");
+				throw new ArgumentNullException (nameof (proc));
 			if (options == null)
-				throw new ArgumentNullException ("options");
+				throw new ArgumentNullException (nameof (options));
 			
 			lock (slock) {
 				this.options = options;
@@ -550,16 +549,16 @@ namespace Mono.Debugging.Client
 		public void SetNextStatement (string fileName, int line, int column)
 		{
 			if (fileName == null)
-				throw new ArgumentNullException ("fileName");
+				throw new ArgumentNullException (nameof (fileName));
 
 			if (fileName.Length == 0)
-				throw new ArgumentException ("Path cannot be empty.", "fileName");
+				throw new ArgumentException ("Path cannot be empty.", nameof (fileName));
 
 			if (line < 1)
-				throw new ArgumentOutOfRangeException ("line");
+				throw new ArgumentOutOfRangeException (nameof (line));
 
 			if (column < 1)
-				throw new ArgumentOutOfRangeException ("column");
+				throw new ArgumentOutOfRangeException (nameof (column));
 
 			if (!IsConnected || IsRunning || !CanSetNextStatement)
 				throw new NotSupportedException ();
@@ -574,7 +573,7 @@ namespace Mono.Debugging.Client
 		public void SetNextStatement (int ilOffset)
 		{
 			if (ilOffset < 0)
-				throw new ArgumentOutOfRangeException ("ilOffset");
+				throw new ArgumentOutOfRangeException (nameof (ilOffset));
 
 			if (!IsConnected || IsRunning || !CanSetNextStatement)
 				throw new NotSupportedException ();

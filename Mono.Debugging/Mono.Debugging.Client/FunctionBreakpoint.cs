@@ -176,12 +176,12 @@ namespace Mono.Debugging.Client
 		public string[] ParamTypes {
 			get; set;
 		}
-		
+
 		public override void CopyFrom (BreakEvent ev)
 		{
 			base.CopyFrom (ev);
 			
-			FunctionBreakpoint bp = (FunctionBreakpoint) ev;
+			var bp = (FunctionBreakpoint) ev;
 			FunctionName = bp.FunctionName;
 			ParamTypes = bp.ParamTypes;
 		}

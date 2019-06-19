@@ -138,7 +138,7 @@ namespace Mono.Debugging.Client
 		
 		public bool RunCustomBreakpointAction (string actionId)
 		{
-			BreakEventHitHandler h = session.CustomBreakEventHitHandler;
+			var h = session.CustomBreakEventHitHandler;
 			return h != null && h (actionId, BreakEvent);
 		}
 		

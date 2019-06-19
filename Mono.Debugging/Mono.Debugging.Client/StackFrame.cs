@@ -1,7 +1,8 @@
 using System;
 using System.Text;
-using Mono.Debugging.Backend;
 using System.Threading;
+
+using Mono.Debugging.Backend;
 
 namespace Mono.Debugging.Client
 {

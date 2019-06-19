@@ -126,7 +126,7 @@ namespace Mono.Debugging.Client
 
 		internal void SetFileName (string newFileName)
 		{
-			this.fileName = newFileName;
+			fileName = newFileName;
 		}
 
 		internal void SetAdjustedColumn (int newColumn)
