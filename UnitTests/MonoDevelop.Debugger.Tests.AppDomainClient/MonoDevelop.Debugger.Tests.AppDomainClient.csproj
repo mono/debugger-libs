@@ -7,7 +7,9 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>MonoDevelop.Debugger.Tests.AppDomainClient</RootNamespace>
     <AssemblyName>MonoDevelop.Debugger.Tests.AppDomainClient</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
