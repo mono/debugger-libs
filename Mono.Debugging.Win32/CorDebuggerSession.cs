@@ -1417,7 +1417,7 @@ namespace Mono.Debugging.Win32
 				arguments.CopyTo (args, 1);
 			}
 
-			CorMethodCall mc = new CorMethodCall ();
+			CorMethodCall mc = new CorMethodCall (ctx);
 			CorValue exception = null;
 			CorEval eval = ctx.Eval;
 

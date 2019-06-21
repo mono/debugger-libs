@@ -19,6 +19,10 @@ namespace Mono.Debugging.Win32
 			get { return OnGetDescription (); }
 		}
 
+		public CorMethodCall (CorEvaluationContext ctx) : base (ctx)
+		{
+		}
+
 		public override void Invoke ( )
 		{
 			OnInvoke ();

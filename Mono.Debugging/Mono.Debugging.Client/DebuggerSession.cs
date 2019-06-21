@@ -1731,6 +1731,8 @@ namespace Mono.Debugging.Client
 		public bool IsBusy { get; internal set; }
 		
 		public string Description { get; internal set; }
+
+		public EvaluationContext EvaluationContext { get; internal set; }
 	}
 	
 	public interface IConnectionDialog : IDisposable
