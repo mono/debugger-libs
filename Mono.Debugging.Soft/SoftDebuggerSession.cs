@@ -736,6 +736,7 @@ namespace Mono.Debugging.Soft
 
 		internal PortablePdbData GetPdbData (AssemblyMirror asm)
 		{
+			var guid = asm.ManifestModule.ModuleVersionId;
 			string assemblyFileName;
 			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
 				assemblyFileName = asm.Location;
@@ -2247,7 +2248,6 @@ namespace Mono.Debugging.Soft
 
 		SourceLocation GetSourceLocation (MDB.StackFrame frame)
 		{
-			var pdb = GetPdbData (frame.Method);
 			return new SourceLocation (frame.Method.Name, frame.FileName, frame.LineNumber, frame.ColumnNumber, frame.EndLineNumber, frame.EndColumnNumber);
 		}
 
