@@ -5,6 +5,19 @@ using System.Security.Cryptography;
 
 namespace Mono.Debugging.Client
 {
+
+	[Serializable]
+	public class SourceLink
+	{
+		public string From { get; private set; }
+		public string To { get; private set; }
+		public SourceLink (string from, string to)
+		{
+			From = from;
+			To = to;
+		}
+	}
+
 	[Serializable]
 	public class SourceLocation
 	{
@@ -15,6 +28,7 @@ namespace Mono.Debugging.Client
 		public int EndLine { get; private set; }
 		public int EndColumn { get; private set; }
 		public byte[] FileHash { get; private set; }
+		public SourceLink SourceLink { get; private set; }
 
 		[Obsolete]
 		public SourceLocation (string methodName, string fileName, int line)
@@ -22,7 +36,7 @@ namespace Mono.Debugging.Client
 		{
 		}
 
-		public SourceLocation (string methodName, string fileName, int line, int column, int endLine, int endColumn, byte[] hash = null)
+		public SourceLocation (string methodName, string fileName, int line, int column, int endLine, int endColumn, byte[] hash = null, SourceLink sourceLink = null)
 		{
 			this.MethodName = methodName;
 			this.FileName = fileName;
@@ -31,6 +45,7 @@ namespace Mono.Debugging.Client
 			this.EndLine = endLine;
 			this.EndColumn = endColumn;
 			this.FileHash = hash;
+			this.SourceLink = sourceLink;
 		}
 		
 		public override string ToString ()

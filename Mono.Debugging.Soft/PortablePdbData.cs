@@ -32,6 +32,8 @@ using System.Runtime.CompilerServices;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
+using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Soft
 {
@@ -70,6 +72,36 @@ namespace Mono.Debugging.Soft
 			public int LiveRangeStart;
 
 			public int LiveRangeEnd;
+		}
+
+		class JsonSourceLink
+		{
+			[JsonProperty ("documents")]
+			public Dictionary<string, string> Maps { get; set; }
+		}
+
+		public SourceLink GetSourceLink ()
+		{
+			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (var provider = MetadataReaderProvider.FromPortablePdbStream (fs)) {
+				var pdbReader = provider.GetMetadataReader ();
+
+				var jsonBlob =
+					(from cdiHandle in pdbReader.GetCustomDebugInformation (EntityHandle.ModuleDefinition)
+					 let cdi = pdbReader.GetCustomDebugInformation (cdiHandle)
+					 where pdbReader.GetGuid (cdi.Kind) == SourceLink
+					 select pdbReader.GetBlobBytes (cdi.Value)).FirstOrDefault ();
+
+				if (jsonBlob == null)
+					return null;
+
+				var jsonString = System.Text.Encoding.UTF8.GetString (jsonBlob);
+				var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
+				// Do we ever get more than one key value???
+				var kv = jsonSourceLink.Maps.First ();
+				return new SourceLink (kv.Key, kv.Value);
+
+			}
 		}
 
 		// We need proxy method to make sure VS2013/15 doesn't crash(this method won't be called if portable .pdb file doesn't exist, which means 2017+)

@@ -2245,8 +2245,9 @@ namespace Mono.Debugging.Soft
 			return sb.ToString ();
 		}
 
-		static SourceLocation GetSourceLocation (MDB.StackFrame frame)
+		SourceLocation GetSourceLocation (MDB.StackFrame frame)
 		{
+			var pdb = GetPdbData (frame.Method);
 			return new SourceLocation (frame.Method.Name, frame.FileName, frame.LineNumber, frame.ColumnNumber, frame.EndLineNumber, frame.EndColumnNumber);
 		}
 
