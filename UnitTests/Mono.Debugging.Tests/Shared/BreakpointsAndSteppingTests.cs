@@ -619,10 +619,10 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("22af08d6-dafc-47f1-b8d1-bee1526840fd", statement: "button.SetTitle");
 			StartTest ("BreakpointInsideOneLineDelegate");
 			CheckPosition ("67ae4cce-22b3-49d8-8221-7e5b26a5e79b");
-			if (IsVsDebugger) {
-				StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb", -1);
-				StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb");
-			}
+			//if (IsVsDebugger) {
+			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb", -1);
+			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb");
+			//}
 			StepOver ("22af08d6-dafc-47f1-b8d1-bee1526840fd", "button.SetTitle");
 			StepOut ("3be64647-76c1-455b-a4a7-a21b37383dcb");
 			StepOut ("67ae4cce-22b3-49d8-8221-7e5b26a5e79b");
@@ -636,10 +636,10 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("b6a65e9e-5db2-4850-969a-b3747b2459af", 1);
 			StartTest ("BreakpointInsideOneLineDelegateAsync");
 			CheckPosition ("b6a65e9e-5db2-4850-969a-b3747b2459af", 1);
-			if (IsVsDebugger) {
-				StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb", -1);
-				StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb");
-			}
+			//if (IsVsDebugger) {
+			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb", -1);
+			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb");
+			//}
 			StepOver ("b6a65e9e-5db2-4850-969a-b3747b2459af", "button.SetTitle");
 			if (IsCorDebugger) {
 				StepOut ("3be64647-76c1-455b-a4a7-a21b37383dcb", 1);//Feels like CorDebugger bug
@@ -1285,10 +1285,7 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5");
 			StartTest ("TestBug21410");
 			CheckPosition ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5");
-			if (IsVsDebugger)
-				StepOver ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5", 6); //VS StepOver seems to be more like StepIn
-			else
-				StepOver ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5", 1);
+			StepOver ("5e6663d0-9088-40ad-914d-0fcc05b2d0d5", 1);
 		}
 
 		[Test]
