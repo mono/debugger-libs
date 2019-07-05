@@ -602,10 +602,10 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("e72a2fa6-2d95-4f96-b3d0-ba321da3cb55", statement: "Console.WriteLine");
 			StartTest ("BreakpointInsideOneLineDelegateNoDisplayClass");
 			CheckPosition ("e0a96c37-577f-43e3-9a20-2cdd8bf7824e");
-			if (IsVsDebugger) {
-				StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb", -1);
-				StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb");
-			}
+			//if (IsVsDebugger) {
+			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb", -1);
+			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb");
+			//}
 			StepOver ("e72a2fa6-2d95-4f96-b3d0-ba321da3cb55", "Console.WriteLine");
 			StepOut ("3be64647-76c1-455b-a4a7-a21b37383dcb");
 			StepOut ("e0a96c37-577f-43e3-9a20-2cdd8bf7824e");
@@ -661,12 +661,12 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("b73bec88-2c43-4157-8574-ad517730bc74");
 			StartTest ("ForeachEnumerable");
 			CheckPosition ("b73bec88-2c43-4157-8574-ad517730bc74");
-			if (IsVsDebugger) {
-				StepOver ("3722cad3-7da1-4c86-a398-bb2cf6cc65a9", -3); // private string oneLineProperty = "";
-				StepOver ("3722cad3-7da1-4c86-a398-bb2cf6cc65a9", 4); // private string multiLineProperty = "";
-				StepOver ("c25be44e-ead3-4891-ab42-0e4cf8450f7a", 10); // private ScrollView myScrollView = new ScrollView ();
-				StepOver ("b73bec88-2c43-4157-8574-ad517730bc74"); // var testClass = new TestClass ();
-			}
+			//if (IsVsDebugger) {
+			//	StepOver ("3722cad3-7da1-4c86-a398-bb2cf6cc65a9", -3); // private string oneLineProperty = "";
+			//	StepOver ("3722cad3-7da1-4c86-a398-bb2cf6cc65a9", 4); // private string multiLineProperty = "";
+			//	StepOver ("c25be44e-ead3-4891-ab42-0e4cf8450f7a", 10); // private ScrollView myScrollView = new ScrollView ();
+			//	StepOver ("b73bec88-2c43-4157-8574-ad517730bc74"); // var testClass = new TestClass ();
+			//}
 			StepOver ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "foreach");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "testClass.Iter_1");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
