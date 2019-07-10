@@ -53,7 +53,7 @@ namespace Mono.Debugging.Soft
 			if (frame.Method.DeclaringType != null)
 				method = frame.Method.DeclaringType.FullName + "." + method;
 			var pdb = session.GetPdbData (frame.Method);
-			var sourceLink = pdb?.GetSourceLink ();
+			var sourceLink = pdb?.SourceLink;
 			var location = new DC.SourceLocation (method, frame.FileName, frame.LineNumber, frame.ColumnNumber, frame.EndLineNumber, frame.EndColumnNumber, frame.Location.SourceFileHash, sourceLink);
 			string language;
 

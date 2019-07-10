@@ -46,8 +46,10 @@ namespace Mono.Debugging.Soft
 		public static readonly Guid DefaultNamespace = new Guid ("58b2eab6-209f-4e4e-a22c-b2d0f910c782");
 		public static readonly Guid EncLocalSlotMap = new Guid ("755F52A8-91C5-45BE-B4B8-209571E552BD");
 		public static readonly Guid EncLambdaAndClosureMap = new Guid ("A643004C-0240-496F-A783-30D64F4979DE");
-		public static readonly Guid SourceLink = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
+		public static readonly Guid SourceLinkGuid = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
 		public static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
+		private Lazy<SourceLink> sourceLink = new Lazy<SourceLink> ();
+		public SourceLink SourceLink { get { return sourceLink.Value; } }
 
 		public static bool IsPortablePdb (string pdbFileName)
 		{
@@ -65,6 +67,7 @@ namespace Mono.Debugging.Soft
 		public PortablePdbData (string pdbFileName)
 		{
 			this.pdbFileName = pdbFileName;
+			sourceLink = new Lazy<SourceLink> (GetSourceLink);
 		}
 
 		internal class SoftScope
@@ -80,7 +83,7 @@ namespace Mono.Debugging.Soft
 			public Dictionary<string, string> Maps { get; set; }
 		}
 
-		public SourceLink GetSourceLink ()
+		SourceLink GetSourceLink ()
 		{
 			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
 			using (var provider = MetadataReaderProvider.FromPortablePdbStream (fs)) {
@@ -89,7 +92,7 @@ namespace Mono.Debugging.Soft
 				var jsonBlob =
 					(from cdiHandle in pdbReader.GetCustomDebugInformation (EntityHandle.ModuleDefinition)
 					 let cdi = pdbReader.GetCustomDebugInformation (cdiHandle)
-					 where pdbReader.GetGuid (cdi.Kind) == SourceLink
+					 where pdbReader.GetGuid (cdi.Kind) == SourceLinkGuid
 					 select pdbReader.GetBlobBytes (cdi.Value)).FirstOrDefault ();
 
 				if (jsonBlob == null)
@@ -97,7 +100,7 @@ namespace Mono.Debugging.Soft
 
 				var jsonString = System.Text.Encoding.UTF8.GetString (jsonBlob);
 				var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
-				// Do we ever get anything other than one key value???
+				// Do we ever get anything other than one key/value???
 				var kv = jsonSourceLink.Maps.FirstOrDefault ();
 				if(kv.Key != null)
 					return new SourceLink (kv.Key, kv.Value);
