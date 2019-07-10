@@ -2,19 +2,51 @@ using System;
 using System.IO;
 using System.Buffers;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace Mono.Debugging.Client
 {
-
 	[Serializable]
 	public class SourceLink
 	{
-		public string From { get; private set; }
-		public string To { get; private set; }
+
+		string from;
+		string pattern;
+		string replacement;
+
+		/// <summary>
+		/// Pair of original base path on disk and HTTP base path
+		/// </summary>
+		/// <param name="from">
+		/// Original base path (with wildcard) used to build the .pdb file, including 
+		/// e.g.  f:/build/*
+		/// </param>
+		/// <param name="to">
+		/// HTTP base path (with wildcard) where files may be downloaded from
+		/// e.g. https://raw.githubusercontent.com/my-org/my-project/1111111111111111111111111111111111111111/*
+		/// </param>
 		public SourceLink (string from, string to)
 		{
-			From = from;
-			To = to;
+			pattern = from.Replace ("*", "").Replace ('\\', '/');
+			replacement = to.Replace ("*", "");
+			this.from = from;
+		}
+
+		public async Task<string> DownloadFile(string fileName, string cachePath)
+		{
+			var localPath = fileName.Replace (pattern.Replace (".*", ""), "");
+
+			var saveTo = Path.Combine(cachePath, localPath);
+			if (!File.Exists (saveTo)) {
+				Directory.GetParent (saveTo).Create ();
+				// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/my-org/my-project/1111111111111111111111111111111111111111/*"
+				var httpPath = Regex.Replace (fileName, pattern, replacement);
+				var client = new WebClient ();
+				await client.DownloadFileTaskAsync (httpPath, saveTo);
+			}
+			return saveTo;
 		}
 	}
 

@@ -97,8 +97,9 @@ namespace Mono.Debugging.Soft
 
 				var jsonString = System.Text.Encoding.UTF8.GetString (jsonBlob);
 				var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
-				// Do we ever get more than one key value???
-				var kv = jsonSourceLink.Maps.First ();
+				// Do we ever get anything other than one key value???
+				var kv = jsonSourceLink.Maps.FirstOrDefault ();
+
 				return new SourceLink (kv.Key, kv.Value);
 
 			}

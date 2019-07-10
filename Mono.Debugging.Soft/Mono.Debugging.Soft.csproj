@@ -62,6 +62,7 @@
     <Compile Include="ThisValueReference.cs" />
     <Compile Include="FieldReferenceBatch.cs" />
     <Compile Include="PortablePdbData.cs" />
+    <Compile Include="Tracer.cs" />
   </ItemGroup>
   <PropertyGroup>
     <NuGetVersionRoslyn Condition="$(NuGetVersionRoslyn) == ''">2.10.0</NuGetVersionRoslyn>
@@ -80,6 +81,14 @@
     <Reference Include="System.Core" />
     <Reference Condition=" '$(OS)' != 'Windows_NT' " Include="Mono.Posix" />
     <PackageReference Condition=" '$(OS)' == 'Windows_NT' " Include="Mono.Posix-4.5" Version="4.5.0" />
+    <Reference Include="Microsoft.FileFormats">
+      <HintPath>..\..\..\src\Microsoft.FileFormats.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.SymbolStore">
+      <HintPath>..\..\..\src\Microsoft.SymbolStore.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Mono.Debugging.settings" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
