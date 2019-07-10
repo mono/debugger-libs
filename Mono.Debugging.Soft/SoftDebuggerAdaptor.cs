@@ -570,6 +570,7 @@ namespace Mono.Debugging.Soft
 
 		public object CreateByteArray (EvaluationContext ctx, byte [] byts)
 		{
+			var cx = (SoftEvaluationContext)ctx;
 			if (Session.VirtualMachine.Version.AtLeast (2, 52)) {
 				return cx.Domain.CreateByteArray (byts);
 			}
