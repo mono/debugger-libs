@@ -29,7 +29,6 @@ using Mono.Debugger.Soft;
 using System.IO;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
-using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -39,16 +38,17 @@ namespace Mono.Debugging.Soft
 {
 	class PortablePdbData
 	{
-		public static readonly Guid AsyncMethodSteppingInformationBlob = new Guid ("54FD2AC5-E925-401A-9C2A-F94F171072F8");
-		public static readonly Guid StateMachineHoistedLocalScopes = new Guid ("6DA9A61E-F8C7-4874-BE62-68BC5630DF71");
-		public static readonly Guid DynamicLocalVariables = new Guid ("83C563C4-B4F3-47D5-B824-BA5441477EA8");
-		public static readonly Guid TupleElementNames = new Guid ("ED9FDF71-8879-4747-8ED3-FE5EDE3CE710");
-		public static readonly Guid DefaultNamespace = new Guid ("58b2eab6-209f-4e4e-a22c-b2d0f910c782");
-		public static readonly Guid EncLocalSlotMap = new Guid ("755F52A8-91C5-45BE-B4B8-209571E552BD");
-		public static readonly Guid EncLambdaAndClosureMap = new Guid ("A643004C-0240-496F-A783-30D64F4979DE");
-		public static readonly Guid SourceLinkGuid = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
-		public static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
-		private Lazy<SourceLink> sourceLink = new Lazy<SourceLink> ();
+		static readonly Guid AsyncMethodSteppingInformationBlob = new Guid ("54FD2AC5-E925-401A-9C2A-F94F171072F8");
+		static readonly Guid StateMachineHoistedLocalScopes = new Guid ("6DA9A61E-F8C7-4874-BE62-68BC5630DF71");
+		static readonly Guid DynamicLocalVariables = new Guid ("83C563C4-B4F3-47D5-B824-BA5441477EA8");
+		static readonly Guid TupleElementNames = new Guid ("ED9FDF71-8879-4747-8ED3-FE5EDE3CE710");
+		static readonly Guid DefaultNamespace = new Guid ("58b2eab6-209f-4e4e-a22c-b2d0f910c782");
+		static readonly Guid EncLocalSlotMap = new Guid ("755F52A8-91C5-45BE-B4B8-209571E552BD");
+		static readonly Guid EncLambdaAndClosureMap = new Guid ("A643004C-0240-496F-A783-30D64F4979DE");
+		static readonly Guid SourceLinkGuid = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
+		static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
+
+		Lazy<SourceLink> sourceLink;
 		public SourceLink SourceLink { get { return sourceLink.Value; } }
 
 		public static bool IsPortablePdb (string pdbFileName)

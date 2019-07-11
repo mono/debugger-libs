@@ -112,6 +112,7 @@ namespace Mono.Debugging.Soft
 		bool disposed;
 		bool started;
 
+		MyTracer tracer = new MyTracer();
 		internal int StackVersion;
 
 		public SoftDebuggerAdaptor Adaptor {
@@ -741,7 +742,6 @@ namespace Mono.Debugging.Soft
 
 		IEnumerable<KeyGenerator> GetKeyGenerators(string inputFile)
 		{
-			var tracer = new MyTracer ();
 			using (Stream inputStream = File.Open (inputFile, FileMode.Open, FileAccess.Read, FileShare.Read)) {
 
 				var file = new SymbolStoreFile (inputStream, inputFile);
@@ -755,7 +755,6 @@ namespace Mono.Debugging.Soft
 		}
 		internal PortablePdbData GetPdbData (AssemblyMirror asm)
 		{
-			var tracer = new MyTracer ();
 			string assemblyFileName;
 			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
 				assemblyFileName = asm.Location;
