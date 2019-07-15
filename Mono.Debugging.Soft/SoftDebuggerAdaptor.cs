@@ -570,20 +570,26 @@ namespace Mono.Debugging.Soft
 
 		public object CreateByteArray (EvaluationContext ctx, byte [] byts)
 		{
-			var arrayType = GetType (ctx, "System.Array");
-			var int32Type = GetType (ctx, "System.Int32");
-			var typeType = GetType (ctx, "System.Type");
-			var stringType = GetType (ctx, "System.String");
-			var byteTypeValue = RuntimeInvoke (ctx, typeType, null, "GetType", new object [] { stringType }, new object [] { CreateValue (ctx, "System.Byte") });
+			var cx = (SoftEvaluationContext)ctx;
+			if (Session.VirtualMachine.Version.AtLeast (2, 52)) {
+				return cx.Domain.CreateByteArray (byts);
+			}
+			else {
+				var arrayType = GetType (ctx, "System.Array");
+				var int32Type = GetType (ctx, "System.Int32");
+				var typeType = GetType (ctx, "System.Type");
+				var stringType = GetType (ctx, "System.String");
+				var byteTypeValue = RuntimeInvoke (ctx, typeType, null, "GetType", new object [] { stringType }, new object [] { CreateValue (ctx, "System.Byte") });
 
-			var byteType = ctx.Adapter.GetType (ctx, "System.Byte");
-			var n = CreateValue (ctx, byts.Length);
-			var args = new object [] { byteTypeValue, n };
-			var arr = RuntimeInvoke (ctx, arrayType, null, "CreateInstance", new object [] { typeType, int32Type }, args);
-			if (arr is ArrayMirror) {
-				var arrm = arr as ArrayMirror;
-				arrm.SetByteValues (byts);
-				return arr;
+				var byteType = ctx.Adapter.GetType (ctx, "System.Byte");
+				var n = CreateValue (ctx, byts.Length);
+				var args = new object [] { byteTypeValue, n };
+				var arr = RuntimeInvoke (ctx, arrayType, null, "CreateInstance", new object [] { typeType, int32Type }, args);
+				if (arr is ArrayMirror) {
+					var arrm = arr as ArrayMirror;
+					arrm.SetByteValues (byts);
+					return arr;
+				}
 			}
 			return null;
 		}
