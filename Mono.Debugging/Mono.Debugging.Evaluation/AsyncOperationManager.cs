@@ -34,7 +34,7 @@ namespace Mono.Debugging.Evaluation
 {
 	public class AsyncOperationManager: IDisposable
 	{
-		List<AsyncOperation> operationsToCancel = new List<AsyncOperation> ();
+		readonly List<AsyncOperation> operationsToCancel = new List<AsyncOperation> ();
 		internal bool Disposing;
 
 		public void Invoke (AsyncOperation methodCall, int timeout)
@@ -49,16 +49,19 @@ namespace Mono.Debugging.Evaluation
 
 			if (timeout > 0) {
 				if (!methodCall.WaitForCompleted (timeout)) {
-					bool wasAborted = methodCall.Aborted;
+					var wasAborted = methodCall.Aborted;
+
 					methodCall.InternalAbort ();
+
 					lock (operationsToCancel) {
 						operationsToCancel.Remove (methodCall);
 						ST.Monitor.PulseAll (operationsToCancel);
 					}
+
 					if (wasAborted)
 						throw new EvaluatorAbortedException ();
-					else
-						throw new TimeOutException ();
+
+					throw new TimeOutException ();
 				}
 			}
 			else {
@@ -77,12 +80,12 @@ namespace Mono.Debugging.Evaluation
 				throw new Exception (methodCall.ExceptionMessage);
 			}
 		}
-		
+
 		public void Dispose ()
 		{
 			Disposing = true;
 			lock (operationsToCancel) {
-				foreach (AsyncOperation op in operationsToCancel) {
+				foreach (var op in operationsToCancel) {
 					op.InternalShutdown ();
 				}
 				operationsToCancel.Clear ();
@@ -92,27 +95,31 @@ namespace Mono.Debugging.Evaluation
 		public void AbortAll ()
 		{
 			lock (operationsToCancel) {
-				foreach (AsyncOperation op in operationsToCancel)
+				foreach (var op in operationsToCancel)
 					op.InternalAbort ();
 			}
 		}
-		
+
 		public void EnterBusyState (AsyncOperation oper)
 		{
-			BusyStateEventArgs args = new BusyStateEventArgs ();
-			args.IsBusy = true;
-			args.Description = oper.Description;
-			if (BusyStateChanged != null)
-				BusyStateChanged (this, args);
+			var args = new BusyStateEventArgs {
+				IsBusy = true,
+				Description = oper.Description,
+				EvaluationContext = oper.EvaluationContext
+			};
+
+			BusyStateChanged?.Invoke (this, args);
 		}
 		
 		public void LeaveBusyState (AsyncOperation oper)
 		{
-			BusyStateEventArgs args = new BusyStateEventArgs ();
-			args.IsBusy = false;
-			args.Description = oper.Description;
-			if (BusyStateChanged != null)
-				BusyStateChanged (this, args);
+			var args = new BusyStateEventArgs {
+				IsBusy = false,
+				Description = oper.Description,
+				EvaluationContext = oper.EvaluationContext
+			};
+
+			BusyStateChanged?.Invoke (this, args);
 		}
 		
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
@@ -120,11 +127,20 @@ namespace Mono.Debugging.Evaluation
 
 	public abstract class AsyncOperation
 	{
-		internal bool Aborted;
 		internal AsyncOperationManager Manager;
-		
+		internal bool Aborted;
+
 		public bool Aborting { get; internal set; }
-		
+
+		public EvaluationContext EvaluationContext {
+			get; private set;
+		}
+
+		protected AsyncOperation (EvaluationContext ctx)
+		{
+			EvaluationContext = ctx;
+		}
+
 		internal void InternalAbort ()
 		{
 			ST.Monitor.Enter (this);

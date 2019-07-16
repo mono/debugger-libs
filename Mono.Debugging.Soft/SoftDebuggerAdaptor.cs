@@ -2754,7 +2754,6 @@ namespace Mono.Debugging.Soft
 		readonly InvokeOptions options = InvokeOptions.DisableBreakpoints;
 
 		readonly ManualResetEvent shutdownEvent = new ManualResetEvent (false);
-		readonly SoftEvaluationContext ctx;
 		readonly MethodMirror function;
 		readonly Value[] args;
 		readonly object obj;
@@ -2762,9 +2761,8 @@ namespace Mono.Debugging.Soft
 		Exception exception;
 		InvokeResult result;
 		
-		public MethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args, bool enableOutArgs)
+		public MethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args, bool enableOutArgs) : base (ctx)
 		{
-			this.ctx = ctx;
 			this.function = function;
 			this.obj = obj;
 			this.args = args;
@@ -2784,6 +2782,8 @@ namespace Mono.Debugging.Soft
 
 		public override void Invoke ()
 		{
+			var ctx = (SoftEvaluationContext) EvaluationContext;
+
 			try {
 				if (obj is ObjectMirror)
 					handle = ((ObjectMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
@@ -2824,6 +2824,8 @@ namespace Mono.Debugging.Soft
 		
 		void EndInvoke ()
 		{
+			var ctx = (SoftEvaluationContext) EvaluationContext;
+
 			try {
 				if (obj is ObjectMirror)
 					result = ((ObjectMirror)obj).EndInvokeMethodWithResult (handle);
