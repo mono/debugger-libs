@@ -5,16 +5,17 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Net;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
 	[Serializable]
 	public class SourceLink
 	{
-
-		string from;
-		string pattern;
-		string replacement;
+		readonly Dictionary<string, string> maps;
+		//string from;
+		//string pattern;
+		//string replacement;
 
 		/// <summary>
 		/// Pair of original base path on disk and HTTP base path
@@ -27,26 +28,43 @@ namespace Mono.Debugging.Client
 		/// HTTP base path (with wildcard) where files may be downloaded from
 		/// e.g. https://raw.githubusercontent.com/my-org/my-project/1111111111111111111111111111111111111111/*
 		/// </param>
-		public SourceLink (string from, string to)
+		public SourceLink (Dictionary<string, string> maps)
+
 		{
-			pattern = from.Replace ("*", "").Replace ('\\', '/');
-			replacement = to.Replace ("*", "");
-			this.from = from;
+			//pattern = from.Replace ("*", "").Replace ('\\', '/');
+			//replacement = to.Replace ("*", "");
+			//this.from = from;
+			this.maps = maps;
 		}
 
 		public async Task<string> DownloadFile(string fileName, string cachePath)
 		{
-			var localPath = fileName.Replace (pattern.Replace (".*", ""), "");
+			foreach(var kv in maps) {
+		      var 	pattern = kv.Key.Replace ("*", "").Replace ('\\', '/');
 
-			var saveTo = Path.Combine(cachePath, localPath);
-			if (!File.Exists (saveTo)) {
-				Directory.GetParent (saveTo).Create ();
-				// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/my-org/my-project/1111111111111111111111111111111111111111/*"
-				var httpPath = Regex.Replace (fileName, pattern, replacement);
-				var client = new WebClient ();
-				await client.DownloadFileTaskAsync (httpPath, saveTo);
+				if (fileName.StartsWith(pattern)) {
+					var localPath = fileName.Replace (pattern.Replace (".*", ""), "");
+					var httpBasePath = kv.Value.Replace ("*", "");
+					// org/project-name/git-sha (usually)
+					var pathAndQuery = new Uri (httpBasePath).PathAndQuery.Substring(1);
+					Console.WriteLine ($"** REMOVE ME localpath {localPath}");
+					var saveTo = Path.Combine (cachePath, pathAndQuery, localPath);
+					// ~/Library/Caches/VisualStudio/8.0/Symbols/org/projectname/git-sha/path/to/file.cs
+					Console.WriteLine ($"** REMOVE ME cachePath {cachePath}");
+					Console.WriteLine ($"** REMOVE ME saveTo {saveTo}");
+					if (!File.Exists (saveTo)) {
+						Directory.GetParent (saveTo).Create ();
+						// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
+						var httpPath = Regex.Replace (fileName, pattern, httpBasePath);
+						Console.WriteLine ($"** REMOVE ME httpPath {httpPath}");
+						var client = new WebClient ();
+						await client.DownloadFileTaskAsync (httpPath, saveTo);
+					}
+					return saveTo;
+				}
+
 			}
-			return saveTo;
+			return null;
 		}
 	}
 

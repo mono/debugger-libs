@@ -102,10 +102,9 @@ namespace Mono.Debugging.Soft
 				var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
 				// Do we ever get anything other than one key/value???
 				var kv = jsonSourceLink.Maps.FirstOrDefault ();
-				if(kv.Key != null)
-					return new SourceLink (kv.Key, kv.Value);
+				if (jsonSourceLink.Maps != null && jsonSourceLink.Maps.Any())
+					return new SourceLink (jsonSourceLink.Maps);
 				return null;
-
 			}
 		}
 
