@@ -13,27 +13,19 @@ namespace Mono.Debugging.Client
 	public class SourceLink
 	{
 		readonly Dictionary<string, string> maps;
-		//string from;
-		//string pattern;
-		//string replacement;
 
 		/// <summary>
-		/// Pair of original base path on disk and HTTP base path
+		/// Collection of KeyValues of original base path on disk and HTTP base path
 		/// </summary>
 		/// <param name="from">
-		/// Original base path (with wildcard) used to build the .pdb file, including 
-		/// e.g.  f:/build/*
+		/// Original base path (with wildcard) used to build the .pdb file e.g.  f:/build/*
 		/// </param>
 		/// <param name="to">
 		/// HTTP base path (with wildcard) where files may be downloaded from
 		/// e.g. https://raw.githubusercontent.com/my-org/my-project/1111111111111111111111111111111111111111/*
 		/// </param>
 		public SourceLink (Dictionary<string, string> maps)
-
 		{
-			//pattern = from.Replace ("*", "").Replace ('\\', '/');
-			//replacement = to.Replace ("*", "");
-			//this.from = from;
 			this.maps = maps;
 		}
 
@@ -47,16 +39,12 @@ namespace Mono.Debugging.Client
 					var httpBasePath = kv.Value.Replace ("*", "");
 					// org/project-name/git-sha (usually)
 					var pathAndQuery = new Uri (httpBasePath).PathAndQuery.Substring(1);
-					Console.WriteLine ($"** REMOVE ME localpath {localPath}");
 					var saveTo = Path.Combine (cachePath, pathAndQuery, localPath);
 					// ~/Library/Caches/VisualStudio/8.0/Symbols/org/projectname/git-sha/path/to/file.cs
-					Console.WriteLine ($"** REMOVE ME cachePath {cachePath}");
-					Console.WriteLine ($"** REMOVE ME saveTo {saveTo}");
 					if (!File.Exists (saveTo)) {
 						Directory.GetParent (saveTo).Create ();
 						// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
 						var httpPath = Regex.Replace (fileName, pattern, httpBasePath);
-						Console.WriteLine ($"** REMOVE ME httpPath {httpPath}");
 						var client = new WebClient ();
 						await client.DownloadFileTaskAsync (httpPath, saveTo);
 					}
