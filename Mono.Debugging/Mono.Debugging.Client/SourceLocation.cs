@@ -3,12 +3,22 @@ using System.IO;
 using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-using System.Net;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
+	public class SourceLinkDownloadInfo
+	{
+		public string Uri { get; }
+		public string LocalPath { get; }
+
+		public SourceLinkDownloadInfo (string httpBasePath, string localPath)
+		{
+			LocalPath = localPath;
+			Uri = httpBasePath;
+		}
+	}
+
 	[Serializable]
 	public class SourceLink
 	{
@@ -29,31 +39,28 @@ namespace Mono.Debugging.Client
 			this.maps = maps;
 		}
 
-		public async Task<string> DownloadFile(string fileName, string cachePath)
+		public SourceLinkDownloadInfo GetDownloadLocation(string fileName, string cachePath)
 		{
-			foreach(var kv in maps) {
-		      var 	pattern = kv.Key.Replace ("*", "").Replace ('\\', '/');
+			foreach (var kv in maps) {
+				var pattern = kv.Key.Replace ("*", "").Replace ('\\', '/');
 
-				if (fileName.StartsWith(pattern)) {
+				if (fileName.StartsWith(pattern, StringComparison.Ordinal)) {
 					var localPath = fileName.Replace (pattern.Replace (".*", ""), "");
 					var httpBasePath = kv.Value.Replace ("*", "");
 					// org/project-name/git-sha (usually)
-					var pathAndQuery = new Uri (httpBasePath).PathAndQuery.Substring(1);
-					var saveTo = Path.Combine (cachePath, pathAndQuery, localPath);
+					var pathAndQuery = new Uri (httpBasePath).PathAndQuery.Substring (1);
 					// ~/Library/Caches/VisualStudio/8.0/Symbols/org/projectname/git-sha/path/to/file.cs
-					if (!File.Exists (saveTo)) {
-						Directory.GetParent (saveTo).Create ();
-						// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
-						var httpPath = Regex.Replace (fileName, pattern, httpBasePath);
-						var client = new WebClient ();
-						await client.DownloadFileTaskAsync (httpPath, saveTo);
-					}
-					return saveTo;
+					var saveTo = Path.Combine (cachePath, pathAndQuery, localPath);
+					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
+					var httpPath = Regex.Replace (fileName, pattern, httpBasePath);
+					return new SourceLinkDownloadInfo (httpPath, saveTo);
 				}
 
 			}
 			return null;
 		}
+
+
 	}
 
 	[Serializable]
