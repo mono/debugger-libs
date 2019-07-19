@@ -39,7 +39,6 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-using Microsoft.SymbolStore;
 using Mono.CompilerServices.SymbolWriter;
 using Mono.Debugging.Client;
 using Mono.Debugger.Soft;
@@ -47,8 +46,6 @@ using Mono.Debugging.Evaluation;
 using MDB = Mono.Debugger.Soft;
 using System.Security.Cryptography;
 using Mono.Cecil.Cil;
-using Mono.SymClient;
-using Microsoft.SymbolStore.KeyGenerators;
 
 namespace Mono.Debugging.Soft
 {
@@ -112,7 +109,6 @@ namespace Mono.Debugging.Soft
 		bool disposed;
 		bool started;
 
-		MyTracer tracer = new MyTracer();
 		internal int StackVersion;
 
 		public SoftDebuggerAdaptor Adaptor {
@@ -740,54 +736,12 @@ namespace Mono.Debugging.Soft
 
 		readonly static HashSet<string> _validSourceExtensions = new HashSet<string> (new string [] { ".cs", ".vb", ".h", ".cpp", ".inl" });
 
-		IEnumerable<KeyGenerator> GetKeyGenerators(string inputFile)
-		{
-			using (Stream inputStream = File.Open (inputFile, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-
-				var file = new SymbolStoreFile (inputStream, inputFile);
-				string extension = Path.GetExtension (inputFile);
-				if (_validSourceExtensions.Contains (extension)) {
-					yield return new SourceFileKeyGenerator (tracer, file);
-				} else {
-					yield return new FileKeyGenerator (tracer, file);
-				}
-			}
-		}
 		internal PortablePdbData GetPdbData (AssemblyMirror asm)
 		{
 			string assemblyFileName;
 			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
 				assemblyFileName = asm.Location;
 			var pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
-			if (!PortablePdbData.IsPortablePdb (pdbFileName)) {
-				var symbolServer = "https://symbols.nuget.org/download/symbols/";
-				var uri = new Uri (symbolServer);
-				var store = new Microsoft.SymbolStore.SymbolStores.HttpSymbolStore (tracer, null, uri, null);
-				var inputFile = assemblyFileName;
-				var keyGenerators = GetKeyGenerators (inputFile);
-				var tempFolder = "/Users/jasonimison/symbols";
-				foreach (var keyGenerator in keyGenerators) {
-					var keys = keyGenerator.GetKeys (KeyTypeFlags.SymbolKey);
-					foreach (var key in keys) {
-						var destination = Path.Combine (tempFolder, key.Index);
-						if (File.Exists(destination)) {
-							return new PortablePdbData (destination);
-						}
-						var file = store.GetFile (key, CancellationToken.None).Result;
-
-						if(file != null) {
-							Directory.GetParent (destination).Create();
-							using (Stream destinationStream = File.OpenWrite (destination)) {
-								file.Stream.Position = 0;
-								file.Stream.CopyTo (destinationStream);
-								return new PortablePdbData (destination);
-							}
-						}
-					}
-				}
-				return null;
-			}
-
 			return new PortablePdbData (pdbFileName);
 		}
 
