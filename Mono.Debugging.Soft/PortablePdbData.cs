@@ -48,8 +48,8 @@ namespace Mono.Debugging.Soft
 		static readonly Guid SourceLinkGuid = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
 		static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
 
-		Lazy<SourceLink> sourceLink;
-		public SourceLink SourceLink { get { return sourceLink.Value; } }
+		Lazy<IEnumerable<SourceLinkMap>> sourceLinkMaps;
+		public IEnumerable<SourceLinkMap> SourceLinkMaps { get { return sourceLinkMaps.Value; } }
 
 		public static bool IsPortablePdb (string pdbFileName)
 		{
@@ -67,7 +67,7 @@ namespace Mono.Debugging.Soft
 		public PortablePdbData (string pdbFileName)
 		{
 			this.pdbFileName = pdbFileName;
-			sourceLink = new Lazy<SourceLink> (GetSourceLink);
+			sourceLinkMaps = new Lazy<IEnumerable<SourceLinkMap>> (GetSourceLink);
 		}
 
 		internal class SoftScope
@@ -83,7 +83,7 @@ namespace Mono.Debugging.Soft
 			public Dictionary<string, string> Maps { get; set; }
 		}
 
-		SourceLink GetSourceLink ()
+		IEnumerable<SourceLinkMap> GetSourceLink ()
 		{
 			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
 			using (var provider = MetadataReaderProvider.FromPortablePdbStream (fs)) {
@@ -96,15 +96,15 @@ namespace Mono.Debugging.Soft
 					 select pdbReader.GetBlobBytes (cdi.Value)).FirstOrDefault ();
 
 				if (jsonBlob == null)
-					return null;
+					return Array.Empty<SourceLinkMap> ();
 
 				var jsonString = System.Text.Encoding.UTF8.GetString (jsonBlob);
 				var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
-				// Do we ever get anything other than one key/value???
-				var kv = jsonSourceLink.Maps.FirstOrDefault ();
-				if (jsonSourceLink.Maps != null && jsonSourceLink.Maps.Any())
-					return new SourceLink (jsonSourceLink.Maps);
-				return null;
+
+				if (jsonSourceLink.Maps != null && jsonSourceLink.Maps.Any ())
+					return jsonSourceLink.Maps.Select (kv => new SourceLinkMap (kv.Key, kv.Value));
+
+				return Array.Empty<SourceLinkMap> ();
 			}
 		}
 

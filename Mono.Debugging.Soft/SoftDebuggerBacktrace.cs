@@ -189,7 +189,8 @@ namespace Mono.Debugging.Soft
 			}
 			var pdb = session.GetPdbData (frame.Method);
 
-			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber, frame.Location.EndLineNumber, frame.Location.EndColumnNumber, frame.Location.SourceFileHash, pdb?.SourceLink);
+			var sourceLink = SourceLink.FromWildcardReplacement(pdb.SourceLinkMaps, frame.FileName);
+			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber, frame.Location.EndLineNumber, frame.Location.EndColumnNumber, frame.Location.SourceFileHash, sourceLink);
 
 			string addressSpace = string.Empty;
 			bool hasDebugInfo = false;

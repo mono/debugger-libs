@@ -7,84 +7,55 @@ using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
+	public class SourceLinkMap
+	{
+		public string RelativePathWildcard { get; }
+		public string UriWildCard { get; }
+
+		public SourceLinkMap (string relativePathWildcard, string uriWildCard)
+		{
+			UriWildCard = uriWildCard;
+			RelativePathWildcard = relativePathWildcard;
+		}
+	}
+
+
 	[Serializable]
-	public class SourceLinkDownloadInfo
+	public class SourceLink
 	{
 		public string Uri { get; }
-		public string RelativePath { get; }
+		public string RelativeFilePath { get; }
 
-		public SourceLinkDownloadInfo (string uri, string relativePath)
+		public SourceLink (string uri, string relativeFilePath)
 		{
-			RelativePath = relativePath;
+			RelativeFilePath = relativeFilePath;
 			Uri = uri;
 		}
 
-		public static SourceLinkDownloadInfo FromWildcardReplacement(Dictionary<string, string> maps, string originalFileName)
+		public static SourceLink FromWildcardReplacement(IEnumerable<SourceLinkMap> maps, string originalFileName)
 		{
-			foreach (var kv in maps) {
-				var pattern = kv.Key.Replace ("*", "").Replace ('\\', '/');
+			foreach (var map in maps) {
+				var pattern = map.RelativePathWildcard.Replace ("*", "").Replace ('\\', '/');
 
 				if (originalFileName.StartsWith (pattern, StringComparison.Ordinal)) {
 					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
-					var httpBasePath = kv.Value.Replace ("*", "");
+					var httpBasePath = map.UriWildCard.Replace ("*", "");
 					// org/project-name/git-sha (usually)
 					var pathAndQuery = new Uri (httpBasePath).PathAndQuery.Substring (1);
 					// org/projectname/git-sha/path/to/file.cs
 					var relativePath = Path.Combine (pathAndQuery, localPath);
 					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
 					var httpPath = Regex.Replace (originalFileName, pattern, httpBasePath);
-					return new SourceLinkDownloadInfo (httpPath, relativePath);
+					return new SourceLink (httpPath, relativePath);
 				}
 
 			}
 			return null;
 		}
 
-		//public static SourceLinkDownloadInfo FromRelativePathandUri(string relativePath, string uri, string originalFileName)
-		//{
-
-		//}
-	}
-
-	[Serializable]
-	public class SourceLink
-	{
-		readonly Dictionary<string, string> maps;
-
-		/// <summary>
-		/// Collection of KeyValues of original base path on disk and HTTP base path
-		/// </summary>
-		/// <param name="from">
-		/// Original base path (with wildcard) used to build the .pdb file e.g.  f:/build/*
-		/// </param>
-		/// <param name="to">
-		/// HTTP base path (with wildcard) where files may be downloaded from
-		/// e.g. https://raw.githubusercontent.com/my-org/my-project/1111111111111111111111111111111111111111/*
-		/// </param>
-		public SourceLink (Dictionary<string, string> maps)
+		public string GetDownloadLocation(string cachePath)
 		{
-			this.maps = maps;
-		}
-
-		public SourceLinkDownloadInfo GetDownloadLocation(string fileName, string cachePath)
-		{
-			foreach (var kv in maps) {
-				var pattern = kv.Key.Replace ("*", "").Replace ('\\', '/');
-
-				if (fileName.StartsWith(pattern, StringComparison.Ordinal)) {
-					var localPath = fileName.Replace (pattern.Replace (".*", ""), "");
-					var httpBasePath = kv.Value.Replace ("*", "");
-					// org/project-name/git-sha (usually)
-					var pathAndQuery = new Uri (httpBasePath).PathAndQuery.Substring (1);
-					// ~/Library/Caches/VisualStudio/8.0/Symbols/org/projectname/git-sha/path/to/file.cs
-					var saveTo = Path.Combine (cachePath, pathAndQuery, localPath);
-					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
-					var httpPath = Regex.Replace (fileName, pattern, httpBasePath);
-					return new SourceLinkDownloadInfo (httpPath, saveTo);
-				}
-
-			}
-			return null;
+			return Path.Combine (cachePath, new Uri (Uri).GetComponents (UriComponents.Path, UriFormat.SafeUnescaped));
 		}
 	}
 
