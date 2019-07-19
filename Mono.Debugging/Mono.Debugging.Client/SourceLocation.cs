@@ -2,8 +2,6 @@ using System;
 using System.IO;
 using System.Buffers;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
-using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
@@ -22,6 +20,16 @@ namespace Mono.Debugging.Client
 		[Obsolete]
 		public SourceLocation (string methodName, string fileName, int line)
 			: this (methodName, fileName, line, -1, -1, -1, null)
+		{
+		}
+
+		public SourceLocation (string methodName, string fileName, int line, int column, int endLine, int endColumn)
+			: this (methodName, fileName, line, column, endLine, endColumn, null, null)
+		{
+
+		}
+		public SourceLocation (string methodName, string fileName, int line, int column, int endLine, int endColumn, byte [] hash = null)
+			: this (methodName, fileName, line, column, endLine, endColumn, hash, null)
 		{
 		}
 
