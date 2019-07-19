@@ -734,14 +734,14 @@ namespace Mono.Debugging.Soft
 			return new [] { new ProcessInfo (procs[0].Id, procs[0].Name) };
 		}
 
-		readonly static HashSet<string> _validSourceExtensions = new HashSet<string> (new string [] { ".cs", ".vb", ".h", ".cpp", ".inl" });
-
 		internal PortablePdbData GetPdbData (AssemblyMirror asm)
 		{
 			string assemblyFileName;
 			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
 				assemblyFileName = asm.Location;
 			var pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
+			if (!PortablePdbData.IsPortablePdb (pdbFileName))
+				return null;
 			return new PortablePdbData (pdbFileName);
 		}
 
@@ -2245,7 +2245,7 @@ namespace Mono.Debugging.Soft
 			return sb.ToString ();
 		}
 
-		SourceLocation GetSourceLocation (MDB.StackFrame frame)
+		static SourceLocation GetSourceLocation (MDB.StackFrame frame)
 		{
 			return new SourceLocation (frame.Method.Name, frame.FileName, frame.LineNumber, frame.ColumnNumber, frame.EndLineNumber, frame.EndColumnNumber);
 		}
