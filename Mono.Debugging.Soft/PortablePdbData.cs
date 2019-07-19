@@ -97,6 +97,9 @@ namespace Mono.Debugging.Soft
 
 		public SourceLink GetSourceLink (string originalFileName)
 		{
+			if (originalFileName == null)
+				return null;
+
 			foreach (var map in sourceLinkMaps.Value) {
 				var pattern = map.RelativePathWildcard.Replace ("*", "").Replace ('\\', '/');
 
