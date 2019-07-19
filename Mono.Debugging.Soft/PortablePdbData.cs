@@ -33,6 +33,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Mono.Debugging.Client;
+using System.Text.RegularExpressions;
 
 namespace Mono.Debugging.Soft
 {
@@ -49,7 +50,6 @@ namespace Mono.Debugging.Soft
 		static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
 
 		Lazy<IEnumerable<SourceLinkMap>> sourceLinkMaps;
-		public IEnumerable<SourceLinkMap> SourceLinkMaps { get { return sourceLinkMaps.Value; } }
 
 		public static bool IsPortablePdb (string pdbFileName)
 		{
@@ -67,7 +67,7 @@ namespace Mono.Debugging.Soft
 		public PortablePdbData (string pdbFileName)
 		{
 			this.pdbFileName = pdbFileName;
-			sourceLinkMaps = new Lazy<IEnumerable<SourceLinkMap>> (GetSourceLink);
+			sourceLinkMaps = new Lazy<IEnumerable<SourceLinkMap>> (GetSourceLinkMaps);
 		}
 
 		internal class SoftScope
@@ -83,7 +83,40 @@ namespace Mono.Debugging.Soft
 			public Dictionary<string, string> Maps { get; set; }
 		}
 
-		IEnumerable<SourceLinkMap> GetSourceLink ()
+		class SourceLinkMap
+		{
+			public string RelativePathWildcard { get; }
+			public string UriWildCard { get; }
+
+			public SourceLinkMap (string relativePathWildcard, string uriWildCard)
+			{
+				UriWildCard = uriWildCard;
+				RelativePathWildcard = relativePathWildcard;
+			}
+		}
+
+		public SourceLink GetSourceLink (string originalFileName)
+		{
+			foreach (var map in sourceLinkMaps.Value) {
+				var pattern = map.RelativePathWildcard.Replace ("*", "").Replace ('\\', '/');
+
+				if (originalFileName.StartsWith (pattern, StringComparison.Ordinal)) {
+					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
+					var httpBasePath = map.UriWildCard.Replace ("*", "");
+					// org/project-name/git-sha (usually)
+					var pathAndQuery = new Uri (httpBasePath).PathAndQuery.Substring (1);
+					// org/projectname/git-sha/path/to/file.cs
+					var relativePath = Path.Combine (pathAndQuery, localPath);
+					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
+					var httpPath = Regex.Replace (originalFileName, pattern, httpBasePath);
+					return new SourceLink (httpPath, relativePath);
+				}
+
+			}
+			return null;
+		}
+
+		IEnumerable<SourceLinkMap> GetSourceLinkMaps ()
 		{
 			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
 			using (var provider = MetadataReaderProvider.FromPortablePdbStream (fs)) {

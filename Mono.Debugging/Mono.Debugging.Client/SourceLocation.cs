@@ -7,19 +7,6 @@ using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
-	public class SourceLinkMap
-	{
-		public string RelativePathWildcard { get; }
-		public string UriWildCard { get; }
-
-		public SourceLinkMap (string relativePathWildcard, string uriWildCard)
-		{
-			UriWildCard = uriWildCard;
-			RelativePathWildcard = relativePathWildcard;
-		}
-	}
-
-
 	[Serializable]
 	public class SourceLink
 	{
@@ -30,27 +17,6 @@ namespace Mono.Debugging.Client
 		{
 			RelativeFilePath = relativeFilePath;
 			Uri = uri;
-		}
-
-		public static SourceLink FromWildcardReplacement(IEnumerable<SourceLinkMap> maps, string originalFileName)
-		{
-			foreach (var map in maps) {
-				var pattern = map.RelativePathWildcard.Replace ("*", "").Replace ('\\', '/');
-
-				if (originalFileName.StartsWith (pattern, StringComparison.Ordinal)) {
-					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
-					var httpBasePath = map.UriWildCard.Replace ("*", "");
-					// org/project-name/git-sha (usually)
-					var pathAndQuery = new Uri (httpBasePath).PathAndQuery.Substring (1);
-					// org/projectname/git-sha/path/to/file.cs
-					var relativePath = Path.Combine (pathAndQuery, localPath);
-					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
-					var httpPath = Regex.Replace (originalFileName, pattern, httpBasePath);
-					return new SourceLink (httpPath, relativePath);
-				}
-
-			}
-			return null;
 		}
 
 		public string GetDownloadLocation(string cachePath)
