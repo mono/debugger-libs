@@ -7,16 +7,43 @@ using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
+	[Serializable]
 	public class SourceLinkDownloadInfo
 	{
 		public string Uri { get; }
-		public string LocalPath { get; }
+		public string RelativePath { get; }
 
-		public SourceLinkDownloadInfo (string httpBasePath, string localPath)
+		public SourceLinkDownloadInfo (string uri, string relativePath)
 		{
-			LocalPath = localPath;
-			Uri = httpBasePath;
+			RelativePath = relativePath;
+			Uri = uri;
 		}
+
+		public static SourceLinkDownloadInfo FromWildcardReplacement(Dictionary<string, string> maps, string originalFileName)
+		{
+			foreach (var kv in maps) {
+				var pattern = kv.Key.Replace ("*", "").Replace ('\\', '/');
+
+				if (originalFileName.StartsWith (pattern, StringComparison.Ordinal)) {
+					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
+					var httpBasePath = kv.Value.Replace ("*", "");
+					// org/project-name/git-sha (usually)
+					var pathAndQuery = new Uri (httpBasePath).PathAndQuery.Substring (1);
+					// org/projectname/git-sha/path/to/file.cs
+					var relativePath = Path.Combine (pathAndQuery, localPath);
+					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
+					var httpPath = Regex.Replace (originalFileName, pattern, httpBasePath);
+					return new SourceLinkDownloadInfo (httpPath, relativePath);
+				}
+
+			}
+			return null;
+		}
+
+		//public static SourceLinkDownloadInfo FromRelativePathandUri(string relativePath, string uri, string originalFileName)
+		//{
+
+		//}
 	}
 
 	[Serializable]
@@ -59,8 +86,6 @@ namespace Mono.Debugging.Client
 			}
 			return null;
 		}
-
-
 	}
 
 	[Serializable]
