@@ -49,7 +49,7 @@ namespace Mono.Debugging.Soft
 		static readonly Guid SourceLinkGuid = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
 		static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
 
-		Lazy<IEnumerable<SourceLinkMap>> sourceLinkMaps;
+		Lazy<SourceLinkMap[]> sourceLinkMaps;
 
 		public static bool IsPortablePdb (string pdbFileName)
 		{
@@ -67,7 +67,7 @@ namespace Mono.Debugging.Soft
 		public PortablePdbData (string pdbFileName)
 		{
 			this.pdbFileName = pdbFileName;
-			sourceLinkMaps = new Lazy<IEnumerable<SourceLinkMap>> (GetSourceLinkMaps);
+			sourceLinkMaps = new Lazy<SourceLinkMap[]> (GetSourceLinkMaps);
 		}
 
 		internal class SoftScope
@@ -86,11 +86,11 @@ namespace Mono.Debugging.Soft
 		class SourceLinkMap
 		{
 			public string RelativePathWildcard { get; }
-			public string UriWildCard { get; }
+			public string UriWildcard { get; }
 
-			public SourceLinkMap (string relativePathWildcard, string uriWildCard)
+			public SourceLinkMap (string relativePathWildcard, string uriWildcard)
 			{
-				UriWildCard = uriWildCard;
+				UriWildcard = uriWildcard;
 				RelativePathWildcard = relativePathWildcard;
 			}
 		}
@@ -105,7 +105,7 @@ namespace Mono.Debugging.Soft
 
 				if (originalFileName.StartsWith (pattern, StringComparison.Ordinal)) {
 					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
-					var httpBasePath = map.UriWildCard.Replace ("*", "");
+					var httpBasePath = map.UriWildcard.Replace ("*", "");
 					// org/project-name/git-sha (usually)
 					var pathAndQuery = new Uri (httpBasePath).GetComponents (UriComponents.Path, UriFormat.SafeUnescaped).Substring (1);
 					// org/projectname/git-sha/path/to/file.cs
@@ -119,7 +119,7 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 
-		IEnumerable<SourceLinkMap> GetSourceLinkMaps ()
+		SourceLinkMap[] GetSourceLinkMaps ()
 		{
 			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
 			using (var provider = MetadataReaderProvider.FromPortablePdbStream (fs)) {
@@ -135,11 +135,14 @@ namespace Mono.Debugging.Soft
 					return Array.Empty<SourceLinkMap> ();
 
 				var jsonString = System.Text.Encoding.UTF8.GetString (jsonBlob);
-				var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
+				try {
+					var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
 
-				if (jsonSourceLink.Maps != null && jsonSourceLink.Maps.Any ())
-					return jsonSourceLink.Maps.Select (kv => new SourceLinkMap (kv.Key, kv.Value));
-
+					if (jsonSourceLink.Maps != null && jsonSourceLink.Maps.Any ())
+						return jsonSourceLink.Maps.Select (kv => new SourceLinkMap (kv.Key, kv.Value)).ToArray ();
+				} catch (JsonException ex) {
+					DebuggerLoggingService.LogError ("Error reading source link", ex);
+				}
 				return Array.Empty<SourceLinkMap> ();
 			}
 		}
