@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -71,11 +71,14 @@
     <PackageReference Include="Mono.Cecil" Version="$(NuGetVersionCecil)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" />
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>10.0.3</Version>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference        Condition=" '$(OS)' != 'Windows_NT' " Include="Mono.Posix" />
+    <Reference Condition=" '$(OS)' != 'Windows_NT' " Include="Mono.Posix" />
     <PackageReference Condition=" '$(OS)' == 'Windows_NT' " Include="Mono.Posix-4.5" Version="4.5.0" />
   </ItemGroup>
   <Import Project="..\Mono.Debugging.settings" />

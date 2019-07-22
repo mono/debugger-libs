@@ -29,10 +29,19 @@ using System;
 namespace Mono.Debugging.Client
 {
 	[Serializable]
+	public enum AutomaticSourceDownload
+	{
+		Ask,
+		Always,
+		Never
+	}
+
+	[Serializable]
 	public class DebuggerSessionOptions
 	{
 		public EvaluationOptions EvaluationOptions { get; set; }
 		public bool StepOverPropertiesAndOperators { get; set; }
 		public bool ProjectAssembliesOnly { get; set; }
+		public AutomaticSourceDownload AutomaticSourceLinkDownload { get; set; }
 	}
 }

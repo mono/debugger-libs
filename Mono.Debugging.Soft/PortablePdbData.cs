@@ -29,23 +29,27 @@ using Mono.Debugger.Soft;
 using System.IO;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
-using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
+using Mono.Debugging.Client;
+using System.Text.RegularExpressions;
 
 namespace Mono.Debugging.Soft
 {
 	class PortablePdbData
 	{
-		public static readonly Guid AsyncMethodSteppingInformationBlob = new Guid ("54FD2AC5-E925-401A-9C2A-F94F171072F8");
-		public static readonly Guid StateMachineHoistedLocalScopes = new Guid ("6DA9A61E-F8C7-4874-BE62-68BC5630DF71");
-		public static readonly Guid DynamicLocalVariables = new Guid ("83C563C4-B4F3-47D5-B824-BA5441477EA8");
-		public static readonly Guid TupleElementNames = new Guid ("ED9FDF71-8879-4747-8ED3-FE5EDE3CE710");
-		public static readonly Guid DefaultNamespace = new Guid ("58b2eab6-209f-4e4e-a22c-b2d0f910c782");
-		public static readonly Guid EncLocalSlotMap = new Guid ("755F52A8-91C5-45BE-B4B8-209571E552BD");
-		public static readonly Guid EncLambdaAndClosureMap = new Guid ("A643004C-0240-496F-A783-30D64F4979DE");
-		public static readonly Guid SourceLink = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
-		public static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
+		static readonly Guid AsyncMethodSteppingInformationBlob = new Guid ("54FD2AC5-E925-401A-9C2A-F94F171072F8");
+		static readonly Guid StateMachineHoistedLocalScopes = new Guid ("6DA9A61E-F8C7-4874-BE62-68BC5630DF71");
+		static readonly Guid DynamicLocalVariables = new Guid ("83C563C4-B4F3-47D5-B824-BA5441477EA8");
+		static readonly Guid TupleElementNames = new Guid ("ED9FDF71-8879-4747-8ED3-FE5EDE3CE710");
+		static readonly Guid DefaultNamespace = new Guid ("58b2eab6-209f-4e4e-a22c-b2d0f910c782");
+		static readonly Guid EncLocalSlotMap = new Guid ("755F52A8-91C5-45BE-B4B8-209571E552BD");
+		static readonly Guid EncLambdaAndClosureMap = new Guid ("A643004C-0240-496F-A783-30D64F4979DE");
+		static readonly Guid SourceLinkGuid = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
+		static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
+
+		Lazy<SourceLinkMap[]> sourceLinkMaps;
 
 		public static bool IsPortablePdb (string pdbFileName)
 		{
@@ -63,6 +67,7 @@ namespace Mono.Debugging.Soft
 		public PortablePdbData (string pdbFileName)
 		{
 			this.pdbFileName = pdbFileName;
+			sourceLinkMaps = new Lazy<SourceLinkMap[]> (GetSourceLinkMaps);
 		}
 
 		internal class SoftScope
@@ -70,6 +75,76 @@ namespace Mono.Debugging.Soft
 			public int LiveRangeStart;
 
 			public int LiveRangeEnd;
+		}
+
+		class JsonSourceLink
+		{
+			[JsonProperty ("documents")]
+			public Dictionary<string, string> Maps { get; set; }
+		}
+
+		class SourceLinkMap
+		{
+			public string RelativePathWildcard { get; }
+			public string UriWildcard { get; }
+
+			public SourceLinkMap (string relativePathWildcard, string uriWildcard)
+			{
+				UriWildcard = uriWildcard;
+				RelativePathWildcard = relativePathWildcard;
+			}
+		}
+
+		public SourceLink GetSourceLink (string originalFileName)
+		{
+			if (originalFileName == null)
+				return null;
+
+			foreach (var map in sourceLinkMaps.Value) {
+				var pattern = map.RelativePathWildcard.Replace ("*", "").Replace ('\\', '/');
+
+				if (originalFileName.StartsWith (pattern, StringComparison.Ordinal)) {
+					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
+					var httpBasePath = map.UriWildcard.Replace ("*", "");
+					// org/project-name/git-sha (usually)
+					var pathAndQuery = new Uri (httpBasePath).GetComponents (UriComponents.Path, UriFormat.SafeUnescaped).Substring (1);
+					// org/projectname/git-sha/path/to/file.cs
+					var relativePath = Path.Combine (pathAndQuery, localPath);
+					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
+					var httpPath = Regex.Replace (originalFileName, pattern, httpBasePath);
+					return new SourceLink (httpPath, relativePath);
+				}
+
+			}
+			return null;
+		}
+
+		SourceLinkMap[] GetSourceLinkMaps ()
+		{
+			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (var provider = MetadataReaderProvider.FromPortablePdbStream (fs)) {
+				var pdbReader = provider.GetMetadataReader ();
+
+				var jsonBlob =
+					(from cdiHandle in pdbReader.GetCustomDebugInformation (EntityHandle.ModuleDefinition)
+					 let cdi = pdbReader.GetCustomDebugInformation (cdiHandle)
+					 where pdbReader.GetGuid (cdi.Kind) == SourceLinkGuid
+					 select pdbReader.GetBlobBytes (cdi.Value)).FirstOrDefault ();
+
+				if (jsonBlob == null)
+					return Array.Empty<SourceLinkMap> ();
+
+				var jsonString = System.Text.Encoding.UTF8.GetString (jsonBlob);
+				try {
+					var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
+
+					if (jsonSourceLink.Maps != null && jsonSourceLink.Maps.Any ())
+						return jsonSourceLink.Maps.Select (kv => new SourceLinkMap (kv.Key, kv.Value)).ToArray ();
+				} catch (JsonException ex) {
+					DebuggerLoggingService.LogError ("Error reading source link", ex);
+				}
+				return Array.Empty<SourceLinkMap> ();
+			}
 		}
 
 		// We need proxy method to make sure VS2013/15 doesn't crash(this method won't be called if portable .pdb file doesn't exist, which means 2017+)

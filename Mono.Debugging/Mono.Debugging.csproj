@@ -139,6 +139,7 @@
     <Compile Include="Mono.Debugging.Client\AssemblyEventArgs.cs" />
     <Compile Include="Mono.Debugging.Evaluation\EvaluationStatistics.cs" />
     <Compile Include="Mono.Debugging.Evaluation\LambdaBodyOutputVisitor.cs" />
+    <Compile Include="Mono.Debugging.Client\SourceLink.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Buffers" Version="4.5.0" />
