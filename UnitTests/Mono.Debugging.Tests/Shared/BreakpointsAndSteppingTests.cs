@@ -602,10 +602,6 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("e72a2fa6-2d95-4f96-b3d0-ba321da3cb55", statement: "Console.WriteLine");
 			StartTest ("BreakpointInsideOneLineDelegateNoDisplayClass");
 			CheckPosition ("e0a96c37-577f-43e3-9a20-2cdd8bf7824e");
-			//if (IsVsDebugger) {
-			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb", -1);
-			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb");
-			//}
 			StepOver ("e72a2fa6-2d95-4f96-b3d0-ba321da3cb55", "Console.WriteLine");
 			StepOut ("3be64647-76c1-455b-a4a7-a21b37383dcb");
 			StepOut ("e0a96c37-577f-43e3-9a20-2cdd8bf7824e");
@@ -619,10 +615,6 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("22af08d6-dafc-47f1-b8d1-bee1526840fd", statement: "button.SetTitle");
 			StartTest ("BreakpointInsideOneLineDelegate");
 			CheckPosition ("67ae4cce-22b3-49d8-8221-7e5b26a5e79b");
-			//if (IsVsDebugger) {
-			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb", -1);
-			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb");
-			//}
 			StepOver ("22af08d6-dafc-47f1-b8d1-bee1526840fd", "button.SetTitle");
 			StepOut ("3be64647-76c1-455b-a4a7-a21b37383dcb");
 			StepOut ("67ae4cce-22b3-49d8-8221-7e5b26a5e79b");
@@ -636,10 +628,6 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("b6a65e9e-5db2-4850-969a-b3747b2459af", 1);
 			StartTest ("BreakpointInsideOneLineDelegateAsync");
 			CheckPosition ("b6a65e9e-5db2-4850-969a-b3747b2459af", 1);
-			//if (IsVsDebugger) {
-			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb", -1);
-			//	StepOver ("3be64647-76c1-455b-a4a7-a21b37383dcb");
-			//}
 			StepOver ("b6a65e9e-5db2-4850-969a-b3747b2459af", "button.SetTitle");
 			if (IsCorDebugger) {
 				StepOut ("3be64647-76c1-455b-a4a7-a21b37383dcb", 1);//Feels like CorDebugger bug
@@ -661,12 +649,6 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("b73bec88-2c43-4157-8574-ad517730bc74");
 			StartTest ("ForeachEnumerable");
 			CheckPosition ("b73bec88-2c43-4157-8574-ad517730bc74");
-			//if (IsVsDebugger) {
-			//	StepOver ("3722cad3-7da1-4c86-a398-bb2cf6cc65a9", -3); // private string oneLineProperty = "";
-			//	StepOver ("3722cad3-7da1-4c86-a398-bb2cf6cc65a9", 4); // private string multiLineProperty = "";
-			//	StepOver ("c25be44e-ead3-4891-ab42-0e4cf8450f7a", 10); // private ScrollView myScrollView = new ScrollView ();
-			//	StepOver ("b73bec88-2c43-4157-8574-ad517730bc74"); // var testClass = new TestClass ();
-			//}
 			StepOver ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "foreach");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "testClass.Iter_1");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
@@ -1229,7 +1211,7 @@ namespace Mono.Debugging.Tests
 
 			Session.DebugWriter = delegate(int level, string category, string message) {
 				var entry = new Tuple<int,string,string> (level, category, message);
-				if (entry.Equals (new Tuple<int,string,string> (0, "", "")))//Sdb is emitting some empty messages :S 
+				if (entry.Equals (new Tuple<int,string,string> (0, "", "")))//Sdb is emitting some empty messages :S
 					return;
 				if (debugList.Contains (entry)) {
 					debugList.Remove (entry);
@@ -1367,4 +1349,3 @@ namespace Mono.Debugging.Tests
 		}
 	}
 }
-
