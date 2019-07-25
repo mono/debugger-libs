@@ -75,14 +75,22 @@ namespace Mono.Debugging.Soft
 
 		public override DC.StackFrame[] GetStackFrames (int firstIndex, int lastIndex)
 		{
+			DebuggerLoggingService.LogMessage ("SoftDebuggerBacktrace.GetStackFrames: {0} -> {1}", firstIndex, lastIndex);
+
 			ValidateStack ();
 
 			if (lastIndex < 0)
 				lastIndex = frames.Length - 1;
 
 			List<DC.StackFrame> list = new List<DC.StackFrame> ();
-			for (int n = firstIndex; n <= lastIndex && n < frames.Length; n++)
-				list.Add (CreateStackFrame (frames[n], n));
+			for (int n = firstIndex; n <= lastIndex && n < frames.Length; n++) {
+				var frame = CreateStackFrame (frames[n], n);
+
+				DebuggerLoggingService.LogMessage ("  StackFrame[{0}]: [{1}] {2}", frame.Index, frame.Language,
++					frame.AddressSpace);
+
+				list.Add (frame);
+			}
 
 			return list.ToArray ();
 		}
