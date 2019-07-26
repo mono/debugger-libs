@@ -1143,6 +1143,9 @@ namespace Mono.Debugger.Soft
 
 		internal event EventHandler<ErrorHandlerEventArgs> ErrorHandler;
 
+		[Obsolete ("This constructor will be removed in next version")]
+		protected Connection (TextWriter logWriter) : this () { }
+
 		protected Connection () {
 			closed = false;
 			reply_packets = new Dictionary<int, byte[]> ();
@@ -1163,7 +1166,7 @@ namespace Mono.Debugger.Soft
 				}
 			}
 		}
-		
+
 		protected abstract int TransportReceive (byte[] buf, int buf_offset, int len);
 		protected abstract int TransportSend (byte[] buf, int buf_offset, int len);
 		protected abstract void TransportSetTimeouts (int send_timeout, int receive_timeout);
