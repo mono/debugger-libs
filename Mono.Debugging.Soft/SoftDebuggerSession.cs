@@ -740,9 +740,11 @@ namespace Mono.Debugging.Soft
 			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
 				assemblyFileName = asm.Location;
 			var pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
-			if (!PortablePdbData.IsPortablePdb (pdbFileName))
-				return null;
-			return new PortablePdbData (pdbFileName);
+			if (PortablePdbData.IsPortablePdb (pdbFileName))
+				return new PortablePdbData (pdbFileName);
+			// Attempt to fetch pdb from the debuggee
+			var pdbBlob = asm.GetPdbBlob ();
+			return pdbBlob != null ? new PortablePdbData (pdbBlob) : null;
 		}
 
 		internal PortablePdbData GetPdbData (MethodMirror method)

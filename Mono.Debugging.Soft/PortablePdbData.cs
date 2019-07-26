@@ -62,12 +62,20 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-		private string pdbFileName;
-
+		private Stream stream;
 		public PortablePdbData (string pdbFileName)
+			: this(new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
 		{
-			this.pdbFileName = pdbFileName;
-			sourceLinkMaps = new Lazy<SourceLinkMap[]> (GetSourceLinkMaps);
+		}
+
+		public PortablePdbData (byte[] pdbBytes) : this(new MemoryStream(pdbBytes))
+		{
+		}
+
+		PortablePdbData (Stream stream)
+		{
+			this.stream = stream;
+			sourceLinkMaps = new Lazy<SourceLinkMap []> (GetSourceLinkMaps);
 		}
 
 		internal class SoftScope
@@ -100,6 +108,7 @@ namespace Mono.Debugging.Soft
 			if (originalFileName == null)
 				return null;
 
+			originalFileName = originalFileName.Replace ('\\', '/');
 			foreach (var map in sourceLinkMaps.Value) {
 				var pattern = map.RelativePathWildcard.Replace ("*", "").Replace ('\\', '/');
 
@@ -121,7 +130,7 @@ namespace Mono.Debugging.Soft
 
 		SourceLinkMap[] GetSourceLinkMaps ()
 		{
-			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (var fs = stream)
 			using (var provider = MetadataReaderProvider.FromPortablePdbStream (fs)) {
 				var pdbReader = provider.GetMetadataReader ();
 
@@ -153,7 +162,7 @@ namespace Mono.Debugging.Soft
 
 		internal SoftScope [] GetHoistedScopesPrivate (MethodMirror method)
 		{
-			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (var fs = stream)
 			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
@@ -196,7 +205,7 @@ namespace Mono.Debugging.Soft
 
 		internal string [] TupleElementNamesPrivate (MethodMirror method, int localVariableIndex)
 		{
-			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (var fs = stream)
 			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
