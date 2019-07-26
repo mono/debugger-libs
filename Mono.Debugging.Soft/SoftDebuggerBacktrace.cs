@@ -87,7 +87,7 @@ namespace Mono.Debugging.Soft
 				var frame = CreateStackFrame (frames[n], n);
 
 				DebuggerLoggingService.LogMessage ("  StackFrame[{0}]: [{1}] {2}", frame.Index, frame.Language,
-+					frame.AddressSpace);
+					frame.AddressSpace);
 
 				list.Add (frame);
 			}
