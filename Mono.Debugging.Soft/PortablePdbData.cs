@@ -116,7 +116,7 @@ namespace Mono.Debugging.Soft
 					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
 					var httpBasePath = map.UriWildcard.Replace ("*", "");
 					// org/project-name/git-sha (usually)
-					var pathAndQuery = new Uri (httpBasePath).GetComponents (UriComponents.Path, UriFormat.SafeUnescaped).Substring (1);
+					var pathAndQuery = new Uri (httpBasePath).GetComponents (UriComponents.Path, UriFormat.SafeUnescaped);
 					// org/projectname/git-sha/path/to/file.cs
 					var relativePath = Path.Combine (pathAndQuery, localPath);
 					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
