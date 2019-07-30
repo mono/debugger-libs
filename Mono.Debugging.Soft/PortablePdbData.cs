@@ -130,8 +130,8 @@ namespace Mono.Debugging.Soft
 
 		SourceLinkMap[] GetSourceLinkMaps ()
 		{
-			using (var fs = stream)
-			using (var provider = MetadataReaderProvider.FromPortablePdbStream (fs)) {
+			using (stream)
+			using (var provider = MetadataReaderProvider.FromPortablePdbStream (stream)) {
 				var pdbReader = provider.GetMetadataReader ();
 
 				var jsonBlob =
@@ -162,8 +162,8 @@ namespace Mono.Debugging.Soft
 
 		internal SoftScope [] GetHoistedScopesPrivate (MethodMirror method)
 		{
-			using (var fs = stream)
-			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
+			using (stream)
+			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (stream)) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
 				var customDebugInfos = reader.GetCustomDebugInformation (methodHandle);
