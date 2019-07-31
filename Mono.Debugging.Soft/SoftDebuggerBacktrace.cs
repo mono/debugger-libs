@@ -187,7 +187,7 @@ namespace Mono.Debugging.Soft
 					external = method.GetCustomAttributes (nonUserCodeAttr, true).Any ();
 				}
 			}
-			var sourceLink = session.GetPdbData (frame.Method).GetSourceLink(frame.FileName);
+			var sourceLink = session.GetPdbData (frame.Method)?.GetSourceLink(frame.FileName);
 
 			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber, frame.Location.EndLineNumber, frame.Location.EndColumnNumber, frame.Location.SourceFileHash, sourceLink);
 
