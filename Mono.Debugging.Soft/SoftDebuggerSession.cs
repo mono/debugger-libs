@@ -46,6 +46,8 @@ using Mono.Debugging.Evaluation;
 using MDB = Mono.Debugger.Soft;
 using System.Security.Cryptography;
 using Mono.Cecil.Cil;
+using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace Mono.Debugging.Soft
 {
@@ -737,12 +739,13 @@ namespace Mono.Debugging.Soft
 		internal PortablePdbData GetPdbData (AssemblyMirror asm)
 		{
 			string assemblyFileName;
+
 			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
 				assemblyFileName = asm.Location;
 			var pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
 			if (PortablePdbData.IsPortablePdb (pdbFileName))
 				return new PortablePdbData (pdbFileName);
-			// Attempt to fetch pdb from the debuggee
+			// Attempt to fetch pdb from the debuggee over the wire
 			var pdbBlob = asm.GetPdbBlob ();
 			return pdbBlob != null ? new PortablePdbData (pdbBlob) : null;
 		}
@@ -750,6 +753,68 @@ namespace Mono.Debugging.Soft
 		internal PortablePdbData GetPdbData (MethodMirror method)
 		{
 			return GetPdbData (method.DeclaringType.Assembly);
+		}
+
+		Dictionary<AssemblyMirror, SourceLinkMap []> SourceLinkCache = new Dictionary<AssemblyMirror, SourceLinkMap []> ();
+		SourceLinkMap [] GetSourceLinkMaps (MethodMirror method)
+		{
+			var asm = method.DeclaringType.Assembly;
+			SourceLinkMap [] maps = Array.Empty<SourceLinkMap>();
+
+			if (SourceLinkCache.TryGetValue (asm, out maps)) {
+				return maps;
+			}
+
+			string jsonString = null;
+
+			if (asm.VirtualMachine.Version.AtLeast (2, 48)) {
+				jsonString = asm.ManifestModule.SourceLink;
+			} else {
+				// Read the pdb ourselves
+				jsonString = GetPdbData (asm)?.GetSourceLinkBlob ();
+			}
+
+			if (!string.IsNullOrWhiteSpace(jsonString)) {
+				try {
+					var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
+
+					if (jsonSourceLink != null && jsonSourceLink.Maps != null && jsonSourceLink.Maps.Any ())
+						maps = jsonSourceLink.Maps.Select (kv => new SourceLinkMap (kv.Key, kv.Value)).ToArray ();
+				} catch (JsonException ex) {
+					DebuggerLoggingService.LogError ("Error reading source link", ex);
+				}
+			}
+			
+			SourceLinkCache.Add (asm, maps);
+			return maps;
+		}
+
+		internal SourceLink GetSourceLink (MethodMirror method, string originalFileName)
+		{
+			if (originalFileName == null)
+				return null;
+
+			var maps = GetSourceLinkMaps (method);
+			if (maps == null)
+				return null;
+
+			originalFileName = originalFileName.Replace ('\\', '/');
+			foreach (var map in maps) {
+				var pattern = map.RelativePathWildcard.Replace ("*", "").Replace ('\\', '/');
+
+				if (originalFileName.StartsWith (pattern, StringComparison.Ordinal)) {
+					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
+					var httpBasePath = map.UriWildcard.Replace ("*", "");
+					// org/project-name/git-sha (usually)
+					var pathAndQuery = new Uri (httpBasePath).GetComponents (UriComponents.Path, UriFormat.SafeUnescaped);
+					// org/projectname/git-sha/path/to/file.cs
+					var relativePath = Path.Combine (pathAndQuery, localPath);
+					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
+					var httpPath = Regex.Replace (originalFileName, pattern, httpBasePath);
+					return new SourceLink (httpPath, relativePath);
+				}
+			}
+			return null;
 		}
 
 		protected override Backtrace OnGetThreadBacktrace (long processId, long threadId)
