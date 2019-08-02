@@ -351,12 +351,12 @@ namespace Mono.Debugging.Client
 
 		public IEnumerator GetEnumerator ()
 		{
-			return InternalGetBreakpoints ().ToList().GetEnumerator ();
+			return ((IEnumerable)InternalGetBreakpoints()).GetEnumerator ();
 		}
 
 		IEnumerator<BreakEvent> IEnumerable<BreakEvent>.GetEnumerator ()
 		{
-			return InternalGetBreakpoints ().ToList ().GetEnumerator ();
+			return ((IEnumerable<BreakEvent>)InternalGetBreakpoints ()).GetEnumerator ();
 		}
 
 		public void Clear ()
