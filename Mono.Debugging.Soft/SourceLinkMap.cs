@@ -1,6 +1,6 @@
 ﻿namespace Mono.Debugging.Soft
 {
-	public class SourceLinkMap
+	internal class SourceLinkMap
 	{
 		public string RelativePathWildcard { get; }
 		public string UriWildcard { get; }
