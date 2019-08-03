@@ -70,7 +70,7 @@ namespace Mono.Debugging.Soft
 
 		public PortablePdbData (byte [] pdbBytes)
 		{
-			this.pdbBytes = pdbBytes;
+			this.pdbBytes = pdbBytes ?? throw new ArgumentNullException (pdbBytes);
 		}
 
 		internal class SoftScope
