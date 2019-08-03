@@ -65,7 +65,7 @@ namespace Mono.Debugging.Soft
 
 		public PortablePdbData (string pdbFileName)
 		{
-			this.pdbFileName = pdbFileName;
+			this.pdbFileName = Path.GetFullPath (pdbFileName);
 		}
 
 		public PortablePdbData (byte [] pdbBytes)
