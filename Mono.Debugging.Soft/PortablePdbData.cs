@@ -46,8 +46,6 @@ namespace Mono.Debugging.Soft
 		static readonly Guid SourceLinkGuid = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
 		static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
 
-		Lazy<SourceLinkMap[]> sourceLinkMaps;
-
 		public static bool IsPortablePdb (string pdbFileName)
 		{
 			if (string.IsNullOrEmpty (pdbFileName) || !File.Exists (pdbFileName))
@@ -59,7 +57,6 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-
 		readonly byte [] pdbBytes;
 		private readonly string pdbFileName;
 
@@ -70,7 +67,7 @@ namespace Mono.Debugging.Soft
 
 		public PortablePdbData (byte [] pdbBytes)
 		{
-			this.pdbBytes = pdbBytes ?? throw new ArgumentNullException (pdbBytes);
+			this.pdbBytes = pdbBytes ?? throw new ArgumentNullException (nameof(pdbBytes));
 		}
 
 		internal class SoftScope
@@ -89,21 +86,19 @@ namespace Mono.Debugging.Soft
 
 		public string GetSourceLinkBlob ()
 		{
-			using (var stream = GetStream()) {
-				using (var provider = MetadataReaderProvider.FromPortablePdbStream (stream)) {
-					var pdbReader = provider.GetMetadataReader ();
+			using (var provider = MetadataReaderProvider.FromPortablePdbStream (GetStream ())) {
+				var pdbReader = provider.GetMetadataReader ();
 
-					var jsonBlob =
-						(from cdiHandle in pdbReader.GetCustomDebugInformation (EntityHandle.ModuleDefinition)
-						 let cdi = pdbReader.GetCustomDebugInformation (cdiHandle)
-						 where pdbReader.GetGuid (cdi.Kind) == SourceLinkGuid
-						 select pdbReader.GetBlobBytes (cdi.Value)).FirstOrDefault ();
+				var jsonBlob =
+					(from cdiHandle in pdbReader.GetCustomDebugInformation (EntityHandle.ModuleDefinition)
+					 let cdi = pdbReader.GetCustomDebugInformation (cdiHandle)
+					 where pdbReader.GetGuid (cdi.Kind) == SourceLinkGuid
+					 select pdbReader.GetBlobBytes (cdi.Value)).FirstOrDefault ();
 
-					if (jsonBlob == null)
-						return null;
+				if (jsonBlob == null)
+					return null;
 
-					return System.Text.Encoding.UTF8.GetString (jsonBlob);
-				}
+				return System.Text.Encoding.UTF8.GetString (jsonBlob);
 			}
 		}
 
@@ -113,8 +108,7 @@ namespace Mono.Debugging.Soft
 
 		internal SoftScope [] GetHoistedScopesPrivate (MethodMirror method)
 		{
-			using (var stream = GetStream())
-			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (stream)) {
+			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (GetStream ())) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
 				var customDebugInfos = reader.GetCustomDebugInformation (methodHandle);
@@ -156,8 +150,7 @@ namespace Mono.Debugging.Soft
 
 		internal string [] TupleElementNamesPrivate (MethodMirror method, int localVariableIndex)
 		{
-			using (var fs = GetStream())
-			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
+			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (GetStream())) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
 				var localScopes = reader.GetLocalScopes (methodHandle);

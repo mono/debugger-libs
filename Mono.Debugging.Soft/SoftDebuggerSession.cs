@@ -784,8 +784,8 @@ namespace Mono.Debugging.Soft
 					DebuggerLoggingService.LogError ("Error reading source link", ex);
 				}
 			}
-			
-			SourceLinkCache.Add (asm, maps);
+
+			SourceLinkCache [asm] = maps ?? Array.Empty<SourceLinkMap> ();
 			return maps;
 		}
 
@@ -795,7 +795,7 @@ namespace Mono.Debugging.Soft
 				return null;
 
 			var maps = GetSourceLinkMaps (method);
-			if (maps == null)
+			if (maps == null || maps.Length == 0)
 				return null;
 
 			originalFileName = originalFileName.Replace ('\\', '/');
