@@ -759,9 +759,8 @@ namespace Mono.Debugging.Soft
 		SourceLinkMap [] GetSourceLinkMaps (MethodMirror method)
 		{
 			var asm = method.DeclaringType.Assembly;
-			SourceLinkMap [] maps = Array.Empty<SourceLinkMap>();
 
-			if (SourceLinkCache.TryGetValue (asm, out maps)) {
+			if (SourceLinkCache.TryGetValue (asm, out SourceLinkMap[] maps)) {
 				return maps;
 			}
 
