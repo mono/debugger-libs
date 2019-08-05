@@ -90,10 +90,11 @@ namespace Mono.Debugging.Soft
 				var pdbReader = provider.GetMetadataReader ();
 
 				var jsonBlob =
-					(from cdiHandle in pdbReader.GetCustomDebugInformation (EntityHandle.ModuleDefinition)
-					 let cdi = pdbReader.GetCustomDebugInformation (cdiHandle)
-					 where pdbReader.GetGuid (cdi.Kind) == SourceLinkGuid
-					 select pdbReader.GetBlobBytes (cdi.Value)).FirstOrDefault ();
+					pdbReader.GetCustomDebugInformation (EntityHandle.ModuleDefinition)
+					.Select (cdiHandle => pdbReader.GetCustomDebugInformation (cdiHandle))
+					.Where (cdi => pdbReader.GetGuid (cdi.Kind) == SourceLinkGuid)
+					.Select (cdi => pdbReader.GetBlobBytes (cdi.Value))
+					.FirstOrDefault ();
 
 				if (jsonBlob == null)
 					return null;
