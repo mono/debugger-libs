@@ -31,9 +31,6 @@ using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
-using Mono.Debugging.Client;
-using System.Text.RegularExpressions;
 
 namespace Mono.Debugging.Soft
 {
@@ -49,8 +46,6 @@ namespace Mono.Debugging.Soft
 		static readonly Guid SourceLinkGuid = new Guid ("CC110556-A091-4D38-9FEC-25AB9A351A6A");
 		static readonly Guid EmbeddedSource = new Guid ("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
 
-		Lazy<SourceLinkMap[]> sourceLinkMaps;
-
 		public static bool IsPortablePdb (string pdbFileName)
 		{
 			if (string.IsNullOrEmpty (pdbFileName) || !File.Exists (pdbFileName))
@@ -62,12 +57,17 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-		private string pdbFileName;
+		readonly byte [] pdbBytes;
+		private readonly string pdbFileName;
 
 		public PortablePdbData (string pdbFileName)
 		{
-			this.pdbFileName = pdbFileName;
-			sourceLinkMaps = new Lazy<SourceLinkMap[]> (GetSourceLinkMaps);
+			this.pdbFileName = Path.GetFullPath (pdbFileName);
+		}
+
+		public PortablePdbData (byte [] pdbBytes)
+		{
+			this.pdbBytes = pdbBytes ?? throw new ArgumentNullException (nameof(pdbBytes));
 		}
 
 		internal class SoftScope
@@ -77,73 +77,29 @@ namespace Mono.Debugging.Soft
 			public int LiveRangeEnd;
 		}
 
-		class JsonSourceLink
+		Stream GetStream()
 		{
-			[JsonProperty ("documents")]
-			public Dictionary<string, string> Maps { get; set; }
+			if (pdbBytes != null)
+				return new MemoryStream (pdbBytes);
+			return new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read);
 		}
 
-		class SourceLinkMap
+		public string GetSourceLinkBlob ()
 		{
-			public string RelativePathWildcard { get; }
-			public string UriWildcard { get; }
-
-			public SourceLinkMap (string relativePathWildcard, string uriWildcard)
-			{
-				UriWildcard = uriWildcard;
-				RelativePathWildcard = relativePathWildcard;
-			}
-		}
-
-		public SourceLink GetSourceLink (string originalFileName)
-		{
-			if (originalFileName == null)
-				return null;
-
-			foreach (var map in sourceLinkMaps.Value) {
-				var pattern = map.RelativePathWildcard.Replace ("*", "").Replace ('\\', '/');
-
-				if (originalFileName.StartsWith (pattern, StringComparison.Ordinal)) {
-					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
-					var httpBasePath = map.UriWildcard.Replace ("*", "");
-					// org/project-name/git-sha (usually)
-					var pathAndQuery = new Uri (httpBasePath).GetComponents (UriComponents.Path, UriFormat.SafeUnescaped).Substring (1);
-					// org/projectname/git-sha/path/to/file.cs
-					var relativePath = Path.Combine (pathAndQuery, localPath);
-					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
-					var httpPath = Regex.Replace (originalFileName, pattern, httpBasePath);
-					return new SourceLink (httpPath, relativePath);
-				}
-
-			}
-			return null;
-		}
-
-		SourceLinkMap[] GetSourceLinkMaps ()
-		{
-			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-			using (var provider = MetadataReaderProvider.FromPortablePdbStream (fs)) {
+			using (var provider = MetadataReaderProvider.FromPortablePdbStream (GetStream ())) {
 				var pdbReader = provider.GetMetadataReader ();
 
 				var jsonBlob =
-					(from cdiHandle in pdbReader.GetCustomDebugInformation (EntityHandle.ModuleDefinition)
-					 let cdi = pdbReader.GetCustomDebugInformation (cdiHandle)
-					 where pdbReader.GetGuid (cdi.Kind) == SourceLinkGuid
-					 select pdbReader.GetBlobBytes (cdi.Value)).FirstOrDefault ();
+					pdbReader.GetCustomDebugInformation (EntityHandle.ModuleDefinition)
+					.Select (cdiHandle => pdbReader.GetCustomDebugInformation (cdiHandle))
+					.Where (cdi => pdbReader.GetGuid (cdi.Kind) == SourceLinkGuid)
+					.Select (cdi => pdbReader.GetBlobBytes (cdi.Value))
+					.FirstOrDefault ();
 
 				if (jsonBlob == null)
-					return Array.Empty<SourceLinkMap> ();
+					return null;
 
-				var jsonString = System.Text.Encoding.UTF8.GetString (jsonBlob);
-				try {
-					var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
-
-					if (jsonSourceLink.Maps != null && jsonSourceLink.Maps.Any ())
-						return jsonSourceLink.Maps.Select (kv => new SourceLinkMap (kv.Key, kv.Value)).ToArray ();
-				} catch (JsonException ex) {
-					DebuggerLoggingService.LogError ("Error reading source link", ex);
-				}
-				return Array.Empty<SourceLinkMap> ();
+				return System.Text.Encoding.UTF8.GetString (jsonBlob);
 			}
 		}
 
@@ -153,8 +109,7 @@ namespace Mono.Debugging.Soft
 
 		internal SoftScope [] GetHoistedScopesPrivate (MethodMirror method)
 		{
-			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
+			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (GetStream ())) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
 				var customDebugInfos = reader.GetCustomDebugInformation (methodHandle);
@@ -196,8 +151,7 @@ namespace Mono.Debugging.Soft
 
 		internal string [] TupleElementNamesPrivate (MethodMirror method, int localVariableIndex)
 		{
-			using (var fs = new FileStream (pdbFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (fs)) {
+			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (GetStream())) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
 				var localScopes = reader.GetLocalScopes (methodHandle);
