@@ -33,6 +33,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
+using System.Collections.Immutable;
 
 namespace Mono.Debugging.Client
 {
@@ -41,6 +42,9 @@ namespace Mono.Debugging.Client
 		static readonly StringComparer PathComparer;
 		static readonly bool IsWindows;
 		static readonly bool IsMac;
+
+		readonly object breakpointLock = new object ();
+		ImmutableArray<BreakEvent> breakpoints = ImmutableArray.Create<BreakEvent>();
 
 		static BreakpointStore ()
 		{
@@ -73,21 +77,17 @@ namespace Mono.Debugging.Client
 			}
 			return false;
 		}
-
-		readonly List<BreakEvent> breakpoints = new List<BreakEvent> ();
 		
 		public int Count {
 			get {
-				return breakpoints.Count;
+				return InternalGetBreakpoints().Length;
 			}
 		}
 
 		public bool IsReadOnly {
 			get {
 				var args = new ReadOnlyCheckEventArgs ();
-				var checkingReadOnly = CheckingReadOnly;
-				if (checkingReadOnly != null)
-					checkingReadOnly (this, args);
+				CheckingReadOnly?.Invoke (this, args);
 				return args.IsReadOnly;
 			}
 		}
@@ -135,8 +135,11 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return false;
 
-			breakpoints.Add (bp);
-			bp.Store = this;
+			lock (breakpointLock) {
+				SetBreakpoints (breakpoints.Add (bp));
+				bp.Store = this;
+			}
+
 			OnBreakEventAdded (bp);
 
 			return true;
@@ -170,18 +173,18 @@ namespace Mono.Debugging.Client
 				return false;
 
 			filename = Path.GetFullPath (filename);
-			
-			for (int n = 0; n < breakpoints.Count; n++) {
-				var bp = breakpoints[n] as Breakpoint;
 
-				if (bp != null && FileNameEquals (bp.FileName, filename) &&
-				    (bp.OriginalLine == line || bp.Line == line) &&
-				    (bp.OriginalColumn == column || bp.Column == column)) {
-					breakpoints.RemoveAt (n);
-					OnBreakEventRemoved (bp);
-					n--;
+			var breakpointsToRemove = new List<BreakEvent> ();
+			foreach (var b in InternalGetBreakpoints ()) {
+				if (b is Breakpoint bp && FileNameEquals (bp.FileName, filename) &&
+					(bp.OriginalLine == line || bp.Line == line) &&
+					(bp.OriginalColumn == column || bp.Column == column)) {
+					breakpointsToRemove.Add (bp);
 				}
 			}
+
+			RemoveRange (breakpointsToRemove);
+
 			return true;
 		}
 		
@@ -193,15 +196,15 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return false;
 
-			for (int n = 0; n < breakpoints.Count; n++) {
-				var cp = breakpoints[n] as Catchpoint;
-
-				if (cp != null && cp.ExceptionName == exceptionName) {
-					breakpoints.RemoveAt (n);
-					OnBreakEventRemoved (cp);
-					n--;
+			var breakpointsToRemove = new List<BreakEvent> ();
+			foreach (var b in InternalGetBreakpoints ()) {
+				if (b is Catchpoint cp && cp.ExceptionName == exceptionName) {
+					breakpointsToRemove.Add (cp);
 				}
 			}
+
+			RemoveRange (breakpointsToRemove);
+
 			return true;
 		}
 
@@ -210,15 +213,9 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return;
 
-			for (int n = 0; n < breakpoints.Count; n++) {
-				var bp = breakpoints[n] as RunToCursorBreakpoint;
+			var breakpointsToRemove = InternalGetBreakpoints ().OfType<RunToCursorBreakpoint> ().ToList ();
 
-				if (bp != null) {
-					breakpoints.RemoveAt (n);
-					OnBreakEventRemoved (bp);
-					n--;
-				}
-			}
+			RemoveRange (breakpointsToRemove);
 		}
 		
 		public bool Remove (BreakEvent bp)
@@ -226,14 +223,42 @@ namespace Mono.Debugging.Client
 			if (bp == null)
 				throw new ArgumentNullException (nameof (bp));
 
-			if (!IsReadOnly && breakpoints.Remove (bp)) {
-				OnBreakEventRemoved (bp);
-				return true;
+
+			if (!IsReadOnly) {
+				var wasRemoved = false;
+				lock (breakpointLock) {
+					if (breakpoints.Contains (bp)) {
+						SetBreakpoints (breakpoints.Remove (bp));
+						wasRemoved = true;
+					}
+				}
+
+				if (wasRemoved) {
+					OnBreakEventRemoved (bp);
+					return true;
+				}
 			}
 
 			return false;
 		}
-		
+
+		void RemoveRange (IEnumerable<BreakEvent> breakEvents)
+		{
+			ImmutableArray<BreakEvent> oldEvents;
+
+			if (!IsReadOnly) {
+				lock (breakpointLock) {
+					oldEvents = SetBreakpoints (breakpoints.RemoveRange (breakEvents));
+				}
+
+				foreach (var bp in breakEvents) {
+					if (oldEvents.Contains(bp)) {
+						OnBreakEventRemoved (bp);
+					}
+				}
+			}
+		}
+
 		public Breakpoint Toggle (string filename, int line, int column)
 		{
 			if (filename == null)
@@ -260,14 +285,14 @@ namespace Mono.Debugging.Client
 
 		public ReadOnlyCollection<BreakEvent> GetBreakevents ()
 		{
-			return breakpoints.AsReadOnly ();
+			return new ReadOnlyCollection<BreakEvent>(InternalGetBreakpoints ());
 		}
 
 		public ReadOnlyCollection<Breakpoint> GetBreakpoints ()
 		{
 			var list = new List<Breakpoint> ();
 
-			foreach (var bp in breakpoints.OfType<Breakpoint> ()) {
+			foreach (var bp in InternalGetBreakpoints ().OfType<Breakpoint> ()) {
 				if (!(bp is RunToCursorBreakpoint))
 					list.Add (bp);
 			}
@@ -277,7 +302,7 @@ namespace Mono.Debugging.Client
 		
 		public ReadOnlyCollection<Catchpoint> GetCatchpoints ()
 		{
-			return breakpoints.OfType<Catchpoint> ().ToList ().AsReadOnly ();
+			return InternalGetBreakpoints ().OfType<Catchpoint> ().ToList ().AsReadOnly ();
 		}
 		
 		public ReadOnlyCollection<Breakpoint> GetBreakpointsAtFile (string filename)
@@ -295,7 +320,7 @@ namespace Mono.Debugging.Client
 				return list.AsReadOnly ();
 			}
 			
-			foreach (var bp in breakpoints.OfType<Breakpoint> ()) {
+			foreach (var bp in InternalGetBreakpoints ().OfType<Breakpoint> ()) {
 				if (!(bp is RunToCursorBreakpoint) && FileNameEquals (bp.FileName, filename))
 					list.Add (bp);
 			}
@@ -316,7 +341,7 @@ namespace Mono.Debugging.Client
 				return list.AsReadOnly ();
 			}
 			
-			foreach (var bp in breakpoints.OfType<Breakpoint> ()) {
+			foreach (var bp in InternalGetBreakpoints ().OfType<Breakpoint> ()) {
 				if (!(bp is RunToCursorBreakpoint) && FileNameEquals (bp.FileName, filename) && (bp.OriginalLine == line || bp.Line == line))
 					list.Add (bp);
 			}
@@ -326,12 +351,12 @@ namespace Mono.Debugging.Client
 
 		public IEnumerator GetEnumerator ()
 		{
-			return breakpoints.GetEnumerator ();
+			return ((IEnumerable)InternalGetBreakpoints()).GetEnumerator ();
 		}
 
 		IEnumerator<BreakEvent> IEnumerable<BreakEvent>.GetEnumerator ()
 		{
-			return breakpoints.GetEnumerator ();
+			return ((IEnumerable<BreakEvent>)InternalGetBreakpoints ()).GetEnumerator ();
 		}
 
 		public void Clear ()
@@ -341,34 +366,30 @@ namespace Mono.Debugging.Client
 
 		public void Clear (bool clearNonUserBreakpoints)
 		{
-			var oldList = new List<BreakEvent> (breakpoints);
+			var breakpointsToRemove = InternalGetBreakpoints ()
+				.Where (bp => clearNonUserBreakpoints || !bp.NonUserBreakpoint);
 
-			foreach (var bp in oldList) {
-				if (clearNonUserBreakpoints || !bp.NonUserBreakpoint)
-					Remove (bp);
-			}
+			RemoveRange (breakpointsToRemove);
 		}
 
 		public void ClearBreakpoints ()
 		{
-			foreach (var bp in GetBreakpoints ())
-				Remove (bp);
+			RemoveRange (GetBreakpoints ());
 		}
 
 		public void ClearCatchpoints ()
 		{
-			foreach (var bp in GetCatchpoints ())
-				Remove (bp);
+			RemoveRange (GetCatchpoints ());
 		}
 
 		public bool Contains (BreakEvent item)
 		{
-			return breakpoints.Contains (item);
+			return InternalGetBreakpoints ().Contains (item);
 		}
 
 		public void CopyTo (BreakEvent[] array, int arrayIndex)
 		{
-			breakpoints.CopyTo (array, arrayIndex);
+			InternalGetBreakpoints ().CopyTo (array, arrayIndex);
 		}
 		
 		public void UpdateBreakpointLine (Breakpoint bp, int newLine)
@@ -395,9 +416,10 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return;
 			
-			foreach (var bp in breakpoints.ToArray ()) {
-				if (bp.Reset ())
+			foreach (var bp in InternalGetBreakpoints ()) {
+				if (bp.Reset ()) {
 					NotifyBreakEventChanged (bp);
+				}
 			}
 		}
 		
@@ -417,13 +439,26 @@ namespace Mono.Debugging.Client
 		public void Load (XmlElement rootElem, string baseDir = null)
 		{
 			Clear ();
+
+			var loadedBreakpoints = new List<BreakEvent> ();
 			foreach (XmlNode n in rootElem.ChildNodes) {
 				XmlElement elem = n as XmlElement;
 				if (elem == null)
 					continue;
 				BreakEvent ev = BreakEvent.FromXml (elem, baseDir);
-				if (ev != null)
-					Add (ev);
+				if (ev != null) {
+					loadedBreakpoints.Add (ev);
+					ev.Store = this;
+				}
+			}
+
+			lock (breakpointLock) {
+				SetBreakpoints (ImmutableArray.CreateRange (loadedBreakpoints));
+			}
+
+			// preserve behaviour by sending an event for each breakpoint that was loaded
+			foreach (var bp in loadedBreakpoints) {
+				OnBreakEventAdded (bp);
 			}
 		}
 
@@ -441,7 +476,15 @@ namespace Mono.Debugging.Client
 			try {
 				buffer = Marshal.AllocHGlobal (PATHMAX);
 				var result = realpath (path, buffer);
-				return result == IntPtr.Zero ? "" : Marshal.PtrToStringAuto (buffer);
+				var realPath = result == IntPtr.Zero ? "" : Marshal.PtrToStringAuto (buffer);
+
+				if (string.IsNullOrEmpty (realPath) && !File.Exists (path)) {
+					// if the file does not exist then `realpath` will return empty string
+					// default to what we would do if calling this on windows
+					realPath = Path.GetFullPath (path);
+				}
+
+				return realPath;
 			} finally {
 				if (buffer != IntPtr.Zero)
 					Marshal.FreeHGlobal (buffer);
@@ -572,14 +615,31 @@ namespace Mono.Debugging.Client
 		{
 			if (IsReadOnly)
 				return;
+
 			foreach (var bp in GetBreakpointsAtFile (oldPath)) {
 				Remove (bp);
 				bp.SetFileName (newPath);
 				Add (bp);
 			}
 		}
+
+		ImmutableArray<BreakEvent> SetBreakpoints (ImmutableArray<BreakEvent> newBreakpoints)
+		{
+			System.Diagnostics.Debug.Assert (System.Threading.Monitor.IsEntered (breakpointLock), "SetBreakpoints must be called during a lock");
+
+			var oldEvents = breakpoints;
+			breakpoints = newBreakpoints;
+			return oldEvents;
+		}
+
+		ImmutableArray<BreakEvent> InternalGetBreakpoints ()
+		{
+			lock (breakpointLock) {
+				return breakpoints;
+			}
+		}
 	}
-	
+
 	public class ReadOnlyCheckEventArgs: EventArgs
 	{
 		internal bool IsReadOnly;
