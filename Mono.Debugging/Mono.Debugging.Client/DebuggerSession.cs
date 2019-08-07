@@ -897,7 +897,7 @@ namespace Mono.Debugging.Client
 		
 		public string ResolveExpression (string expression, string file, int line, int column, int endLine, int endColumn)
 		{
-			return ResolveExpression (expression, new SourceLocation (null, file, line, column, endLine, endColumn));
+			return ResolveExpression (expression, new SourceLocation (null, file, line, column, endLine, endColumn, null, null));
 		}
 		
 		public virtual string ResolveExpression (string expression, SourceLocation location)

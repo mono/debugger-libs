@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -93,7 +92,7 @@ namespace Mono.Debugger.Soft
 			vm.conn.Array_SetValues (id, index, vm.EncodeValues (values));
 		}
 
-		public void SetByteValues (byte[] bytes)
+		public void SetByteValues (byte [] bytes)
 		{
 			if (bytes != null && bytes.Length != Length) {
 				throw new IndexOutOfRangeException ();

@@ -46,6 +46,8 @@ using Mono.Debugging.Evaluation;
 using MDB = Mono.Debugger.Soft;
 using System.Security.Cryptography;
 using Mono.Cecil.Cil;
+using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace Mono.Debugging.Soft
 {
@@ -737,17 +739,81 @@ namespace Mono.Debugging.Soft
 		internal PortablePdbData GetPdbData (AssemblyMirror asm)
 		{
 			string assemblyFileName;
+
 			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
 				assemblyFileName = asm.Location;
 			var pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
-			if (!PortablePdbData.IsPortablePdb (pdbFileName))
-				return null;
-			return new PortablePdbData (pdbFileName);
+			if (PortablePdbData.IsPortablePdb (pdbFileName))
+				return new PortablePdbData (pdbFileName);
+			// Attempt to fetch pdb from the debuggee over the wire
+			var pdbBlob = asm.GetPdbBlob ();
+			return pdbBlob != null ? new PortablePdbData (pdbBlob) : null;
 		}
 
 		internal PortablePdbData GetPdbData (MethodMirror method)
 		{
 			return GetPdbData (method.DeclaringType.Assembly);
+		}
+
+		Dictionary<AssemblyMirror, SourceLinkMap []> SourceLinkCache = new Dictionary<AssemblyMirror, SourceLinkMap []> ();
+		SourceLinkMap [] GetSourceLinkMaps (MethodMirror method)
+		{
+			var asm = method.DeclaringType.Assembly;
+
+			if (SourceLinkCache.TryGetValue (asm, out SourceLinkMap[] maps)) {
+				return maps;
+			}
+
+			string jsonString = null;
+
+			if (asm.VirtualMachine.Version.AtLeast (2, 48)) {
+				jsonString = asm.ManifestModule.SourceLink;
+			} else {
+				// Read the pdb ourselves
+				jsonString = GetPdbData (asm)?.GetSourceLinkBlob ();
+			}
+
+			if (!string.IsNullOrWhiteSpace(jsonString)) {
+				try {
+					var jsonSourceLink = JsonConvert.DeserializeObject<JsonSourceLink> (jsonString);
+
+					if (jsonSourceLink != null && jsonSourceLink.Maps != null && jsonSourceLink.Maps.Any ())
+						maps = jsonSourceLink.Maps.Select (kv => new SourceLinkMap (kv.Key, kv.Value)).ToArray ();
+				} catch (JsonException ex) {
+					DebuggerLoggingService.LogError ("Error reading source link", ex);
+				}
+			}
+
+			SourceLinkCache [asm] = maps ?? Array.Empty<SourceLinkMap> ();
+			return maps;
+		}
+
+		internal SourceLink GetSourceLink (MethodMirror method, string originalFileName)
+		{
+			if (originalFileName == null)
+				return null;
+
+			var maps = GetSourceLinkMaps (method);
+			if (maps == null || maps.Length == 0)
+				return null;
+
+			originalFileName = originalFileName.Replace ('\\', '/');
+			foreach (var map in maps) {
+				var pattern = map.RelativePathWildcard.Replace ("*", "").Replace ('\\', '/');
+
+				if (originalFileName.StartsWith (pattern, StringComparison.Ordinal)) {
+					var localPath = originalFileName.Replace (pattern.Replace (".*", ""), "");
+					var httpBasePath = map.UriWildcard.Replace ("*", "");
+					// org/project-name/git-sha (usually)
+					var pathAndQuery = new Uri (httpBasePath).GetComponents (UriComponents.Path, UriFormat.SafeUnescaped);
+					// org/projectname/git-sha/path/to/file.cs
+					var relativePath = Path.Combine (pathAndQuery, localPath);
+					// Replace something like "f:/build/*" with "https://raw.githubusercontent.com/org/projectname/git-sha/*"
+					var httpPath = Regex.Replace (originalFileName, pattern, httpBasePath);
+					return new SourceLink (httpPath, relativePath);
+				}
+			}
+			return null;
 		}
 
 		protected override Backtrace OnGetThreadBacktrace (long processId, long threadId)
@@ -2569,7 +2635,15 @@ namespace Mono.Debugging.Soft
 			try {
 				buffer = Marshal.AllocHGlobal (PATHMAX);
 				var result = realpath (path, buffer);
-				return result == IntPtr.Zero ? "" : Marshal.PtrToStringAuto (buffer);
+				var realPath = result == IntPtr.Zero ? "" : Marshal.PtrToStringAuto (buffer);
+
+				if (string.IsNullOrEmpty(realPath) && !File.Exists(path)) {
+					// if the file does not exist then `realpath` will return empty string
+					// default to what we would do if calling this on windows
+					realPath = Path.GetFullPath (path);
+				}
+
+				return realPath;
 			} finally {
 				if (buffer != IntPtr.Zero)
 					Marshal.FreeHGlobal (buffer);
