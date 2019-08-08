@@ -220,7 +220,7 @@ namespace Mono.Debugging.Tests
 				HandleAnyException(ex);
 				return true;
 			};
-			switch (WaitHandle.WaitAny (new WaitHandle[]{ done, targetExited }, 30000)) {
+			switch (WaitHandle.WaitAny (new WaitHandle[]{ done, targetExited }, 60000)) {
 			case 0:
 				//Breakpoint is hit good... run tests now
 				break;
