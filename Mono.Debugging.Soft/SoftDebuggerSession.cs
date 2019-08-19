@@ -383,8 +383,14 @@ namespace Mono.Debugging.Soft
 				}
 			}
 
-			if (connectionDialog != null)
-				connectionDialog.SetMessage (dsi, GetConnectingMessage (dsi), listening, attemptNumber);
+			if (connectionDialog != null) {
+				var message = GetConnectingMessage (dsi);
+
+				if (message != null)
+					DebuggerLoggingService.LogMessage ("{0}", message);
+
+				connectionDialog.SetMessage (dsi, message, listening, attemptNumber);
+			}
 		}
 		
 		protected virtual string GetConnectingMessage (DebuggerStartInfo dsi)
