@@ -142,6 +142,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Buffers" Version="4.5.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
   </ItemGroup>
   <Import Project="..\Mono.Debugging.settings" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
