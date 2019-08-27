@@ -2569,7 +2569,15 @@ namespace Mono.Debugging.Soft
 			try {
 				buffer = Marshal.AllocHGlobal (PATHMAX);
 				var result = realpath (path, buffer);
-				return result == IntPtr.Zero ? "" : Marshal.PtrToStringAuto (buffer);
+				var realPath = result == IntPtr.Zero ? "" : Marshal.PtrToStringAuto (buffer);
+
+				if (string.IsNullOrEmpty(realPath) && !File.Exists(path)) {
+					// if the file does not exist then `realpath` will return empty string
+					// default to what we would do if calling this on windows
+					realPath = Path.GetFullPath (path);
+				}
+
+				return realPath;
 			} finally {
 				if (buffer != IntPtr.Zero)
 					Marshal.FreeHGlobal (buffer);
