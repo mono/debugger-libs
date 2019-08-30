@@ -227,6 +227,7 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void InvocationsCountDuringExpandingTest ()
 		{
+			IgnoreVsDebugger ("Behavior has changed in CoreClr debugger 1-21-0");
 			InitializeTest ();
 			AddBreakpoint ("8865cace-6b57-42cc-ad55-68a2c12dd3d7");
 			StartTest ("InvocationsCountDuringExpandingTest");
