@@ -67,8 +67,8 @@ namespace Mono.Debugging.Soft
 
 			flags |= GetFlags (field);
 
-			// If `vflags` is `Literal`, we need to unset the `Field` flag which is always returned by GetFlags().
-			if (vflags == ObjectValueFlags.Literal)
+			// if `vflags` already has an origin specified, we need to unset the `Field` flag which is always returned by GetFlags().
+			if ((vflags & ObjectValueFlags.OriginMask) != 0)
 				flags &= ~ObjectValueFlags.Field;
 
 			if (obj is PrimitiveValue)
