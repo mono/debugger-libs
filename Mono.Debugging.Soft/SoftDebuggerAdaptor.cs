@@ -921,8 +921,11 @@ namespace Mono.Debugging.Soft
 						PortablePdbData.SoftScope [] scopes;
 						if (!methodScopeCache.TryGetValue (cx.Frame.Method, out scopes)) {
 							scopes = cx.Session.GetPdbData (cx.Frame.Method)?.GetHoistedScopes (cx.Frame.Method);
-							if (scopes == null || scopes.Length == 0)// If hoisted scopes are empty use normal scopes
+							if (scopes == null || scopes.Length == 0) {
+								// If hoisted scopes are empty use normal scopes
 								scopes = cx.Frame.Method.GetScopes ().Select (s => new PortablePdbData.SoftScope () { LiveRangeStart = s.LiveRangeStart, LiveRangeEnd = s.LiveRangeEnd }).ToArray ();
+								DebuggerLoggingService.LogMessage ("PDB data not found for frame: {0}", cx.Frame.Method.FullName);
+							}
 							methodScopeCache [cx.Frame.Method] = scopes;
 						}
 						if (scopeIndex < scopes.Length) {
