@@ -56,7 +56,6 @@ namespace Mono.Debugging.Soft
 			this.declaringType = declaringType;
 			this.vname = vname;
 			this.batch = batch;
-			flags = vflags;
 
 			if (field.IsStatic)
 				this.obj = null;
@@ -65,11 +64,13 @@ namespace Mono.Debugging.Soft
 			if (objectMirror != null)
 				EnsureContextHasDomain (objectMirror.Domain);
 
-			flags |= GetFlags (field);
+			flags = GetFlags (field);
 
 			// if `vflags` already has an origin specified, we need to unset the `Field` flag which is always returned by GetFlags().
 			if ((vflags & ObjectValueFlags.OriginMask) != 0)
 				flags &= ~ObjectValueFlags.Field;
+
+			flags |= vflags;
 
 			if (obj is PrimitiveValue)
 				flags |= ObjectValueFlags.ReadOnly;
