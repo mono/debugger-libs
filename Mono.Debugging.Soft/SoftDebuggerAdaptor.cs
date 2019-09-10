@@ -914,24 +914,34 @@ namespace Mono.Debugging.Soft
 					suffixLength = 4;
 					i = field.Name.IndexOf (">5__", StringComparison.Ordinal);
 				}
+
 				if (i != -1 && field.VirtualMachine.Version.AtLeast (2, 43)) {
 					int scopeIndex;
+
 					if (int.TryParse (field.Name.Substring (i + suffixLength), out scopeIndex) && scopeIndex > 0) {//0 means whole method scope
+						PortablePdbData.SoftScope [] scopes = null;
+
 						scopeIndex--;//Scope index is 1 based(not zero)
-						PortablePdbData.SoftScope [] scopes;
-						if (!methodScopeCache.TryGetValue (cx.Frame.Method, out scopes)) {
+
+						if (cx.Frame.Method != null && !methodScopeCache.TryGetValue (cx.Frame.Method, out scopes)) {
 							scopes = cx.Session.GetPdbData (cx.Frame.Method)?.GetHoistedScopes (cx.Frame.Method);
-							if (scopes == null || scopes.Length == 0)// If hoisted scopes are empty use normal scopes
+							if (scopes == null || scopes.Length == 0) {
+								// If hoisted scopes are empty use normal scopes
 								scopes = cx.Frame.Method.GetScopes ().Select (s => new PortablePdbData.SoftScope () { LiveRangeStart = s.LiveRangeStart, LiveRangeEnd = s.LiveRangeEnd }).ToArray ();
+								DebuggerLoggingService.LogMessage ("PDB data not found for frame: {0}", cx.Frame);
+							}
+
 							methodScopeCache [cx.Frame.Method] = scopes;
 						}
-						if (scopeIndex < scopes.Length) {
+
+						if (scopes != null && scopeIndex < scopes.Length) {
 							var scope = scopes [scopeIndex];
 							if (scope.LiveRangeStart > cx.Frame.Location.ILOffset || scope.LiveRangeEnd < cx.Frame.Location.ILOffset)
 								return null;
 						}
 					}
 				}
+
 				i = field.Name.IndexOf ('>');
 				if (i > 1) {
 					return field.Name.Substring (1, i - 1);

@@ -188,8 +188,10 @@ namespace Mono.Debugging.Client
 		
 		public ObjectValue[] GetLocalVariables (EvaluationOptions options)
 		{
-			if (!hasDebugInfo)
+			if (!hasDebugInfo) {
+				DebuggerLoggingService.LogMessage ("Cannot get local variables: no debugging symbols for frame: {0}", this);
 				return new ObjectValue [0];
+			}
 
 			var values = sourceBacktrace.GetLocalVariables (index, options);
 			ObjectValue.ConnectCallbacks (this, values);
@@ -203,8 +205,10 @@ namespace Mono.Debugging.Client
 		
 		public ObjectValue[] GetParameters (EvaluationOptions options)
 		{
-			if (!hasDebugInfo)
+			if (!hasDebugInfo) {
+				DebuggerLoggingService.LogMessage ("Cannot get parameters: no debugging symbols for frame: {0}", this);
 				return new ObjectValue [0];
+			}
 
 			var values = sourceBacktrace.GetParameters (index, options);
 			ObjectValue.ConnectCallbacks (this, values);
@@ -213,8 +217,10 @@ namespace Mono.Debugging.Client
 		
 		public ObjectValue[] GetAllLocals ()
 		{
-			if (!hasDebugInfo)
+			if (!hasDebugInfo) {
+				DebuggerLoggingService.LogMessage ("Cannot get local variables: no debugging symbols for frame: {0}", this);
 				return new ObjectValue [0];
+			}
 
 			var evaluator = session.FindExpressionEvaluator (this);
 
@@ -223,8 +229,10 @@ namespace Mono.Debugging.Client
 		
 		public ObjectValue[] GetAllLocals (EvaluationOptions options)
 		{
-			if (!hasDebugInfo)
+			if (!hasDebugInfo) {
+				DebuggerLoggingService.LogMessage ("Cannot get local variables: no debugging symbols for frame: {0}", this);
 				return new ObjectValue [0];
+			}
 
 			var values = sourceBacktrace.GetAllLocals (index, options);
 			ObjectValue.ConnectCallbacks (this, values);
@@ -238,8 +246,10 @@ namespace Mono.Debugging.Client
 		
 		public ObjectValue GetThisReference (EvaluationOptions options)
 		{
-			if (!hasDebugInfo)
+			if (!hasDebugInfo) {
+				DebuggerLoggingService.LogMessage ("Cannot get `this' reference: no debugging symbols for frame: {0}", this);
 				return null;
+			}
 
 			var value = sourceBacktrace.GetThisReference (index, options);
 			if (value != null)
@@ -277,6 +287,8 @@ namespace Mono.Debugging.Client
 		public ObjectValue[] GetExpressionValues (string[] expressions, EvaluationOptions options)
 		{
 			if (!hasDebugInfo) {
+				DebuggerLoggingService.LogMessage ("Cannot get expression values: no debugging symbols for frame: {0}", this);
+
 				var vals = new ObjectValue [expressions.Length];
 				for (int n = 0; n < expressions.Length; n++)
 					vals[n] = ObjectValue.CreateUnknown (expressions[n]);
@@ -306,8 +318,10 @@ namespace Mono.Debugging.Client
 		
 		public ObjectValue GetExpressionValue (string expression, EvaluationOptions options)
 		{
-			if (!hasDebugInfo)
+			if (!hasDebugInfo) {
+				DebuggerLoggingService.LogMessage ("Cannot get expression value: no debugging symbols for frame: {0}", this);
 				return ObjectValue.CreateUnknown (expression);
+			}
 
 			if (options.UseExternalTypeResolver)
 				expression = ResolveExpression (expression);
