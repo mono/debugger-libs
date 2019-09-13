@@ -73,60 +73,59 @@ namespace Mono.Debugging.Soft
 			set { DebuggerSession = value; }
 		}
 
-		static string GetPrettyMethodName (EvaluationContext ctx, MethodMirror method)
-		{
-			var name = new System.Text.StringBuilder ();
+		//static string GetPrettyMethodName (EvaluationContext ctx, MethodMirror method)
+		//{
+		//	var name = new System.Text.StringBuilder ();
 
-			name.Append (ctx.Adapter.GetDisplayTypeName (method.ReturnType.FullName));
-			name.Append (" ");
-			name.Append (ctx.Adapter.GetDisplayTypeName (method.DeclaringType.FullName));
-			name.Append (".");
-			name.Append (method.Name);
+		//	name.Append (ctx.Adapter.GetDisplayTypeName (method.ReturnType.FullName));
+		//	name.Append (" ");
+		//	name.Append (ctx.Adapter.GetDisplayTypeName (method.DeclaringType.FullName));
+		//	name.Append (".");
+		//	name.Append (method.Name);
 
-			if (method.VirtualMachine.Version.AtLeast (2, 12)) {
-				if (method.IsGenericMethodDefinition || method.IsGenericMethod) {
-					name.Append ("<");
-					if (method.VirtualMachine.Version.AtLeast (2, 15)) {
-						var argTypes = method.GetGenericArguments ();
-						for (int i = 0; i < argTypes.Length; i++) {
-							if (i != 0)
-								name.Append (", ");
-							name.Append (ctx.Adapter.GetDisplayTypeName (argTypes[i].FullName));
-						}
-					}
-					name.Append (">");
-				}
-			}
+		//	if (method.VirtualMachine.Version.AtLeast (2, 12)) {
+		//		if (method.IsGenericMethodDefinition || method.IsGenericMethod) {
+		//			name.Append ("<");
+		//			if (method.VirtualMachine.Version.AtLeast (2, 15)) {
+		//				var argTypes = method.GetGenericArguments ();
+		//				for (int i = 0; i < argTypes.Length; i++) {
+		//					if (i != 0)
+		//						name.Append (", ");
+		//					name.Append (ctx.Adapter.GetDisplayTypeName (argTypes[i].FullName));
+		//				}
+		//			}
+		//			name.Append (">");
+		//		}
+		//	}
 
-			name.Append (" (");
-			var @params = method.GetParameters ();
-			for (int i = 0; i < @params.Length; i++) {
-				if (i != 0)
-					name.Append (", ");
-				if (@params[i].Attributes.HasFlag (ParameterAttributes.Out)) {
-					if (@params[i].Attributes.HasFlag (ParameterAttributes.In))
-						name.Append ("ref ");
-					else
-						name.Append ("out ");
-				}
-				name.Append (ctx.Adapter.GetDisplayTypeName (@params[i].ParameterType.FullName));
-				name.Append (" ");
-				name.Append (@params[i].Name);
-			}
-			name.Append (")");
+		//	name.Append (" (");
+		//	var @params = method.GetParameters ();
+		//	for (int i = 0; i < @params.Length; i++) {
+		//		if (i != 0)
+		//			name.Append (", ");
+		//		if (@params[i].Attributes.HasFlag (ParameterAttributes.Out)) {
+		//			if (@params[i].Attributes.HasFlag (ParameterAttributes.In))
+		//				name.Append ("ref ");
+		//			else
+		//				name.Append ("out ");
+		//		}
+		//		name.Append (ctx.Adapter.GetDisplayTypeName (@params[i].ParameterType.FullName));
+		//		name.Append (" ");
+		//		name.Append (@params[i].Name);
+		//	}
+		//	name.Append (")");
 
-			return name.ToString ();
-		}
+		//	return name.ToString ();
+		//}
 
 		string InvokeToString (SoftEvaluationContext ctx, MethodMirror method, object obj)
 		{
 			try {
-				var res = ctx.RuntimeInvoke (method, obj, new Value [0]) as StringMirror;
-				if (res != null) {
-					return MirrorStringToString (ctx, res);
-				} else {
-					return null;
-				}
+				var result = ctx.RuntimeInvoke (method, obj, new Value[0]);
+				if (result is StringMirror str)
+					return MirrorStringToString (ctx, str);
+
+				return null;
 			} catch {
 				return GetDisplayTypeName (GetValueTypeName (ctx, obj));
 			}
@@ -137,20 +136,16 @@ namespace Mono.Debugging.Soft
 			if (obj == null)
 				return null;
 
-			var str = obj as StringMirror;
-			if (str != null)
+			if (obj is StringMirror str)
 				return str.Value;
 
-			var em = obj as EnumMirror;
-			if (em != null)
+			if (obj is EnumMirror em)
 				return em.StringValue;
 
-			var primitive = obj as PrimitiveValue;
-			if (primitive != null)
+			if (obj is PrimitiveValue primitive)
 				return primitive.Value.ToString ();
 
-			var pointer = obj as PointerValue;
-			if (pointer != null)
+			if (obj is PointerValue pointer)
 				return string.Format ("0x{0:x}", pointer.Address);
 
 			var cx = (SoftEvaluationContext) ctx;
@@ -191,8 +186,7 @@ namespace Mono.Debugging.Soft
 				var tt = targetType as Type;
 				if (tt != null) {
 					try {
-						var primitive = obj as PrimitiveValue;
-						if (primitive != null)
+						if (obj is PrimitiveValue primitive)
 							obj = primitive.Value;
 
 						res = System.Convert.ChangeType (obj, tt);
@@ -206,25 +200,25 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 
-		static Dictionary<string, TypeCastDelegate> typeCastDelegatesCache = new Dictionary<string, TypeCastDelegate> ();
+		static readonly Dictionary<string, TypeCastDelegate> typeCastDelegatesCache = new Dictionary<string, TypeCastDelegate> ();
+
 		static TypeCastDelegate GenerateTypeCastDelegate (string methodName, Type fromType, Type toType)
 		{
 			lock(typeCastDelegatesCache) {
-				TypeCastDelegate cached;
-				if (typeCastDelegatesCache.TryGetValue (methodName, out cached))
+				if (typeCastDelegatesCache.TryGetValue (methodName, out var cached))
 					return cached;
+
 				var argTypes = new [] { typeof (object) };
 				var method = new DynamicMethod (methodName, typeof (object), argTypes, true);
-				ILGenerator il = method.GetILGenerator ();
+				var il = method.GetILGenerator ();
 				ConstructorInfo ctorInfo;
 				MethodInfo methodInfo;
-				OpCode conv;
 
 				il.Emit (OpCodes.Ldarg_0);
 				il.Emit (OpCodes.Unbox_Any, fromType);
 
 				if (fromType.IsSubclassOf (typeof (Nullable))) {
-					PropertyInfo propInfo = fromType.GetProperty ("Value");
+					var propInfo = fromType.GetProperty ("Value");
 					methodInfo = propInfo.GetGetMethod ();
 
 					il.Emit (OpCodes.Stloc_0);
@@ -234,7 +228,7 @@ namespace Mono.Debugging.Soft
 					fromType = methodInfo.ReturnType;
 				}
 
-				if (!convertOps.TryGetValue (toType, out conv)) {
+				if (!convertOps.TryGetValue (toType, out var conv)) {
 					argTypes = new [] { fromType };
 
 					if (toType == typeof (string)) {
@@ -258,6 +252,7 @@ namespace Mono.Debugging.Soft
 				il.Emit (OpCodes.Ret);
 				cached = (TypeCastDelegate)method.CreateDelegate (typeof (TypeCastDelegate));
 				typeCastDelegatesCache [methodName] = cached;
+
 				return cached;
 			}
 		}
@@ -367,8 +362,7 @@ namespace Mono.Debugging.Soft
 
 			if (fromType != null) {
 				// Try casting the primitive type of the enum
-				var em = val as EnumMirror;
-				if (em != null)
+				if (val is EnumMirror em)
 					return TryCast (ctx, CreateValue (ctx, em.Value), type);
 
 				if (toType != null && toType.IsAssignableFrom(fromType))
@@ -420,9 +414,7 @@ namespace Mono.Debugging.Soft
 
 					try {
 						if (tt.IsPrimitive || tt == typeof (string)) {
-							var primitive = val as PrimitiveValue;
-
-							if (primitive != null)
+							if (val is PrimitiveValue primitive)
 								val = primitive.Value;
 
 							if (val == null)
@@ -528,7 +520,7 @@ namespace Mono.Debugging.Soft
 			if (argValues.Length == 0 && tm.VirtualMachine.Version.AtLeast (2, 31))
 				return tm.NewInstance ();
 
-			string typeName = ctx.Adapter.GetDisplayTypeName (ctx, type);
+			var typeName = ctx.Adapter.GetDisplayTypeName (ctx, type);
 
 			throw new EvaluatorException ("Constructor not found for type `{0}'.", typeName);
 		}
@@ -536,9 +528,8 @@ namespace Mono.Debugging.Soft
 		public override object CreateValue (EvaluationContext ctx, object value)
 		{
 			var cx = (SoftEvaluationContext) ctx;
-			var str = value as string;
 
-			if (str != null)
+			if (value is string str)
 				return cx.Domain.CreateString (str);
 
 			if (value is decimal) {
@@ -568,29 +559,28 @@ namespace Mono.Debugging.Soft
 			return new DelayedLambdaValue (soft.Session.VirtualMachine, locals, expression);
 		}
 
-		public object CreateByteArray (EvaluationContext ctx, byte [] byts)
+		public object CreateByteArray (EvaluationContext ctx, byte [] bytes)
 		{
-			var cx = (SoftEvaluationContext)ctx;
-			if (Session.VirtualMachine.Version.AtLeast (2, 52)) {
-				return cx.Domain.CreateByteArray (byts);
-			}
-			else {
-				var arrayType = GetType (ctx, "System.Array");
-				var int32Type = GetType (ctx, "System.Int32");
-				var typeType = GetType (ctx, "System.Type");
-				var stringType = GetType (ctx, "System.String");
-				var byteTypeValue = RuntimeInvoke (ctx, typeType, null, "GetType", new object [] { stringType }, new object [] { CreateValue (ctx, "System.Byte") });
+			var cx = (SoftEvaluationContext) ctx;
 
-				var byteType = ctx.Adapter.GetType (ctx, "System.Byte");
-				var n = CreateValue (ctx, byts.Length);
-				var args = new object [] { byteTypeValue, n };
-				var arr = RuntimeInvoke (ctx, arrayType, null, "CreateInstance", new object [] { typeType, int32Type }, args);
-				if (arr is ArrayMirror) {
-					var arrm = arr as ArrayMirror;
-					arrm.SetByteValues (byts);
-					return arr;
-				}
+			if (Session.VirtualMachine.Version.AtLeast (2, 52))
+				return cx.Domain.CreateByteArray (bytes);
+
+			var arrayType = GetType (ctx, "System.Array");
+			var int32Type = GetType (ctx, "System.Int32");
+			var typeType = GetType (ctx, "System.Type");
+			var stringType = GetType (ctx, "System.String");
+			var byteTypeValue = RuntimeInvoke (ctx, typeType, null, "GetType", new object [] { stringType }, new object [] { CreateValue (ctx, "System.Byte") });
+			//var byteType = ctx.Adapter.GetType (ctx, "System.Byte");
+			var n = CreateValue (ctx, bytes.Length);
+			var args = new object [] { byteTypeValue, n };
+			var arr = RuntimeInvoke (ctx, arrayType, null, "CreateInstance", new object [] { typeType, int32Type }, args);
+			if (arr is ArrayMirror) {
+				var arrm = arr as ArrayMirror;
+				arrm.SetByteValues (bytes);
+				return arr;
 			}
+
 			return null;
 		}
 
@@ -601,8 +591,8 @@ namespace Mono.Debugging.Soft
 				return null;
 			}
 
-			string typeName = val.GetLiteralType (toType);
-			byte [] bytes = CompileLambdaExpression (ctx, val.DelayedType, typeName, out compileError);
+			var typeName = val.GetLiteralType (toType);
+			var bytes = CompileLambdaExpression (ctx, val.DelayedType, typeName, out compileError);
 
 			return LoadLambdaValue (ctx, val.DelayedType, bytes);
 		}
@@ -635,25 +625,25 @@ namespace Mono.Debugging.Soft
 
 		private byte [] CompileLambdaExpression (SoftEvaluationContext ctx, DelayedLambdaType val, string typeName, out string error)
 		{
-			string className = val.Name;
-			string assemblyNamePrefix = "lambdaAssem";
-			string assemblyName = assemblyNamePrefix + className;
-			string lambdaExpression = val.Expression;
+			var className = val.Name;
+			var assemblyNamePrefix = "lambdaAssem";
+			var assemblyName = assemblyNamePrefix + className;
+			var lambdaExpression = val.Expression;
 
 			int startOfExp, endOfExp;
 			error = null;
 
-			Tuple<string, Value>[] values = val.Locals;
-			string[] paramLiterals = new string [values.Length];
+			var values = val.Locals;
+			var paramLiterals = new string [values.Length];
 			for (int i = 0; i < values.Length; i++) {
 				var v = values [i];
-				var typ = GetValueType (ctx, v.Item2);
-				var typ2 = ToTypeMirror (ctx, typ);
-				var typ3 = ctx.Adapter.GetDisplayTypeName (typ2.FullName);
-				Console.WriteLine (typ3);
-				paramLiterals [i] = typ3 + " " + v.Item1;
+				var type = GetValueType (ctx, v.Item2);
+				var typeMirror = ToTypeMirror (ctx, type);
+				var typeDisplayName = ctx.Adapter.GetDisplayTypeName (typeMirror.FullName);
+
+				paramLiterals [i] = typeDisplayName + " " + v.Item1;
 			}
-			string paramLiteral = string.Join (",", paramLiterals);
+			var paramLiteral = string.Join (",", paramLiterals);
 
 			var sb = new System.Text.StringBuilder ();
 			sb.Append ("public class ");
@@ -668,12 +658,11 @@ namespace Mono.Debugging.Soft
 			sb.Append (");");
 			sb.Append ("}}");
 
-
 			var options = new CSharpParseOptions (kind: SourceCodeKind.Regular);
-			SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText (sb.ToString (), options);
+			var syntaxTree = CSharpSyntaxTree.ParseText (sb.ToString (), options);
 
 			IEnumerable<SyntaxTree> trees = new [] { syntaxTree };
-			Compilation compilation = CreateLibraryCompilation (ctx, assemblyName, true).AddSyntaxTrees (trees);
+			var compilation = CreateLibraryCompilation (ctx, assemblyName, true).AddSyntaxTrees (trees);
 
 			var stream = new System.IO.MemoryStream ();
 			var compileResult = compilation.Emit (stream);
@@ -757,7 +746,7 @@ namespace Mono.Debugging.Soft
 			var namespaces = new HashSet<string> ();
 			var cx = (SoftEvaluationContext) ctx;
 
-			foreach (TypeMirror type in cx.Session.GetAllTypes ())
+			foreach (var type in cx.Session.GetAllTypes ())
 				namespaces.Add (type.Namespace);
 			
 			var nss = new string [namespaces.Count];
@@ -779,8 +768,8 @@ namespace Mono.Debugging.Soft
 			var props = new List<PropertyInfoMirror> ();
 			var mirType = type as TypeMirror;
 			while (mirType != null) {
-				foreach (PropertyInfoMirror prop in mirType.GetProperties ()) {
-					MethodMirror met = prop.GetGetMethod (true);
+				foreach (var prop in mirType.GetProperties ()) {
+					var met = prop.GetGetMethod (true);
 					if (met != null &&
 						!met.IsStatic &&
 						met.GetParameters ().Length > 0 &&
@@ -916,9 +905,7 @@ namespace Mono.Debugging.Soft
 				}
 
 				if (i != -1 && field.VirtualMachine.Version.AtLeast (2, 43)) {
-					int scopeIndex;
-
-					if (int.TryParse (field.Name.Substring (i + suffixLength), out scopeIndex) && scopeIndex > 0) {//0 means whole method scope
+					if (int.TryParse (field.Name.Substring (i + suffixLength), out int scopeIndex) && scopeIndex > 0) {//0 means whole method scope
 						PortablePdbData.SoftScope [] scopes = null;
 
 						scopeIndex--;//Scope index is 1 based(not zero)
@@ -927,7 +914,7 @@ namespace Mono.Debugging.Soft
 							scopes = cx.Session.GetPdbData (cx.Frame.Method)?.GetHoistedScopes (cx.Frame.Method);
 							if (scopes == null || scopes.Length == 0) {
 								// If hoisted scopes are empty use normal scopes
-								scopes = cx.Frame.Method.GetScopes ().Select (s => new PortablePdbData.SoftScope () { LiveRangeStart = s.LiveRangeStart, LiveRangeEnd = s.LiveRangeEnd }).ToArray ();
+								scopes = cx.Frame.Method.GetScopes ().Select (s => new PortablePdbData.SoftScope { LiveRangeStart = s.LiveRangeStart, LiveRangeEnd = s.LiveRangeEnd }).ToArray ();
 								DebuggerLoggingService.LogMessage ("PDB data not found for frame: {0}", cx.Frame);
 							}
 
@@ -955,6 +942,7 @@ namespace Mono.Debugging.Soft
 		{
 			if (vthis == null)
 				return new ValueReference [0];
+
 			object val;
 			try {
 				val = vthis.Value;
@@ -1093,11 +1081,11 @@ namespace Mono.Debugging.Soft
 			var cx = (SoftEvaluationContext) ctx;
 
 			if (InGeneratedClosureOrIteratorType (cx)) {
-				ValueReference vthis = GetThisReference (cx);
+				var vthis = GetThisReference (cx);
 				return GetHoistedLocalVariables (cx, vthis).Union (GetLocalVariables (cx));
 			}
 			if (IsLocalFunction (cx)) {
-				VariableValueReference vthis = GetClosureReference (cx);
+				var vthis = GetClosureReference (cx);
 				// if there's no closure reference then it didn't capture anything
 				if (vthis != null) {
 					return GetHoistedLocalVariables (cx, vthis).Union (GetLocalVariables (cx));
@@ -1197,7 +1185,7 @@ namespace Mono.Debugging.Soft
 					// This way we avoid overhead of invoking methods on the debugee when the value is requested.
 					//But also check that this method is not virtual, because in that case we need to call getter to invoke override
 					if (!getter.IsVirtual) {
-						string cgFieldName = string.Format ("<{0}>{1}", prop.Name, IsAnonymousType (type) ? "" : "k__BackingField");
+						var cgFieldName = string.Format ("<{0}>{1}", prop.Name, IsAnonymousType (type) ? "" : "k__BackingField");
 						if ((field = FindByName (type.GetFields (), f => f.Name, cgFieldName, true)) != null && IsCompilerGenerated (field))
 							return new FieldValueReference (ctx, field, co, type, prop.Name, ObjectValueFlags.Property);
 					}
@@ -1213,9 +1201,9 @@ namespace Mono.Debugging.Soft
 					//foreach above recursively checked all "base" interfaces
 					//nothing was found, quit, otherwise we would loop forever
 					return null;
-				} else {
-					type = type.BaseType;
 				}
+
+				type = type.BaseType;
 			}
 
 			return null;
@@ -1230,8 +1218,8 @@ namespace Mono.Debugging.Soft
 				tupleNames.Length >= tupleIndex &&
 				tupleNames [tupleIndex - 1] != null)
 				return tupleNames [tupleIndex - 1];
-			else
-				return name;
+
+			return name;
 		}
 
 		static bool IsCompilerGenerated (FieldInfoMirror field)
@@ -1251,10 +1239,10 @@ namespace Mono.Debugging.Soft
 
 		static T FindByName<T> (IEnumerable<T> items, Func<T,string> getName, string name, bool caseSensitive)
 		{
-			T best = default(T);
+			var best = default(T);
 
-			foreach (T item in items) {
-				string itemName = getName (item);
+			foreach (var item in items) {
+				var itemName = getName (item);
 
 				if (itemName == name)
 					return item;
@@ -1344,7 +1332,7 @@ namespace Mono.Debugging.Soft
 					}
 				}
 
-				foreach (PropertyInfoMirror prop in type.GetProperties (bindingFlags)) {
+				foreach (var prop in type.GetProperties (bindingFlags)) {
 					var getter = prop.GetGetMethod (true);
 
 					if (getter == null || getter.GetParameters ().Length != 0 || getter.IsAbstract)
@@ -1398,7 +1386,7 @@ namespace Mono.Debugging.Soft
 				var interfaces = type.GetInterfaces ();
 				foreach (var intr in interfaces) {
 					var map = type.GetInterfaceMap (intr);
-					foreach (PropertyInfoMirror prop in intr.GetProperties (bindingFlags)) {
+					foreach (var prop in intr.GetProperties (bindingFlags)) {
 						var getter = prop.GetGetMethod (true);
 						if (getter == null || getter.GetParameters ().Length != 0)
 							continue;
@@ -1568,7 +1556,7 @@ namespace Mono.Debugging.Soft
 			var batch = new LocalVariableBatch (soft.Frame, locals);
 				
 			for (int i = 0; i < locals.Length; i++) {
-				string name = !string.IsNullOrEmpty (locals[i].Name) ? locals[i].Name : "arg" + locals[i].Index;
+				var name = !string.IsNullOrEmpty (locals[i].Name) ? locals[i].Name : "arg" + locals[i].Index;
 				yield return new VariableValueReference (ctx, name, locals[i], batch);
 			}
 		}
@@ -1618,28 +1606,28 @@ namespace Mono.Debugging.Soft
 				return tm.GetGenericArguments ();
 
 			// fall back to parsing them from the from the FullName
-			List<string> names = new List<string> ();
-			string s = tm.FullName;
-			int i = s.IndexOf ('`');
+			var names = new List<string> ();
+			var typeName = tm.FullName;
+			int i = typeName.IndexOf ('`');
 
 			if (i != -1) {
-				i = s.IndexOf ('[', i);
+				i = typeName.IndexOf ('[', i);
 				if (i == -1)
 					return new object [0];
 				int si = ++i;
 				int nt = 0;
-				for (; i < s.Length && (nt > 0 || s[i] != ']'); i++) {
-					if (s[i] == '[')
+				for (; i < typeName.Length && (nt > 0 || typeName[i] != ']'); i++) {
+					if (typeName[i] == '[')
 						nt++;
-					else if (s[i] == ']')
+					else if (typeName[i] == ']')
 						nt--;
-					else if (s[i] == ',' && nt == 0) {
-						names.Add (s.Substring (si, i - si));
+					else if (typeName[i] == ',' && nt == 0) {
+						names.Add (typeName.Substring (si, i - si));
 						si = i + 1;
 					}
 				}
-				names.Add (s.Substring (si, i - si));
-				object[] types = new object [names.Count];
+				names.Add (typeName.Substring (si, i - si));
+				var types = new object [names.Count];
 				for (int n=0; n<names.Count; n++) {
 					string tn = names [n];
 					if (tn.StartsWith ("[", StringComparison.Ordinal))
@@ -1682,10 +1670,9 @@ namespace Mono.Debugging.Soft
 					if (args.Length > 0)
 						args += ",";
 
-					var atm = argType as TypeMirror;
 					string tn;
 
-					if (atm == null) {
+					if (!(argType is TypeMirror atm)) {
 						var att = (Type) argType;
 
 						tn = att.FullName + ", " + att.Assembly.GetName ();
@@ -1756,9 +1743,7 @@ namespace Mono.Debugging.Soft
 
 		public override object GetParentType (EvaluationContext ctx, object type)
 		{
-			var tm = type as TypeMirror;
-
-			if (tm != null) {
+			if (type is TypeMirror tm) {
 				int plus = tm.FullName.LastIndexOf ('+');
 
 				return plus != -1 ? GetType (ctx, tm.FullName.Substring (0, plus)) : null;
@@ -1829,18 +1814,16 @@ namespace Mono.Debugging.Soft
 		
 		public override object GetBaseType (EvaluationContext ctx, object type)
 		{
-			var tm = type as TypeMirror;
-
-			return tm != null ? tm.BaseType : null;
+			return type is TypeMirror tm ? tm.BaseType : null;
 		}
 
 		public override bool HasMethodWithParamLength (EvaluationContext ctx, object targetType, string methodName, BindingFlags flags, int paramLength)
 		{
 			var soft = (SoftEvaluationContext)ctx;
 			var currentType = ToTypeMirror (ctx, targetType);
-			bool allowInstance = (flags & BindingFlags.Instance) != 0;
-			bool allowStatic = (flags & BindingFlags.Static) != 0;
-			bool onlyPublic = (flags & BindingFlags.Public) != 0;
+			var allowInstance = (flags & BindingFlags.Instance) != 0;
+			var allowStatic = (flags & BindingFlags.Static) != 0;
+			var onlyPublic = (flags & BindingFlags.Public) != 0;
 
 			while (currentType != null) {
 				var methods = GetMethodsByName (soft, currentType, methodName);
@@ -1895,11 +1878,11 @@ namespace Mono.Debugging.Soft
 				}
 			}
 
-			MethodMirror method = null;
-			bool allowInstance = (flags & BindingFlags.Instance) != 0;
-			bool allowStatic = (flags & BindingFlags.Static) != 0;
-			bool throwIfNotFound = false;
-			bool tryCasting = true;
+			var allowInstance = (flags & BindingFlags.Instance) != 0;
+			var allowStatic = (flags & BindingFlags.Static) != 0;
+			var throwIfNotFound = false;
+			var tryCasting = true;
+			MethodMirror method;
 
 			if (hasDelayed) {
 				var candidates = OverloadResolveMulti (soft, tm, methodName, typeArgs, null, types, allowInstance, allowStatic, throwIfNotFound, tryCasting);
@@ -1924,17 +1907,14 @@ namespace Mono.Debugging.Soft
 			var maxMatchCount = 0;
 
 			for (int k = 0; k < argTypes.Length; k++) {
-				var paramType = argTypes[k];
 				if (argTypes[k].IsDelayed)
 					maxMatchCount++;
 			}
 
-			Tuple<int, object>[] resolvedBuf = new Tuple<int, object> [maxMatchCount];
-
 			for (int k = 0; k < candidates.Length; k++) {
 				var method = candidates[k];
 				var mparams = method.GetParameters ();
-				resolvedBuf = new Tuple<int, object>[maxMatchCount];
+				var resolvedBuf = new Tuple<int, object>[maxMatchCount];
 
 				int matchCount = 0;
 				for (int i = 0; i < mparams.Length; i++) {
@@ -1983,27 +1963,26 @@ namespace Mono.Debugging.Soft
 
 		public override bool IsValueType (object type)
 		{
-			var tm = type as TypeMirror;
-
-			return tm != null && tm.IsValueType;
+			return type is TypeMirror tm && tm.IsValueType;
 		}
 
 		public override bool IsPrimitiveType (object type)
 		{
 			if (!(type is TypeMirror tm))
 				return false;
+
 			if (tm.IsPrimitive)
 				return true;
+
 			if (tm.IsValueType && tm.Namespace == "System" && (tm.Name == "nfloat" || tm.Name == "nint"))
 				return true;
+
 			return false;
 		}
 
 		public override bool IsClass (EvaluationContext ctx, object type)
 		{
-			var tm = type as TypeMirror;
-
-			return tm != null && (tm.IsClass || tm.IsValueType) && !tm.IsPrimitive;
+			return type is TypeMirror tm && (tm.IsClass || tm.IsValueType) && !tm.IsPrimitive;
 		}
 
 		public override bool IsNull (EvaluationContext ctx, object val)
@@ -2153,7 +2132,7 @@ namespace Mono.Debugging.Soft
 			if (!tm.Attributes.HasFlag (TypeAttributes.BeforeFieldInit))
 				return false;
 
-			MethodMirror cctor = OverloadResolve (soft, tm, ".cctor", null, new ArgumentType[0], false, true, false);
+			var cctor = OverloadResolve (soft, tm, ".cctor", null, new ArgumentType[0], false, true, false);
 			if (cctor == null)
 				return true;
 
@@ -2173,7 +2152,7 @@ namespace Mono.Debugging.Soft
 		static T BuildAttribute<T> (CustomAttributeDataMirror attr)
 		{
 			var args = new List<object> ();
-			Type type = typeof (T);
+			var type = typeof (T);
 
 			foreach (var arg in attr.ConstructorArguments) {
 				object val = arg.Value;
@@ -2318,7 +2297,7 @@ namespace Mono.Debugging.Soft
 				var param_type = mparams [n].ParameterType;
 				if (param_type.FullName != types [n].Type.FullName && !param_type.IsAssignableFrom (types [n].Type) && param_type.IsGenericType &&
 				   !(param_type.IsGenericType && param_type.FullName.StartsWith ("System.Nullable`1", StringComparison.Ordinal))) {
-					bool throwCastException = true;
+					var throwCastException = true;
 
 					if (method.VirtualMachine.Version.AtLeast (2, 15)) {
 						var args = param_type.GetGenericArguments ();
@@ -2333,8 +2312,8 @@ namespace Mono.Debugging.Soft
 					}
 
 					if (throwCastException) {
-						string fromType = !IsGeneratedType (types [n].Type) ? soft.Adapter.GetDisplayTypeName (soft, types [n]) : types [n].Type.FullName;
-						string toType = soft.Adapter.GetDisplayTypeName (soft, param_type);
+						var fromType = !IsGeneratedType (types [n].Type) ? soft.Adapter.GetDisplayTypeName (soft, types [n]) : types [n].Type.FullName;
+						var toType = soft.Adapter.GetDisplayTypeName (soft, param_type);
 
 						throw new EvaluatorException ("Argument {0}: Cannot implicitly convert `{1}' to `{2}'", n, fromType, toType);
 					}
@@ -2354,7 +2333,7 @@ namespace Mono.Debugging.Soft
 			if (enableOutArgs) {
 				Value[] outArgsValue;
 				var result = soft.RuntimeInvoke (method, target ?? targetType, values, out outArgsValue);
-				outArgs = (object[])outArgsValue;
+				outArgs = outArgsValue;
 				return result;
 			} else {
 				outArgs = null;
@@ -2403,25 +2382,25 @@ namespace Mono.Debugging.Soft
 			return types;
 		}
 
-		static MethodMirror PickFirstCandidate (MethodMirror[] methods)
+		static MethodMirror PickFirstCandidate (MethodMirror [] methods)
 		{
-			if (methods == null || methods.Length == 0) {
+			if (methods == null || methods.Length == 0)
 				return null;
-			} else if (methods.Length == 1) {
-				return methods [0];
-			} else {
-				// If there is an ambiguous match, just pick the first match. If the user was expecting
-				// something else, he can provide more specific arguments
 
-/*				if (!throwIfNotFound)
-					return null;
-				if (methodName != null)
-					throw new EvaluatorException ("Ambiguous method `{0}'; need to use full name", methodName);
-				else
-					throw new EvaluatorException ("Ambiguous arguments for indexer.", methodName);
-*/
+			if (methods.Length == 1)
 				return methods [0];
-			}
+
+			// If there is an ambiguous match, just pick the first match. If the user was expecting
+			// something else, he can provide more specific arguments
+
+			//if (!throwIfNotFound)
+			//	return null;
+			//if (methodName != null)
+			//	throw new EvaluatorException ("Ambiguous method `{0}'; need to use full name", methodName);
+			//else
+			//	throw new EvaluatorException ("Ambiguous arguments for indexer.", methodName);
+
+			return methods [0];
 		}
 
 		public static MethodMirror OverloadResolve (SoftEvaluationContext ctx, TypeMirror type, string methodName, ArgumentType[] genericTypeArgs, ArgumentType[] argTypes, bool allowInstance, bool allowStatic, bool throwIfNotFound, bool tryCasting = true)
@@ -2564,8 +2543,8 @@ namespace Mono.Debugging.Soft
 				if (CanDoPrimaryCast(types[i].Type, param_type))
 					continue;
 
-				string fromType = !IsGeneratedType (types[i].Type) ? ctx.Adapter.GetDisplayTypeName (ctx, types[i]) : types[i].Type.FullName;
-				string toType = ctx.Adapter.GetDisplayTypeName (ctx, param_type);
+				var fromType = !IsGeneratedType (types[i].Type) ? ctx.Adapter.GetDisplayTypeName (ctx, types[i]) : types[i].Type.FullName;
+				var toType = ctx.Adapter.GetDisplayTypeName (ctx, param_type);
 
 				error = string.Format ("Argument {0}: Cannot implicitly convert `{1}' to `{2}'", i, fromType, toType);
 
@@ -2573,8 +2552,8 @@ namespace Mono.Debugging.Soft
 			}
 
 			if (returnType != null && returnType != method.ReturnType) {
-				string actual = ctx.Adapter.GetDisplayTypeName (ctx, method.ReturnType);
-				string expected = ctx.Adapter.GetDisplayTypeName (ctx, returnType);
+				var actual = ctx.Adapter.GetDisplayTypeName (ctx, method.ReturnType);
+				var expected = ctx.Adapter.GetDisplayTypeName (ctx, returnType);
 
 				error = string.Format ("Return types do not match: `{0}' vs `{1}'", expected, actual);
 
@@ -2614,7 +2593,7 @@ namespace Mono.Debugging.Soft
 		{
 			if (candidates.Count == 0) {
 				if (throwIfNotFound) {
-					string typeName = ctx.Adapter.GetDisplayTypeName (ctx, type);
+					var typeName = ctx.Adapter.GetDisplayTypeName (ctx, type);
 
 					if (methodName == null)
 						throw new EvaluatorException ("Indexer not found in type `{0}'.", typeName);
@@ -2637,11 +2616,8 @@ namespace Mono.Debugging.Soft
 			}
 
 			if (candidates.Count == 1) {
-				string error;
-				int matchCount;
-
-				if (IsApplicable (ctx, candidates[0], genericTypeArgs, returnType, argTypes, out error, out matchCount, tryCasting))
-					return new MethodMirror[] { candidates [0] };
+				if (IsApplicable (ctx, candidates [0], genericTypeArgs, returnType, argTypes, out var error, out var matchCount, tryCasting))
+					return new MethodMirror [] { candidates [0] };
 
 				if (throwIfNotFound)
 					throw new EvaluatorException ("Invalid arguments for method `{0}': {1}", methodName, error);
@@ -2650,10 +2626,10 @@ namespace Mono.Debugging.Soft
 			}
 			
 			// Ok, now we need to find exact matches.
-			List<MethodMirror> bestCandidates = new List<MethodMirror>();
+			var bestCandidates = new List<MethodMirror>();
 			int bestCount = -1;
 			
-			foreach (MethodMirror method in candidates) {
+			foreach (var method in candidates) {
 				string error;
 				int matchCount;
 				
@@ -2690,7 +2666,7 @@ namespace Mono.Debugging.Soft
 				return ((PrimitiveValue)obj).Value;
 
 			if (obj is PointerValue)
-				return new Mono.Debugging.Backend.EvaluationResult ("0x" + ((PointerValue)obj).Address.ToString ("x"));
+				return new EvaluationResult ("0x" + ((PointerValue)obj).Address.ToString ("x"));
 
 			if (obj is StructMirror) {
 				var sm = (StructMirror) obj;
@@ -2698,7 +2674,7 @@ namespace Mono.Debugging.Soft
 				if (sm.Type.IsPrimitive) {
 					// Boxed primitive
 					if (sm.Type.FullName == "System.IntPtr")
-						return new Mono.Debugging.Backend.EvaluationResult ("0x" + ((long)((PrimitiveValue)sm.Fields [0]).Value).ToString ("x"));
+						return new EvaluationResult ("0x" + ((long)((PrimitiveValue)sm.Fields [0]).Value).ToString ("x"));
 					if (sm.Fields.Length > 0 && (sm.Fields[0] is PrimitiveValue))
 						return ((PrimitiveValue)sm.Fields[0]).Value;
 				} else if (sm.Type.FullName == "System.Decimal") {
