@@ -111,21 +111,21 @@ namespace Mono.Debugging.Evaluation
 			var t2 = Type.GetTypeCode (v2.GetType ());
 			if (t1 < TypeCode.Int32 && t2 < TypeCode.Int32)
 				return typeof (int);
-			else
-				switch ((TypeCode)Math.Max ((int)t1, (int)t2)) {
-				case TypeCode.Byte: return typeof (byte);
-				case TypeCode.Decimal: return typeof (decimal);
-				case TypeCode.Double: return typeof (double);
-				case TypeCode.Int16: return typeof (short);
-				case TypeCode.Int32: return typeof (int);
-				case TypeCode.Int64: return typeof (long);
-				case TypeCode.SByte: return typeof (sbyte);
-				case TypeCode.Single: return typeof (float);
-				case TypeCode.UInt16: return typeof (ushort);
-				case TypeCode.UInt32: return typeof (uint);
-				case TypeCode.UInt64: return typeof (ulong);
-				default: throw new Exception (((TypeCode)Math.Max ((int)t1, (int)t2)).ToString ());
-				}
+
+			switch ((TypeCode) Math.Max ((int) t1, (int) t2)) {
+			case TypeCode.Byte: return typeof (byte);
+			case TypeCode.Decimal: return typeof (decimal);
+			case TypeCode.Double: return typeof (double);
+			case TypeCode.Int16: return typeof (short);
+			case TypeCode.Int32: return typeof (int);
+			case TypeCode.Int64: return typeof (long);
+			case TypeCode.SByte: return typeof (sbyte);
+			case TypeCode.Single: return typeof (float);
+			case TypeCode.UInt16: return typeof (ushort);
+			case TypeCode.UInt32: return typeof (uint);
+			case TypeCode.UInt64: return typeof (ulong);
+			default: throw new Exception (((TypeCode) Math.Max ((int) t1, (int) t2)).ToString ());
+			}
 		}
 
 		static object EvaluateOperation (BinaryOperatorType op, double v1, double v2)
@@ -698,27 +698,29 @@ namespace Mono.Debugging.Evaluation
 			var type = defaultValueExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
 			if (type == null)
 				throw ParseError ("Invalid type in 'default' expression.");
+
 			if (ctx.Adapter.IsClass (ctx, type.Type))
 				return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, ctx.Adapter.CreateNullValue (ctx, type.Type), type.Type);
-			else if(ctx.Adapter.IsValueType (type.Type))
+
+			if (ctx.Adapter.IsValueType (type.Type))
 				return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, ctx.Adapter.CreateValue (ctx, type.Type, new object [0]), type.Type);
-			else
-				switch (ctx.Adapter.GetTypeName (ctx, type.Type)) {
-				case "System.Boolean": return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
-				case "System.Char": return LiteralValueReference.CreateObjectLiteral (ctx, expression, '\0');
-				case "System.Byte": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (byte)0);
-				case "System.SByte": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (sbyte)0);
-				case "System.Int16": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (short)0);
-				case "System.UInt16": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (ushort)0);
-				case "System.Int32": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (int)0);
-				case "System.UInt32": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (uint)0);
-				case "System.Int64": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (long)0);
-				case "System.UInt64": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (ulong)0);
-				case "System.Decimal": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (decimal)0);
-				case "System.Single": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (float)0);
-				case "System.Double": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (double)0);
-				default: throw new Exception ($"Unexpected type {ctx.Adapter.GetTypeName (ctx, type.Type)}");
-				}
+
+			switch (ctx.Adapter.GetTypeName (ctx, type.Type)) {
+			case "System.Boolean": return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
+			case "System.Char": return LiteralValueReference.CreateObjectLiteral (ctx, expression, '\0');
+			case "System.Byte": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (byte) 0);
+			case "System.SByte": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (sbyte) 0);
+			case "System.Int16": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (short) 0);
+			case "System.UInt16": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (ushort) 0);
+			case "System.Int32": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (int) 0);
+			case "System.UInt32": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (uint) 0);
+			case "System.Int64": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (long) 0);
+			case "System.UInt64": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (ulong) 0);
+			case "System.Decimal": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (decimal) 0);
+			case "System.Single": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (float) 0);
+			case "System.Double": return LiteralValueReference.CreateObjectLiteral (ctx, expression, (double) 0);
+			default: throw new Exception ($"Unexpected type {ctx.Adapter.GetTypeName (ctx, type.Type)}");
+			}
 		}
 
 		public ValueReference VisitDirectionExpression (DirectionExpression directionExpression)
