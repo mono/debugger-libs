@@ -28,11 +28,11 @@
 using System;
 using System.Text;
 using System.Globalization;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 using Mono.Debugging.Backend;
 using Mono.Debugging.Client;
-using System.Collections.Generic;
 
 namespace Mono.Debugging.Evaluation
 {

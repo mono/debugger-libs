@@ -275,7 +275,7 @@ namespace Mono.Debugging.Client
 		}
 
 		readonly Queue<Action> actionsQueue = new Queue<Action>();
-		bool threadExecuting = false;
+		bool threadExecuting;
 
 		void Dispatch (Action action)
 		{
@@ -587,9 +587,8 @@ namespace Mono.Debugging.Client
 		public BreakEventStatus GetBreakEventStatus (BreakEvent be)
 		{
 			if (IsConnected) {
-				BreakEventInfo binfo;
 				lock (breakpoints) {
-					if (breakpoints.TryGetValue (be, out binfo))
+					if (breakpoints.TryGetValue (be, out var binfo))
 						return binfo.Status;
 				}
 			}
@@ -602,9 +601,8 @@ namespace Mono.Debugging.Client
 		public string GetBreakEventStatusMessage (BreakEvent be)
 		{
 			if (IsConnected) {
-				BreakEventInfo binfo;
 				lock (breakpoints) {
-					if (breakpoints.TryGetValue (be, out binfo)) {
+					if (breakpoints.TryGetValue (be, out var binfo)) {
 						if (binfo.StatusMessage != null)
 							return binfo.StatusMessage;
 						switch (binfo.Status) {
@@ -650,8 +648,7 @@ namespace Mono.Debugging.Client
 		bool RemoveBreakEvent (BreakEvent be)
 		{
 			lock (breakpoints) {
-				BreakEventInfo binfo;
-				if (breakpoints.TryGetValue (be, out binfo)) {
+				if (breakpoints.TryGetValue (be, out var binfo)) {
 					try {
 						OnRemoveBreakEvent (binfo);
 					} catch (Exception ex) {
@@ -669,8 +666,7 @@ namespace Mono.Debugging.Client
 		void UpdateBreakEventStatus (BreakEvent be)
 		{
 			lock (breakpoints) {
-				BreakEventInfo binfo;
-				if (breakpoints.TryGetValue (be, out binfo)) {
+				if (breakpoints.TryGetValue (be, out var binfo)) {
 					try {
 						OnEnableBreakEvent (binfo, be.Enabled);
 					} catch (Exception ex) {
@@ -685,8 +681,7 @@ namespace Mono.Debugging.Client
 		void UpdateBreakEvent (BreakEvent be)
 		{
 			lock (breakpoints) {
-				BreakEventInfo binfo;
-				if (breakpoints.TryGetValue (be, out binfo))
+				if (breakpoints.TryGetValue (be, out var binfo))
 					OnUpdateBreakEvent (binfo);
 			}
 		}
@@ -838,8 +833,8 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				if (currentProcesses == null) {
 					currentProcesses = OnGetProcesses ();
-					foreach (ProcessInfo p in currentProcesses)
-						p.Attach (this);
+					foreach (var process in currentProcesses)
+						process.Attach (this);
 				}
 				return currentProcesses;
 			}
@@ -902,10 +897,9 @@ namespace Mono.Debugging.Client
 		
 		public virtual string ResolveExpression (string expression, SourceLocation location)
 		{
-			string key = expression + " " + location;
-			string resolved;
+			var key = expression + " " + location;
 
-			if (!resolvedExpressionCache.TryGetValue (key, out resolved)) {
+			if (!resolvedExpressionCache.TryGetValue (key, out var resolved)) {
 				try {
 					resolved = OnResolveExpression (expression, location);
 				} catch (Exception ex) {
@@ -951,33 +945,31 @@ namespace Mono.Debugging.Client
 		{
 		}
 		
-		readonly Mono.Debugging.Evaluation.ExpressionEvaluator defaultResolver = new Mono.Debugging.Evaluation.NRefactoryExpressionEvaluator ();
-		readonly Dictionary <string, IExpressionEvaluator> evaluators = new Dictionary <string, IExpressionEvaluator> ();
+		readonly Dictionary<string, IExpressionEvaluator> evaluators = new Dictionary<string, IExpressionEvaluator> ();
+		readonly ExpressionEvaluator defaultResolver = new NRefactoryExpressionEvaluator ();
 
 		internal IExpressionEvaluator FindExpressionEvaluator (StackFrame frame)
 		{
 			if (GetExpressionEvaluator == null)
 				return null;
 
-			string fn = frame.SourceLocation == null ? null : frame.SourceLocation.FileName;
-			if (String.IsNullOrEmpty (fn))
+			var fileName = frame.SourceLocation?.FileName;
+			if (string.IsNullOrEmpty (fileName))
 				return null;
 
-			fn = System.IO.Path.GetExtension (fn);
-			IExpressionEvaluator result;
-			if (evaluators.TryGetValue (fn, out result))
+			var extension = System.IO.Path.GetExtension (fileName);
+			if (evaluators.TryGetValue (extension, out var result))
 				return result;
 
-			result = GetExpressionEvaluator(fn);
-
-			evaluators[fn] = result;
+			result = GetExpressionEvaluator (extension);
+			evaluators[extension] = result;
 
 			return result;
 		}
 
-		public Mono.Debugging.Evaluation.ExpressionEvaluator GetEvaluator (StackFrame frame)
+		public ExpressionEvaluator GetEvaluator (StackFrame frame)
 		{
-			IExpressionEvaluator result = FindExpressionEvaluator (frame);
+			var result = FindExpressionEvaluator (frame);
 			if (result == null)
 				return defaultResolver;
 			return result.Evaluator;
@@ -985,9 +977,7 @@ namespace Mono.Debugging.Client
 		
 		protected void RaiseStopEvent ()
 		{
-			EventHandler<TargetEventArgs> targetEvent = TargetEvent;
-			if (targetEvent != null)
-				targetEvent (this, new TargetEventArgs (TargetEventType.TargetStopped));
+			TargetEvent?.Invoke (this, new TargetEventArgs (TargetEventType.TargetStopped));
 		}
 
 		/// <summary>
@@ -1022,9 +1012,9 @@ namespace Mono.Debugging.Client
 		internal ThreadInfo[] GetThreads (long processId)
 		{
 			lock (slock) {
-				ThreadInfo[] threads = OnGetThreads (processId);
-				foreach (ThreadInfo t in threads)
-					t.Attach (this);
+				var threads = OnGetThreads (processId);
+				foreach (var thread in threads)
+					thread.Attach (this);
 				return threads;
 			}
 		}
@@ -1032,7 +1022,7 @@ namespace Mono.Debugging.Client
 		internal Backtrace GetBacktrace (long processId, long threadId)
 		{
 			lock (slock) {
-				Backtrace bt = OnGetThreadBacktrace (processId, threadId);
+				var bt = OnGetThreadBacktrace (processId, threadId);
 				if (bt != null)
 					bt.Attach (this);
 				return bt;
@@ -1042,20 +1032,19 @@ namespace Mono.Debugging.Client
 		internal long GetElapsedTime (long processId, long threadId)
 		{
 			lock (slock) {
-				long elapsedTime = OnGetElapsedTime (processId, threadId);
-				return elapsedTime;
+				return OnGetElapsedTime (processId, threadId);
 			}
 		}
 
 		void ForceStop ()
 		{
-			TargetEventArgs args = new TargetEventArgs (TargetEventType.TargetStopped);
+			var args = new TargetEventArgs (TargetEventType.TargetStopped);
 			OnTargetEvent (args);
 		}
 		
 		void ForceExit ()
 		{
-			TargetEventArgs args = new TargetEventArgs (TargetEventType.TargetExited);
+			var args = new TargetEventArgs (TargetEventType.TargetExited);
 			OnTargetEvent (args);
 		}
 		
@@ -1139,19 +1128,16 @@ namespace Mono.Debugging.Client
 			// process is paused threadpool kills threads since they are not in use...
 			if (args.Thread != null && args.IsStopEvent)
 				activeThread = args.Thread;
-			if (evnt != null)
-				evnt (this, args);
 
-			EventHandler<TargetEventArgs> targetEvent = TargetEvent;
-			if (targetEvent != null)
-				targetEvent (this, args);
+			evnt?.Invoke (this, args);
+
+			TargetEvent?.Invoke (this, args);
 		}
 		
 		internal void OnRunning ()
 		{
 			IsRunning = true;
-			if (TargetStarted != null)
-				TargetStarted (this, EventArgs.Empty);
+			TargetStarted?.Invoke (this, EventArgs.Empty);
 		}
 		
 		internal protected void OnStarted ()
@@ -1181,18 +1167,12 @@ namespace Mono.Debugging.Client
 		
 		internal protected void OnTargetOutput (bool isStderr, string text)
 		{
-			var writer = OutputWriter;
-
-			if (writer != null)
-				writer (isStderr, text);
+			OutputWriter?.Invoke (isStderr, text);
 		}
 		
 		internal protected void OnDebuggerOutput (bool isStderr, string text)
 		{
-			var writer = LogWriter;
-
-			if (writer != null)
-				writer (isStderr, text);
+			LogWriter?.Invoke (isStderr, text);
 		}
 
 		internal protected void OnTargetDebug (int level, string category, string message)
@@ -1213,8 +1193,7 @@ namespace Mono.Debugging.Client
 		
 		internal protected void SetBusyState (BusyStateEventArgs args)
 		{
-			if (BusyStateChanged != null)
-				BusyStateChanged (this, args);
+			BusyStateChanged?.Invoke (this, args);
 		}
 		
 		/// <summary>
@@ -1236,9 +1215,8 @@ namespace Mono.Debugging.Client
 				// Make a copy of the breakpoints table since it can be modified while iterating
 				var breakpointsCopy = new Dictionary<BreakEvent, BreakEventInfo> (breakpoints);
 
-				foreach (KeyValuePair<BreakEvent, BreakEventInfo> bps in breakpointsCopy) {
-					Breakpoint bp = bps.Key as Breakpoint;
-					if (bp != null) {
+				foreach (var bps in breakpointsCopy) {
+					if (bps.Key is Breakpoint bp) {
 						StringComparer comparer;
 
 						if (System.IO.Path.DirectorySeparatorChar == '\\')
@@ -1256,7 +1234,8 @@ namespace Mono.Debugging.Client
 		void RetryEventBind (BreakEventInfo binfo)
 		{
 			// Try inserting the breakpoint again
-			BreakEvent be = binfo.BreakEvent;
+			var be = binfo.BreakEvent;
+
 			try {
 				binfo = OnInsertBreakEvent (be);
 				if (binfo == null)
@@ -1266,8 +1245,7 @@ namespace Mono.Debugging.Client
 				}
 				binfo.AttachSession (this, be);
 			} catch (Exception ex) {
-				Breakpoint bp = be as Breakpoint;
-				if (bp != null)
+				if (be is Breakpoint bp)
 					OnDebuggerOutput (false, "Could not set breakpoint at location '" + bp.FileName + ":" + bp.Line + " (" + ex.Message + ")\n");
 				else
 					OnDebuggerOutput (false, "Could not set catchpoint for exception '" + ((Catchpoint)be).ExceptionName + "' (" + ex.Message + ")\n");
@@ -1296,15 +1274,14 @@ namespace Mono.Debugging.Client
 				// Make a copy of the breakpoints table since it can be modified while iterating
 				var breakpointsCopy = new Dictionary<BreakEvent, BreakEventInfo> (breakpoints);
 
-				foreach (KeyValuePair<BreakEvent, BreakEventInfo> bps in breakpointsCopy) {
-					var bp = bps.Key as Breakpoint;
-					if (bp != null && bps.Value.Status == BreakEventStatus.Bound) {
+				foreach (var bps in breakpointsCopy) {
+					if (bps.Key is Breakpoint bp && bps.Value.Status == BreakEventStatus.Bound) {
 						if (System.IO.Path.GetFullPath (bp.FileName) == fullFilePath)
 							toUpdate.Add (bps.Value);
 					}
 				}
 
-				foreach (BreakEventInfo be in toUpdate) {
+				foreach (var be in toUpdate) {
 					breakpoints.Remove (be.BreakEvent);
 					NotifyBreakEventStatusChanged (be.BreakEvent);
 				}
@@ -1321,10 +1298,11 @@ namespace Mono.Debugging.Client
 		
 		static string GetBreakEventErrorMessage (BreakEvent be)
 		{
-			var bp = be as Breakpoint;
-			if (bp != null)
+			if (be is Breakpoint bp)
 				return string.Format ("Could not insert breakpoint at '{0}:{1}'", bp.FileName, bp.Line);
-			Catchpoint cp = (Catchpoint) be;
+
+			var cp = (Catchpoint) be;
+
 			return string.Format ("Could not enable catchpoint for exception '{0}'", cp.ExceptionName);
 		}
 		
