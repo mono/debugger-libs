@@ -45,19 +45,19 @@ namespace Mono.Debugging.Evaluation
 		
 		public virtual ValueReference Evaluate (EvaluationContext ctx, string exp, object expectedType)
 		{
-			foreach (ValueReference var in ctx.Adapter.GetLocalVariables (ctx))
-				if (var.Name == exp)
-					return var;
+			foreach (var variable in ctx.Adapter.GetLocalVariables (ctx))
+				if (variable.Name == exp)
+					return variable;
 
-			foreach (ValueReference var in ctx.Adapter.GetParameters (ctx))
-				if (var.Name == exp)
-					return var;
+			foreach (var parameter in ctx.Adapter.GetParameters (ctx))
+				if (parameter.Name == exp)
+					return parameter;
 
-			ValueReference thisVar = ctx.Adapter.GetThisReference (ctx);
+			var thisVar = ctx.Adapter.GetThisReference (ctx);
 			if (thisVar != null) {
 				if (thisVar.Name == exp)
 					return thisVar;
-				foreach (ValueReference cv in thisVar.GetChildReferences (ctx.Options))
+				foreach (var cv in thisVar.GetChildReferences (ctx.Options))
 					if (cv.Name == exp)
 						return cv;
 			}
@@ -71,14 +71,15 @@ namespace Mono.Debugging.Evaluation
 
 		public string TargetObjectToString (EvaluationContext ctx, object obj)
 		{
-			object res = ctx.Adapter.TargetObjectToObject (ctx, obj);
+			var res = ctx.Adapter.TargetObjectToObject (ctx, obj);
+
 			if (res == null)
 				return null;
 
 			if (res is EvaluationResult)
 				return ((EvaluationResult)res).DisplayValue ?? ((EvaluationResult)res).Value;
-			else
-				return res.ToString ();
+
+			return res.ToString ();
 		}
 
 		public EvaluationResult TargetObjectToExpression (EvaluationContext ctx, object obj)
@@ -90,12 +91,13 @@ namespace Mono.Debugging.Evaluation
 		{
 			if (obj == null)
 				return new EvaluationResult ("null");
-			else if (obj is IntPtr) {
-				IntPtr p = (IntPtr) obj;
-				return new EvaluationResult ("0x" + p.ToInt64 ().ToString ("x"));
-			} else if (obj is char) {
-				char c = (char) obj;
+
+			if (obj is IntPtr ptr)
+				return new EvaluationResult ("0x" + ptr.ToInt64 ().ToString ("x"));
+
+			if (obj is char c) {
 				string str;
+
 				if (c == '\'')
 					str = @"'\''";
 				else if (c == '"')
@@ -104,17 +106,22 @@ namespace Mono.Debugging.Evaluation
 					str = EscapeString ("'" + c + "'");
 				return new EvaluationResult (str, ((int) c) + " " + str);
 			}
-			else if (obj is string)
-				return new EvaluationResult ("\"" + EscapeString ((string)obj) + "\"");
-			else if (obj is bool)
-				return new EvaluationResult (((bool)obj) ? "true" : "false");
-			else if (obj is decimal)
-				return new EvaluationResult (((decimal)obj).ToString (System.Globalization.CultureInfo.InvariantCulture));
-			else if (obj is EvaluationResult)
-				return (EvaluationResult) obj;
+
+			if (obj is string s)
+				return new EvaluationResult ("\"" + EscapeString (s) + "\"");
+
+			if (obj is bool b)
+				return new EvaluationResult (b ? "true" : "false");
+
+			if (obj is decimal d)
+				return new EvaluationResult (d.ToString (CultureInfo.InvariantCulture));
+
+			if (obj is EvaluationResult result)
+				return result;
 			
 			if (ctx.Options.IntegerDisplayFormat == IntegerDisplayFormat.Hexadecimal) {
 				string fval = null;
+
 				if (obj is sbyte)
 					fval = ((sbyte)obj).ToString ("x2");
 				else if (obj is int)
@@ -141,10 +148,12 @@ namespace Mono.Debugging.Evaluation
 
 		public static string EscapeString (string text)
 		{
-			StringBuilder sb = new StringBuilder ();
+			var sb = new StringBuilder ();
+
 			for (int i = 0; i < text.Length; i++) {
 				char c = text[i];
 				string txt;
+
 				switch (c) {
 				case '"': txt = "\\\""; break;
 				case '\0': txt = @"\0"; break;
@@ -166,6 +175,7 @@ namespace Mono.Debugging.Evaluation
 				}
 				sb.Append (txt);
 			}
+
 			return sb.ToString ();
 		}
 		
