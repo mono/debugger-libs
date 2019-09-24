@@ -24,14 +24,13 @@
 // THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
+using System.Linq;
 using System.Reflection;
+using System.Collections.Generic;
 
 using Mono.Debugging.Client;
 
 using ICSharpCode.NRefactory.CSharp;
-using System.Linq;
 
 namespace Mono.Debugging.Evaluation
 {

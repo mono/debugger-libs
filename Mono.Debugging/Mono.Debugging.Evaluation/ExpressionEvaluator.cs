@@ -38,30 +38,30 @@ namespace Mono.Debugging.Evaluation
 {
 	public abstract class ExpressionEvaluator
 	{
-		public ValueReference Evaluate (EvaluationContext ctx, string exp)
+		public ValueReference Evaluate (EvaluationContext ctx, string expression)
 		{
-			return Evaluate (ctx, exp, null);
+			return Evaluate (ctx, expression, null);
 		}
 		
-		public virtual ValueReference Evaluate (EvaluationContext ctx, string exp, object expectedType)
+		public virtual ValueReference Evaluate (EvaluationContext ctx, string expression, object expectedType)
 		{
 			foreach (var variable in ctx.Adapter.GetLocalVariables (ctx))
-				if (variable.Name == exp)
+				if (variable.Name == expression)
 					return variable;
 
 			foreach (var parameter in ctx.Adapter.GetParameters (ctx))
-				if (parameter.Name == exp)
+				if (parameter.Name == expression)
 					return parameter;
 
 			var thisVar = ctx.Adapter.GetThisReference (ctx);
 			if (thisVar != null) {
-				if (thisVar.Name == exp)
+				if (thisVar.Name == expression)
 					return thisVar;
 				foreach (var cv in thisVar.GetChildReferences (ctx.Options))
-					if (cv.Name == exp)
+					if (cv.Name == expression)
 						return cv;
 			}
-			throw new EvaluatorException ("Invalid Expression: '{0}'", exp);
+			throw new EvaluatorException ("Invalid Expression: '{0}'", expression);
 		}
 		
 		public virtual ValidationResult ValidateExpression (EvaluationContext ctx, string expression)
@@ -77,7 +77,7 @@ namespace Mono.Debugging.Evaluation
 				return null;
 
 			if (res is EvaluationResult)
-				return ((EvaluationResult)res).DisplayValue ?? ((EvaluationResult)res).Value;
+				return ((EvaluationResult) res).DisplayValue ?? ((EvaluationResult) res).Value;
 
 			return res.ToString ();
 		}
@@ -123,21 +123,21 @@ namespace Mono.Debugging.Evaluation
 				string fval = null;
 
 				if (obj is sbyte)
-					fval = ((sbyte)obj).ToString ("x2");
+					fval = ((sbyte) obj).ToString ("x2");
 				else if (obj is int)
-					fval = ((int)obj).ToString ("x4");
+					fval = ((int) obj).ToString ("x4");
 				else if (obj is short)
-					fval = ((short)obj).ToString ("x8");
+					fval = ((short) obj).ToString ("x8");
 				else if (obj is long)
-					fval = ((long)obj).ToString ("x16");
+					fval = ((long) obj).ToString ("x16");
 				else if (obj is byte)
-					fval = ((byte)obj).ToString ("x2");
+					fval = ((byte) obj).ToString ("x2");
 				else if (obj is uint)
-					fval = ((uint)obj).ToString ("x4");
+					fval = ((uint) obj).ToString ("x4");
 				else if (obj is ushort)
-					fval = ((ushort)obj).ToString ("x8");
+					fval = ((ushort) obj).ToString ("x8");
 				else if (obj is ulong)
-					fval = ((ulong)obj).ToString ("x16");
+					fval = ((ulong) obj).ToString ("x16");
 				
 				if (fval != null)
 					return new EvaluationResult ("0x" + fval);
@@ -183,7 +183,7 @@ namespace Mono.Debugging.Evaluation
 			get { return true; }
 		}
 
-		public abstract string Resolve (DebuggerSession session, SourceLocation location, string exp);
+		public abstract string Resolve (DebuggerSession session, SourceLocation location, string expression);
 
 		public virtual IEnumerable<ValueReference> GetLocalVariables (EvaluationContext ctx)
 		{
