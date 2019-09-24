@@ -890,18 +890,18 @@ namespace Mono.Debugging.Client
 			}
 		}
 		
-		public string ResolveExpression (string expression, string file, int line, int column, int endLine, int endColumn)
+		public string ResolveExpression (EvaluationContext ctx, string expression, string file, int line, int column, int endLine, int endColumn)
 		{
-			return ResolveExpression (expression, new SourceLocation (null, file, line, column, endLine, endColumn, null, null));
+			return ResolveExpression (ctx, expression, new SourceLocation (null, file, line, column, endLine, endColumn, null, null));
 		}
 		
-		public virtual string ResolveExpression (string expression, SourceLocation location)
+		public virtual string ResolveExpression (EvaluationContext ctx, string expression, SourceLocation location)
 		{
 			var key = expression + " " + location;
 
 			if (!resolvedExpressionCache.TryGetValue (key, out var resolved)) {
 				try {
-					resolved = OnResolveExpression (expression, location);
+					resolved = OnResolveExpression (ctx, expression, location);
 				} catch (Exception ex) {
 					OnDebuggerOutput (true, "Error while resolving expression: " + ex.Message);
 				}
@@ -992,13 +992,13 @@ namespace Mono.Debugging.Client
 		/// <returns>
 		/// The resolved expression
 		/// </returns>
-		protected virtual string OnResolveExpression (string expression, SourceLocation location)
+		protected virtual string OnResolveExpression (EvaluationContext ctx, string expression, SourceLocation location)
 		{
 			var resolver = defaultResolver;
 			if (GetExpressionEvaluator != null)
 				resolver = GetExpressionEvaluator(System.IO.Path.GetExtension(location.FileName))?.Evaluator ?? defaultResolver;
 
-			return resolver.Resolve(this, location, expression);
+			return resolver.Resolve (this, ctx, location, expression);
 		}
 		
 		internal protected string ResolveIdentifierAsType (string identifier, SourceLocation location)
