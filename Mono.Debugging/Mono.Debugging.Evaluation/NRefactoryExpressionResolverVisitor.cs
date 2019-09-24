@@ -92,7 +92,7 @@ namespace Mono.Debugging.Evaluation
 
 		void ReplaceType (string name, int genericArgs, int offset, int length, bool memberType = false)
 		{
-			string type = null;
+			string type;
 
 			if (genericArgs == 0)
 				type = session.ResolveIdentifierAsType (name, location);

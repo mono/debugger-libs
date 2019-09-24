@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+
 using Mono.Debugging.Client;
 using Mono.Debugging.Backend;
 
@@ -70,7 +71,7 @@ namespace Mono.Debugging.Evaluation
 				return new [] { val };
 			}
 			
-			foreach (ValueReference local in frame.LocalVariables)
+			foreach (var local in frame.LocalVariables)
 				list.Add (local.CreateObjectValue (true, options));
 
 			return list.ToArray ();

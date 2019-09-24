@@ -79,7 +79,7 @@ namespace Mono.Debugging.Evaluation
 			if (options == null || Options == options)
 				return this;
 
-			EvaluationContext clone = Clone ();
+			var clone = Clone ();
 			clone.Options = options;
 			return clone;
 		}

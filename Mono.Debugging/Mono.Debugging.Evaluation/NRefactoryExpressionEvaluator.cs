@@ -41,19 +41,19 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference Evaluate (EvaluationContext ctx, string expression, object expectedType)
 		{
-			expression = expression.TrimStart ();
+			expression = expression.Trim ();
 
 			if (expression.Length > 0 && expression[0] == '?')
-				expression = expression.Substring (1).Trim ();
+				expression = expression.Substring (1).TrimStart ();
 
 			if (expression.Length > 3 && expression.StartsWith ("var", StringComparison.Ordinal) && char.IsWhiteSpace (expression[3])) {
-				expression = expression.Substring (4).Trim (' ', '\t');
+				expression = expression.Substring (4).TrimStart ();
 				string variable = null;
 
 				for (int n = 0; n < expression.Length; n++) {
 					if (!char.IsLetterOrDigit (expression[n]) && expression[n] != '_') {
 						variable = expression.Substring (0, n);
-						if (!expression.Substring (n).Trim (' ', '\t').StartsWith ("=", StringComparison.Ordinal))
+						if (!expression.Substring (n).TrimStart ().StartsWith ("=", StringComparison.Ordinal))
 							variable = null;
 						break;
 					}
@@ -79,7 +79,8 @@ namespace Mono.Debugging.Evaluation
 				throw new EvaluatorException ("Could not parse expression '{0}'", expression);
 
 			var evaluator = new NRefactoryExpressionEvaluatorVisitor (ctx, expression, expectedType, userVariables);
-			return expr.AcceptVisitor<ValueReference> (evaluator);
+
+			return expr.AcceptVisitor (evaluator);
 		}
 
 		public override string Resolve (DebuggerSession session, SourceLocation location, string exp)
@@ -89,7 +90,7 @@ namespace Mono.Debugging.Evaluation
 
 		string Resolve (DebuggerSession session, SourceLocation location, string expression, bool tryTypeOf)
 		{
-			expression = expression.TrimStart ();
+			expression = expression.Trim ();
 
 			if (expression.Length > 0 && expression[0] == '?')
 				return "?" + Resolve (session, location, expression.Substring (1).Trim ());
@@ -99,7 +100,7 @@ namespace Mono.Debugging.Evaluation
 
 			expression = ReplaceExceptionTag (expression, session.Options.EvaluationOptions.CurrentExceptionTag);
 
-			Expression expr = new CSharpParser ().ParseExpression (expression);
+			var expr = new CSharpParser ().ParseExpression (expression);
 			if (expr == null)
 				return expression;
 
@@ -120,13 +121,13 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValidationResult ValidateExpression (EvaluationContext ctx, string expression)
 		{
-			expression = expression.TrimStart ();
+			expression = expression.Trim ();
 
 			if (expression.Length > 0 && expression[0] == '?')
-				expression = expression.Substring (1).Trim ();
+				expression = expression.Substring (1).TrimStart ();
 
 			if (expression.Length > 3 && expression.StartsWith ("var", StringComparison.Ordinal) && char.IsWhiteSpace (expression[3]))
-				expression = expression.Substring (4).Trim ();
+				expression = expression.Substring (4).TrimStart ();
 
 			expression = ReplaceExceptionTag (expression, ctx.Options.CurrentExceptionTag);
 
@@ -197,8 +198,7 @@ namespace Mono.Debugging.Evaluation
 					return true;
 
 				pos++;
-			}
-			while (true);
+			} while (true);
 		}
 
 		bool ParseGenericArgs (string name, ref int pos)
