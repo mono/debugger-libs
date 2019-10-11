@@ -84,7 +84,6 @@ namespace Mono.Debugging.Client
 			val.flags = flags | ObjectValueFlags.Object;
 			val.displayValue = value.DisplayValue;
 			val.value = value.Value;
-			val.path = path;
 
 			if (children != null) {
 				val.children = new List<ObjectValue> ();
@@ -182,7 +181,6 @@ namespace Mono.Debugging.Client
 			var val = Create (null, path, null);
 			val.flags = flags | ObjectValueFlags.Evaluating;
 			val.updater = updater;
-			val.path = path;
 			return val;
 		}
 
