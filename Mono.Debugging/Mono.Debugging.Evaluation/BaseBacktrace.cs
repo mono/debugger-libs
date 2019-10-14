@@ -209,12 +209,15 @@ namespace Mono.Debugging.Evaluation
 			if (Adaptor.IsEvaluating) {
 				var values = new List<ObjectValue> ();
 
-				foreach (string exp in expressions) {
-					string tmpExp = exp;
+				foreach (var expression in expressions) {
+					string tmpExp = expression;
+
 					var value = Adaptor.CreateObjectValueAsync (tmpExp, ObjectValueFlags.Field, delegate {
-						EvaluationContext cctx = GetEvaluationContext (frameIndex, options);
+						var cctx = GetEvaluationContext (frameIndex, options);
 						return Adaptor.GetExpressionValue (cctx, tmpExp);
 					});
+					value.Name = expression;
+
 					values.Add (value);
 				}
 

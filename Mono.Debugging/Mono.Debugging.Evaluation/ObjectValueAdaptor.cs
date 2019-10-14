@@ -1413,9 +1413,14 @@ namespace Mono.Debugging.Evaluation
 		public ObjectValue GetExpressionValue (EvaluationContext ctx, string exp)
 		{
 			try {
-				ValueReference var = ctx.Evaluator.Evaluate (ctx, exp);
+				var var = ctx.Evaluator.Evaluate (ctx, exp);
 
-				return var != null ? var.CreateObjectValue (ctx.Options) : ObjectValue.CreateUnknown (exp);
+				if (var == null)
+					return ObjectValue.CreateUnknown (exp);
+
+				var value = var.CreateObjectValue (ctx.Options);
+				value.Name = exp;
+				return value;
 			} catch (ImplicitEvaluationDisabledException) {
 				return ObjectValue.CreateImplicitNotSupported (ctx.ExpressionValueSource, new ObjectPath (exp), "", ObjectValueFlags.None);
 			} catch (NotSupportedExpressionException ex) {
