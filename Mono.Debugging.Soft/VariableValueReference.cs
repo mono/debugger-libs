@@ -97,7 +97,7 @@ namespace Mono.Debugging.Soft
 				return NormalizeValue (ctx, value);
 			} catch (AbsentInformationException ex) {
 				throw new EvaluatorException (ex, "Value not available");
-			} catch (ArgumentException ex) {
+			} catch (Exception ex) {
 				throw new EvaluatorException (ex.Message);
 			}
 		}
@@ -113,7 +113,7 @@ namespace Mono.Debugging.Soft
 					return NormalizeValue (ctx, value);
 				} catch (AbsentInformationException ex) {
 					throw new EvaluatorException (ex, "Value not available");
-				} catch (ArgumentException ex) {
+				} catch (Exception ex) {
 					throw new EvaluatorException (ex.Message);
 				}
 			}
