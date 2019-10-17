@@ -594,6 +594,8 @@ namespace Mono.Debugging.Soft
 
 			sourceFilesDebugInfo.Clear ();
 
+			exceptionRequests.Clear();
+
 			if (!HasExited) {
 				if (vm != null) {
 					ThreadPool.QueueUserWorkItem (delegate {
@@ -1225,7 +1227,70 @@ namespace Mono.Debugging.Soft
 
 			breakpoints[request] = bi;
 		}
-		
+
+		#region ExceptionRequest
+		//VS in Windows doesn't have the concept of a Catchpoint. In the past we did use it anyway, but that leads to all sort of issues and bugs.
+		//The most important difference is that subclasses are never caught, and that Others is a concept that the Catchpoint doesn't support properly.
+		//This region is for Windows, to be able to properly handle exceptions with an exception list. The concept of Other is supported starting with vm version 2.54.
+
+		readonly Dictionary<string, ExceptionEventRequest> exceptionRequests = new Dictionary<string, ExceptionEventRequest>();
+		ExceptionEventRequest otherExceptions;
+
+		public void EnableException(string exceptionType, bool caught = true)
+		{
+			lock (exceptionRequests) {
+				if (!types.ContainsKey (exceptionType)) {
+					if (vm.Version.AtLeast (2, 9)) {
+						foreach (TypeMirror t in vm.GetTypes (exceptionType, false))
+							ProcessType (t);
+					}
+				}
+
+				if (types.TryGetValue(exceptionType, out var typemirrors)) { 
+					var exception = typemirrors.First();
+					var request = vm.CreateExceptionRequest (exception, caught, true, false);
+					request.Enable();
+					exceptionRequests[exceptionType] = request;
+				}
+			}
+		}
+
+		public void EnableOtherExceptions()
+		{
+			if (!vm.Version.AtLeast(2, 54))
+				return;
+
+			if (otherExceptions == null)
+				otherExceptions = vm.CreateExceptionRequest (null, true, true, true);
+			otherExceptions.Enable ();
+		}
+
+		public void DisableException(string exceptionType, bool setuncaught = true)
+		{
+			lock (exceptionRequests) {
+				if (exceptionRequests.TryGetValue (exceptionType, out var request)) {
+					request.Disable();
+					exceptionRequests.Remove(exceptionType);
+				}
+				if (setuncaught)
+					EnableException (exceptionType, false);
+			}
+		}
+
+		public void DisableOtherExceptions()
+		{
+			if (otherExceptions != null) {
+				otherExceptions.Disable();
+			}
+		}
+
+		public void RemoveException(string exceptionType)
+		{
+			DisableException(exceptionType, false);
+		}
+
+		#endregion
+
 		static bool CheckTypeName (string typeName, string name)
 		{
 			// if the name provided is empty, it matches anything.

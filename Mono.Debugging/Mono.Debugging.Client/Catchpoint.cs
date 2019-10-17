@@ -45,7 +45,7 @@ namespace Mono.Debugging.Client
 			this.exceptionName = exceptionName;
 			this.includeSubclasses = includeSubclasses;
 		}
-		
+
 		internal Catchpoint (XmlElement elem, string baseDir): base (elem, baseDir)
 		{
 			exceptionName = elem.GetAttribute ("exceptionName");
@@ -75,7 +75,7 @@ namespace Mono.Debugging.Client
 			get { return includeSubclasses; }
 			set { includeSubclasses = value; }
 		}
-		
+
 		public override void CopyFrom (BreakEvent ev)
 		{
 			base.CopyFrom (ev);
