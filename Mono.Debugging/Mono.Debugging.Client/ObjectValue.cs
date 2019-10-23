@@ -717,9 +717,8 @@ namespace Mono.Debugging.Client
 		public event EventHandler ValueChanged {
 			add {
 				lock (mutex) {
-					if (IsEvaluating)
-						valueChanged += value;
-					else
+					valueChanged += value;
+					if (!IsEvaluating)
 						value (this, EventArgs.Empty);
 				}
 			}
@@ -753,7 +752,7 @@ namespace Mono.Debugging.Client
 				return;
 
 			var val = source.GetValue (path, options);
-			UpdateFrom (val, false);
+			UpdateFrom (val, true);
 		}
 
 		/// <summary>
