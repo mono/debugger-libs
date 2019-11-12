@@ -56,6 +56,11 @@ namespace Mono.Debugging.Soft
 		/// A mapping of AssemblyNames to their paths.
 		/// </summary>
 		public Dictionary<string, string> AssemblyPathMap { get; set; }
+
+		/// <summary>
+		/// A mapping of AssemblyNames to their symbol paths. If no symbols maps are provided, the symbols will be found next to the assemblies in AssemblyPathMap.
+		/// </summary>
+		public Dictionary<string, string> SymbolPathMap { get; set; }
 		
 		/// <summary>
 		/// The session will output this to the debug log as soon as it starts. It can be used to log warnings from
