@@ -91,6 +91,7 @@ namespace Mono.Debugging.Soft
 		TypeLoadEventRequest typeLoadReq, typeLoadTypeNameReq;
 		ExceptionEventRequest unhandledExceptionRequest;
 		Dictionary<string, string> assemblyPathMap;
+		Dictionary<string, string> symbolPathMap;
 		ThreadMirror current_thread, recent_thread;
 		List<AssemblyMirror> assemblyFilters;
 		StepEventRequest currentStepRequest;
@@ -489,8 +490,23 @@ namespace Mono.Debugging.Soft
 			assemblyPathMap = dsi.AssemblyPathMap;
 			if (assemblyPathMap == null)
 				assemblyPathMap = new Dictionary<string, string> ();
+
+			if (dsi.SymbolPathMap == null)
+				symbolPathMap = new Dictionary<string, string>();
+			else
+				symbolPathMap = dsi.SymbolPathMap;
 		}
-		
+
+		public void AddOrReplaceAssemblyPathMap(string assembly, string path)
+		{
+			assemblyPathMap[assembly] = path;
+		}
+
+		public void AddOrReplaceSymbolPathMap (string assembly, string path)
+		{
+			symbolPathMap[assembly] = path;
+		}
+
 		protected bool SetSocketTimeouts (int sendTimeout, int receiveTimeout, int keepaliveInterval)
 		{
 			try {
@@ -740,11 +756,14 @@ namespace Mono.Debugging.Soft
 
 		internal PortablePdbData GetPdbData (AssemblyMirror asm)
 		{
-			string assemblyFileName;
-
-			if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
-				assemblyFileName = asm.Location;
-			var pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
+			string pdbFileName;
+			if (!symbolPathMap.TryGetValue(asm.GetName().FullName, out pdbFileName) || Path.GetExtension(pdbFileName) != ".pdb")
+			{
+				string assemblyFileName;
+				if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
+					assemblyFileName = asm.Location;
+				pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
+			}
 			if (PortablePdbData.IsPortablePdb (pdbFileName))
 				return new PortablePdbData (pdbFileName);
 			// Attempt to fetch pdb from the debuggee over the wire
@@ -2908,11 +2927,28 @@ namespace Mono.Debugging.Soft
 
 			if (assemblyFileName == null)
 				return false;
-			string debugFile = assemblyFileName + ".mdb";
-			if (!LoadDebugFile (assemblyFileName, debugFile, LoadMdbFile)) {
-				debugFile = Path.ChangeExtension (assemblyFileName, ".pdb");
-				if (!LoadDebugFile (assemblyFileName, debugFile, LoadPdbFile)) {
-						return false;
+
+			string debugFile;
+
+			if (symbolPathMap.TryGetValue(type.Assembly.GetName ().FullName, out debugFile)) {
+				Func<string, string, bool> loadMethod;
+				if (Path.GetExtension (debugFile) == ".mdb") {
+					loadMethod = LoadMdbFile;
+				} else {
+					loadMethod = LoadPdbFile;
+				}
+
+				if (!LoadDebugFile (assemblyFileName, debugFile, loadMethod)) {
+					return false;
+				}
+
+			} else { 
+				debugFile = assemblyFileName + ".mdb";
+				if (!LoadDebugFile (assemblyFileName, debugFile, LoadMdbFile)) {
+					debugFile = Path.ChangeExtension (assemblyFileName, ".pdb");
+					if (!LoadDebugFile (assemblyFileName, debugFile, LoadPdbFile)) {
+							return false;
+					}
 				}
 			}
 			Dictionary<string, List<SourceFileDebugInfo>> fileToSourceFileInfos;
