@@ -251,28 +251,30 @@ namespace Mono.Debugging.Evaluation
 		{
 			FrameInfo finfo;
 
-			if (frameInfo.TryGetValue (frameIndex, out finfo))
-				return finfo;
-			
-			if (!ignoreEvalStatus && Adaptor.IsEvaluating)
-				return null;
-			
-			var ctx = GetEvaluationContext (frameIndex, options);
-			if (ctx == null)
-				return null;
-			
-			finfo = new FrameInfo ();
-			finfo.Context = ctx;
-			//Don't try to optimize lines below with lazy loading, you won't gain anything(in communication with runtime)
-			finfo.LocalVariables.AddRange (ctx.Evaluator.GetLocalVariables (ctx));
-			finfo.Parameters.AddRange (ctx.Evaluator.GetParameters (ctx));
-			finfo.This = ctx.Evaluator.GetThisReference (ctx);
+			lock (frameInfo) {
+				if (frameInfo.TryGetValue (frameIndex, out finfo))
+					return finfo;
 
-			var exp = ctx.Evaluator.GetCurrentException (ctx);
-			if (exp != null)
-				finfo.Exception = new ExceptionInfoSource (ctx, exp);
+				if (!ignoreEvalStatus && Adaptor.IsEvaluating)
+					return null;
 
-			frameInfo[frameIndex] = finfo;
+				var ctx = GetEvaluationContext (frameIndex, options);
+				if (ctx == null)
+					return null;
+
+				finfo = new FrameInfo ();
+				finfo.Context = ctx;
+				//Don't try to optimize lines below with lazy loading, you won't gain anything(in communication with runtime)
+				finfo.LocalVariables.AddRange (ctx.Evaluator.GetLocalVariables (ctx));
+				finfo.Parameters.AddRange (ctx.Evaluator.GetParameters (ctx));
+				finfo.This = ctx.Evaluator.GetThisReference (ctx);
+
+				var ex = ctx.Evaluator.GetCurrentException (ctx);
+				if (ex != null)
+					finfo.Exception = new ExceptionInfoSource (ctx, ex);
+
+				frameInfo[frameIndex] = finfo;
+			}
 
 			return finfo;
 		}
