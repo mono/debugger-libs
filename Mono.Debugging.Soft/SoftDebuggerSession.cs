@@ -1731,7 +1731,8 @@ namespace Mono.Debugging.Soft
 			}
 
 			try {
-				vm.Resume ();
+				if (es.SuspendPolicy != SuspendPolicy.None)
+					vm.Resume ();
 			} catch (VMNotSuspendedException) {
 				if (type != EventType.VMStart && vm.Version.AtLeast (2, 2))
 					throw;
