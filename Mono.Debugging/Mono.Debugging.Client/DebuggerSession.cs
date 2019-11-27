@@ -59,7 +59,7 @@ namespace Mono.Debugging.Client
 		bool ownedBreakpointStore;
 		bool adjustingBreakpoints;
 		bool disposed;
-		bool attached;
+		int attachedPid;
 
 		/// <summary>
 		/// Reports a debugger event
@@ -374,7 +374,7 @@ namespace Mono.Debugging.Client
 				Dispatch (delegate {
 					try {
 						OnAttachToProcess (proc);
-						attached = true;
+						attachedPid = (int)proc.Id;
 					} catch (Exception ex) {
 						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
 						var exceptionHandled = HandleException (ex);
@@ -414,9 +414,19 @@ namespace Mono.Debugging.Client
 		/// <c>true</c> if attached to process; otherwise, <c>false</c>.
 		/// </value>
 		public bool AttachedToProcess {
-			get { return attached; }
+			get { return attachedPid > 0; }
 		}
 		
+		/// <summary>
+		/// Gets a value indicating PID of procces that has been attached using the Attach method.
+		/// </summary>
+		/// <value>
+		/// <c>true</c> if attached to process; otherwise, <c>false</c>.
+		/// </value>
+		public int Pid {
+			get { return attachedPid; }
+		}
+
 		/// <summary>
 		/// Gets or sets the active thread.
 		/// </summary>

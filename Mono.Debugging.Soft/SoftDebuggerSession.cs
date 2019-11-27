@@ -630,7 +630,12 @@ namespace Mono.Debugging.Soft
 
 		protected override void OnAttachToProcess (long processId)
 		{
-			throw new NotSupportedException ();
+			Mono.Unix.Native.Syscall.kill ((int)processId, Mono.Unix.Native.Signum.SIGXCPU);
+			Thread.Sleep (1000); //do really need this?
+			var args = new SoftDebuggerConnectArgs ("mono", System.Net.IPAddress.Parse ("127.0.0.1"), 1235);
+			var startInfo = new SoftDebuggerStartInfo (args);
+			StartConnecting (startInfo);
+
 		}
 
 		protected override void OnContinue ()
@@ -737,6 +742,8 @@ namespace Mono.Debugging.Soft
 			if (procs == null) {
 				if (vm == null)//process didn't start yet
 					return new ProcessInfo [0];
+				if (AttachedToProcess)
+					return new[] { new ProcessInfo (Pid, "mono") };
 				if (vm.TargetProcess == null) {
 					procs = new [] { new ProcessInfo (0, remoteProcessName ?? "mono") };
 				} else {
