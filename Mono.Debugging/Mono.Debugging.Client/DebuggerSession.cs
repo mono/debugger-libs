@@ -52,6 +52,7 @@ namespace Mono.Debugging.Client
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
 		readonly EvaluationStatistics evaluationStats = new EvaluationStatistics ();
+		readonly object breakpointStoreLock = new object ();
 		BreakpointStore breakpointStore;
 		DebuggerSessionOptions options;
 		ProcessInfo[] currentProcesses;
@@ -225,7 +226,7 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public BreakpointStore Breakpoints {
 			get {
-				lock (slock) {
+				lock (breakpointStoreLock) {
 					if (breakpointStore == null) {
 						Breakpoints = new BreakpointStore ();
 						ownedBreakpointStore = true;
@@ -234,14 +235,13 @@ namespace Mono.Debugging.Client
 				}
 			}
 			set {
-				lock (slock) {
+				lock (breakpointStoreLock) {
 					if (breakpointStore != null) {
-						lock (breakpointStore) {
-							foreach (BreakEvent bp in breakpointStore) {
-								RemoveBreakEvent (bp);
-								NotifyBreakEventStatusChanged (bp);
-							}
+						foreach (BreakEvent bp in breakpointStore) {
+							RemoveBreakEvent (bp);
+							NotifyBreakEventStatusChanged (bp);
 						}
+
 						breakpointStore.BreakEventAdded -= OnBreakpointAdded;
 						breakpointStore.BreakEventRemoved -= OnBreakpointRemoved;
 						breakpointStore.BreakEventModified -= OnBreakpointModified;
@@ -257,10 +257,8 @@ namespace Mono.Debugging.Client
 						if (IsConnected) {
 							Dispatch (delegate {
 								if (IsConnected) {
-									lock (breakpointStore) {
-										foreach (BreakEvent bp in breakpointStore)
-											AddBreakEvent (bp);
-									}
+									foreach (BreakEvent bp in breakpointStore)
+										AddBreakEvent (bp);
 								}
 							});
 						}
@@ -1170,10 +1168,8 @@ namespace Mono.Debugging.Client
 				if (!HasExited) {
 					IsConnected = true;
 					if (breakpointStore != null) {
-						lock (breakpointStore) {
-							foreach (BreakEvent bp in breakpointStore)
-								AddBreakEvent (bp);
-						}
+						foreach (BreakEvent bp in breakpointStore)
+							AddBreakEvent (bp);
 					}
 				}
 			}
