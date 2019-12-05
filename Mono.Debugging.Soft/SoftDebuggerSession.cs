@@ -1260,8 +1260,13 @@ namespace Mono.Debugging.Soft
 			lock (exceptionRequests) {
 				if (!types.ContainsKey (exceptionType)) {
 					if (vm.Version.AtLeast (2, 9)) {
-						foreach (TypeMirror t in vm.GetTypes (exceptionType, false))
-							ProcessType (t);
+						try {
+							foreach (TypeMirror t in vm.GetTypes (exceptionType, false))
+								ProcessType (t);
+						}
+						catch (CommandException exc) {
+							OnDebuggerOutput (false, string.Format (“Error while parsing type ‘{0}’.\n”, exceptionType);
+						}
 					}
 				}
 
