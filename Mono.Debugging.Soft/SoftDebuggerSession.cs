@@ -111,6 +111,7 @@ namespace Mono.Debugging.Soft
 		bool autoStepInto;
 		bool disposed;
 		bool started;
+		ManualResetEvent readyToAttach;
 
 		internal int StackVersion;
 
@@ -630,12 +631,26 @@ namespace Mono.Debugging.Soft
 
 		protected override void OnAttachToProcess (long processId)
 		{
-			Mono.Unix.Native.Syscall.kill ((int)processId, Mono.Unix.Native.Signum.SIGXCPU);
-			Thread.Sleep (1000); //do really need this?
-			var args = new SoftDebuggerConnectArgs ("mono", System.Net.IPAddress.Parse ("127.0.0.1"), 1235);
+			readyToAttach = new ManualResetEvent (false);
+			FileSystemWatcher watcher = new FileSystemWatcher ();
+			watcher.Path = Path.GetTempPath ();
+			watcher.Filter = "debugger_attach." + processId;
+			watcher.Changed += OnChanged;
+			watcher.EnableRaisingEvents = true;
+			Mono.Unix.Native.Syscall.kill ((int)processId, Mono.Unix.Native.Signum.SIGVTALRM);
+			if (!readyToAttach.WaitOne (10000))
+				throw new Exception ("Unable to attach to " + processId + ".");
+
+		}
+
+		private void OnChanged (object source, FileSystemEventArgs e)
+		{
+			readyToAttach.Set ();
+			string port = System.IO.File.ReadAllText (e.FullPath);
+			var args = new SoftDebuggerConnectArgs ("mono", System.Net.IPAddress.Parse ("127.0.0.1"), Convert.ToInt32 (port));
+			File.Delete (e.FullPath);
 			var startInfo = new SoftDebuggerStartInfo (args);
 			StartConnecting (startInfo);
-
 		}
 
 		protected override void OnContinue ()
