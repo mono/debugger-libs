@@ -1265,7 +1265,7 @@ namespace Mono.Debugging.Soft
 								ProcessType (t);
 						}
 						catch (CommandException exc) {
-							OnDebuggerOutput (false, string.Format (“Error while parsing type ‘{0}’.\n”, exceptionType);
+							OnDebuggerOutput (false, string.Format ("Error while parsing type ‘{0}’.\n", exceptionType));
 						}
 					}
 				}
