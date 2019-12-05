@@ -154,6 +154,8 @@ namespace Mono.Debugging.Tests
 		{
 			TestName = test;
 			Session = CreateSession (test, EngineId);
+			// make sure we have a breakpoint store created and setup
+			Session.Breakpoints.Clear ();
 
 			var dsi = CreateStartInfo (test, EngineId);
 			var soft = dsi as SoftDebuggerStartInfo;
