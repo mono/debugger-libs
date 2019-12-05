@@ -51,13 +51,9 @@ namespace Mono.Debugging.Client
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
-		readonly EvaluationStatistics evaluationStats = new EvaluationStatistics ();
-		readonly object breakpointStoreLock = new object ();
-		BreakpointStore breakpointStore;
 		DebuggerSessionOptions options;
 		ProcessInfo[] currentProcesses;
 		ThreadInfo activeThread;
-		bool ownedBreakpointStore;
 		bool adjustingBreakpoints;
 		bool disposed;
 		bool attached;
@@ -134,10 +130,18 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public event EventHandler<AssemblyEventArgs> AssemblyLoaded;
 		
-		protected DebuggerSession ()
+		protected DebuggerSession (BreakpointStore breakpoints)
 		{
-			UseOperationThread = true;
+			EvaluationStats = new EvaluationStatistics ();
 			frontend = new InternalDebuggerSession (this);
+			UseOperationThread = true;
+			Breakpoints = breakpoints;
+
+			breakpoints.BreakEventAdded += OnBreakpointAdded;
+			breakpoints.BreakEventRemoved += OnBreakpointRemoved;
+			breakpoints.BreakEventModified += OnBreakpointModified;
+			breakpoints.BreakEventEnableStatusChanged += OnBreakpointStatusChanged;
+			breakpoints.CheckingReadOnly += BreakpointStoreCheckingReadOnly;
 		}
 		
 		/// <summary>
@@ -155,8 +159,18 @@ namespace Mono.Debugging.Client
 			Dispatch (delegate {
 				if (!disposed) {
 					disposed = true;
-					if (!ownedBreakpointStore)
-						Breakpoints = null;
+
+					foreach (BreakEvent bp in Breakpoints) {
+						RemoveBreakEvent (bp);
+						NotifyBreakEventStatusChanged (bp);
+					}
+
+					Breakpoints.BreakEventAdded -= OnBreakpointAdded;
+					Breakpoints.BreakEventRemoved -= OnBreakpointRemoved;
+					Breakpoints.BreakEventModified -= OnBreakpointModified;
+					Breakpoints.BreakEventEnableStatusChanged -= OnBreakpointStatusChanged;
+					Breakpoints.CheckingReadOnly -= BreakpointStoreCheckingReadOnly;
+					Breakpoints.ResetBreakpoints ();
 				}
 			});
 		}
@@ -218,59 +232,14 @@ namespace Mono.Debugging.Client
 		}
 
 		public EvaluationStatistics EvaluationStats {
-			get { return evaluationStats; }
+			get; private set;
 		}
 		
 		/// <summary>
 		/// Gets or sets the breakpoint store for the debugger session.
 		/// </summary>
 		public BreakpointStore Breakpoints {
-			get {
-				lock (breakpointStoreLock) {
-					if (breakpointStore == null) {
-						Breakpoints = new BreakpointStore ();
-						ownedBreakpointStore = true;
-					}
-					return breakpointStore;
-				}
-			}
-			set {
-				lock (breakpointStoreLock) {
-					if (breakpointStore != null) {
-						foreach (BreakEvent bp in breakpointStore) {
-							RemoveBreakEvent (bp);
-							NotifyBreakEventStatusChanged (bp);
-						}
-
-						breakpointStore.BreakEventAdded -= OnBreakpointAdded;
-						breakpointStore.BreakEventRemoved -= OnBreakpointRemoved;
-						breakpointStore.BreakEventModified -= OnBreakpointModified;
-						breakpointStore.BreakEventEnableStatusChanged -= OnBreakpointStatusChanged;
-						breakpointStore.CheckingReadOnly -= BreakpointStoreCheckingReadOnly;
-						breakpointStore.ResetBreakpoints ();
-					}
-
-					breakpointStore = value;
-					ownedBreakpointStore = false;
-
-					if (breakpointStore != null) {
-						breakpointStore.BreakEventAdded += OnBreakpointAdded;
-						breakpointStore.BreakEventRemoved += OnBreakpointRemoved;
-						breakpointStore.BreakEventModified += OnBreakpointModified;
-						breakpointStore.BreakEventEnableStatusChanged += OnBreakpointStatusChanged;
-						breakpointStore.CheckingReadOnly += BreakpointStoreCheckingReadOnly;
-
-						if (IsConnected) {
-							Dispatch (delegate {
-								if (IsConnected) {
-									foreach (BreakEvent bp in breakpointStore)
-										AddBreakEvent (bp);
-								}
-							});
-						}
-					}
-				}
-			}
+			get; private set;
 		}
 
 		readonly Queue<Action> actionsQueue = new Queue<Action>();
@@ -1154,10 +1123,8 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				if (!HasExited) {
 					IsConnected = true;
-					if (breakpointStore != null) {
-						foreach (BreakEvent bp in breakpointStore)
-							AddBreakEvent (bp);
-					}
+					foreach (BreakEvent bp in Breakpoints)
+						AddBreakEvent (bp);
 				}
 			}
 		}

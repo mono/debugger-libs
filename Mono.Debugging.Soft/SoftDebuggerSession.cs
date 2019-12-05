@@ -118,7 +118,7 @@ namespace Mono.Debugging.Soft
 			get; private set;
 		}
 
-		public SoftDebuggerSession ()
+		public SoftDebuggerSession (BreakpointStore breakpoints) : base (breakpoints)
 		{
 			Adaptor = CreateSoftDebuggerAdaptor ();
 			Adaptor.BusyStateChanged += (sender, e) => SetBusyState (e);
