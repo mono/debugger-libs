@@ -254,6 +254,12 @@ namespace Mono.Debugging.Client
 					ownedBreakpointStore = false;
 
 					if (breakpointStore != null) {
+						breakpointStore.BreakEventAdded += OnBreakpointAdded;
+						breakpointStore.BreakEventRemoved += OnBreakpointRemoved;
+						breakpointStore.BreakEventModified += OnBreakpointModified;
+						breakpointStore.BreakEventEnableStatusChanged += OnBreakpointStatusChanged;
+						breakpointStore.CheckingReadOnly += BreakpointStoreCheckingReadOnly;
+
 						if (IsConnected) {
 							Dispatch (delegate {
 								if (IsConnected) {
@@ -262,11 +268,6 @@ namespace Mono.Debugging.Client
 								}
 							});
 						}
-						breakpointStore.BreakEventAdded += OnBreakpointAdded;
-						breakpointStore.BreakEventRemoved += OnBreakpointRemoved;
-						breakpointStore.BreakEventModified += OnBreakpointModified;
-						breakpointStore.BreakEventEnableStatusChanged += OnBreakpointStatusChanged;
-						breakpointStore.CheckingReadOnly += BreakpointStoreCheckingReadOnly;
 					}
 				}
 			}
