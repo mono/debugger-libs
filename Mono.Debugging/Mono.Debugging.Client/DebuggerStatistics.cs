@@ -1,10 +1,10 @@
-﻿//
-// EvaluationStatistics.cs
+//
+// DebuggerStatistics.cs
 //
 // Author:
-//       Matt Ward <matt.ward@microsoft.com>
+//       Jeffrey Stedfast <jestedfa@microsoft.com>
 //
-// Copyright (c) 2018 Microsoft
+// Copyright (c) 2019 Microsoft Corp.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,24 +23,17 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+
 using System;
 using System.Diagnostics;
-using Mono.Debugging.Client;
 
-namespace Mono.Debugging.Evaluation
+namespace Mono.Debugging.Client
 {
-	public class EvaluationStatistics
+	public class DebuggerStatistics
 	{
-		object lockObject = new object ();
-		TimeSpan maxTime;
+		readonly object mutex = new object ();
 		TimeSpan minTime = TimeSpan.MaxValue;
-		TimeSpan totalTime;
-		int timingsCount;
-		int failureCount;
-
-		public int FailureCount {
-			get { return failureCount; }
-		}
+		TimeSpan maxTime, totalTime;
 
 		public double MaxTime {
 			get { return maxTime.TotalMilliseconds; }
@@ -52,29 +45,27 @@ namespace Mono.Debugging.Evaluation
 
 		public double AverageTime {
 			get {
-				if (timingsCount > 0) {
-					return totalTime.TotalMilliseconds / timingsCount;
+				if (TimingsCount > 0) {
+					return totalTime.TotalMilliseconds / TimingsCount;
 				}
 				return 0;
 			}
 		}
 
-		public int TimingsCount {
-			get { return timingsCount; }
-		}
+		public int TimingsCount { get; private set; }
 
-		public EvaluationTimer StartTimer ()
+		public int FailureCount { get; private set; }
+
+		public DebuggerTimer StartTimer ()
 		{
-			var timer = new EvaluationTimer (this) {
-				Success = false
-			};
+			var timer = new DebuggerTimer (this);
 			timer.Start ();
 			return timer;
 		}
 
 		public void AddTime (TimeSpan duration)
 		{
-			lock (lockObject) {
+			lock (mutex) {
 				if (duration > maxTime) {
 					maxTime = duration;
 				}
@@ -84,56 +75,69 @@ namespace Mono.Debugging.Evaluation
 				}
 
 				totalTime += duration;
-				timingsCount++;
+				TimingsCount++;
 			}
 		}
 
 		public void IncrementFailureCount ()
 		{
-			lock (lockObject) {
-				failureCount++;
+			lock (mutex) {
+				FailureCount++;
 			}
 		}
 	}
 
-	public class EvaluationTimer : IDisposable
+	public class DebuggerTimer : IDisposable
 	{
-		EvaluationStatistics evaluationStats;
-		Stopwatch stopwatch;
+		readonly DebuggerStatistics stats;
+		readonly Stopwatch stopwatch;
 
-		public EvaluationTimer (EvaluationStatistics evaluationStats)
+		public DebuggerTimer (DebuggerStatistics stats)
 		{
-			this.evaluationStats = evaluationStats;
-			Success = true;
+			stopwatch = new Stopwatch ();
+			this.stats = stats;
 		}
 
 		/// <summary>
-		/// Indicates if the evaluation was successful. If this is false the
+		/// Indicates if the debugger operation was successful. If this is false the
 		/// timing will not be reported and a failure will be indicated.
 		/// </summary>
 		public bool Success { get; set; }
 
 		public void Start ()
 		{
-			stopwatch = new Stopwatch ();
 			stopwatch.Start ();
+		}
+
+		public void Stop (bool success)
+		{
+			stopwatch.Stop ();
+
+			Success = success;
+
+			if (stats == null)
+				return;
+
+			if (success)
+				stats.AddTime (stopwatch.Elapsed);
+			else
+				stats.IncrementFailureCount ();
 		}
 
 		public void Stop (ObjectValue val)
 		{
 			stopwatch.Stop ();
 
-			if (evaluationStats == null) {
+			if (stats == null)
 				return;
-			}
 
 			if (val.IsEvaluating || val.IsEvaluatingGroup) {
 				// Do not capture timing - evaluation not finished.
 			} else if (val.IsError || val.IsImplicitNotSupported || val.IsNotSupported || val.IsUnknown) {
-				evaluationStats.IncrementFailureCount ();
+				stats.IncrementFailureCount ();
 			} else {
 				// Success
-				evaluationStats.AddTime (stopwatch.Elapsed);
+				stats.AddTime (stopwatch.Elapsed);
 			}
 		}
 
@@ -142,15 +146,13 @@ namespace Mono.Debugging.Evaluation
 			if (stopwatch.IsRunning) {
 				stopwatch.Stop ();
 
-				if (evaluationStats == null) {
+				if (stats == null)
 					return;
-				}
 
-				if (Success) {
-					evaluationStats.AddTime (stopwatch.Elapsed);
-				} else {
-					evaluationStats.IncrementFailureCount ();
-				}
+				if (Success)
+					stats.AddTime (stopwatch.Elapsed);
+				else
+					stats.IncrementFailureCount ();
 			}
 		}
 	}
