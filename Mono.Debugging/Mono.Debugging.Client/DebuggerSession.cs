@@ -143,6 +143,10 @@ namespace Mono.Debugging.Client
 			StepOverStats = new DebuggerStatistics ();
 			StepInstructionStats = new DebuggerStatistics ();
 			NextInstructionStats = new DebuggerStatistics ();
+			LocalVariableStats = new DebuggerStatistics ();
+			WatchExpressionStats = new DebuggerStatistics ();
+			StackTraceStats = new DebuggerStatistics ();
+			TooltipStats = new DebuggerStatistics ();
 		}
 		
 		/// <summary>
@@ -243,6 +247,22 @@ namespace Mono.Debugging.Client
 		}
 
 		public DebuggerStatistics NextInstructionStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics LocalVariableStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics WatchExpressionStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics StackTraceStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics TooltipStats {
 			get; private set;
 		}
 

@@ -26,11 +26,15 @@
 
 using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
 	public class DebuggerStatistics
 	{
+		static readonly int[] UpperTimeLimits = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 };
+
+		readonly int[] buckets = new int[UpperTimeLimits.Length + 1];
 		readonly object mutex = new object ();
 		TimeSpan minTime = TimeSpan.MaxValue;
 		TimeSpan maxTime, totalTime;
@@ -45,9 +49,9 @@ namespace Mono.Debugging.Client
 
 		public double AverageTime {
 			get {
-				if (TimingsCount > 0) {
+				if (TimingsCount > 0)
 					return totalTime.TotalMilliseconds / TimingsCount;
-				}
+
 				return 0;
 			}
 		}
@@ -63,16 +67,28 @@ namespace Mono.Debugging.Client
 			return timer;
 		}
 
+		int GetBucketIndex (TimeSpan duration)
+		{
+			var ms = (long) duration.TotalMilliseconds;
+
+			for (var bucket = 0; bucket < UpperTimeLimits.Length; bucket++) {
+				if (ms <= UpperTimeLimits[bucket])
+					return bucket;
+			}
+
+			return buckets.Length - 1;
+		}
+
 		public void AddTime (TimeSpan duration)
 		{
 			lock (mutex) {
-				if (duration > maxTime) {
+				if (duration > maxTime)
 					maxTime = duration;
-				}
 
-				if (duration < minTime) {
+				if (duration < minTime)
 					minTime = duration;
-				}
+
+				buckets[GetBucketIndex (duration)]++;
 
 				totalTime += duration;
 				TimingsCount++;
@@ -84,6 +100,18 @@ namespace Mono.Debugging.Client
 			lock (mutex) {
 				FailureCount++;
 			}
+		}
+
+		public void Serialize (Dictionary<string, object> metadata)
+		{
+			metadata["AverageDuration"] = AverageTime;
+			metadata["MaximumDuration"] = MaxTime;
+			metadata["MinimumDuration"] = MinTime;
+			metadata["FailureCount"] = FailureCount;
+			metadata["SuccessCount"] = TimingsCount;
+
+			for (int i = 0; i < buckets.Length; i++)
+				metadata[$"Bucket{i}"] = buckets[i];
 		}
 	}
 
@@ -103,6 +131,10 @@ namespace Mono.Debugging.Client
 		/// timing will not be reported and a failure will be indicated.
 		/// </summary>
 		public bool Success { get; set; }
+
+		public TimeSpan Elapsed {
+			get { return stopwatch.Elapsed; }
+		}
 
 		public void Start ()
 		{
