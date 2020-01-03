@@ -32,7 +32,7 @@ namespace Mono.Debugging.Client
 {
 	public class DebuggerStatistics
 	{
-		static readonly int[] UpperTimeLimits = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 };
+		static readonly int[] UpperTimeLimits = { 10, 50, 100, 250, 500, 1000, 1500, 2000, 5000, 10000 };
 
 		readonly int[] buckets = new int[UpperTimeLimits.Length + 1];
 		readonly object mutex = new object ();
