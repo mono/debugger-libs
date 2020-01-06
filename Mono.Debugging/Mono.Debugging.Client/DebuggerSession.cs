@@ -51,7 +51,6 @@ namespace Mono.Debugging.Client
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
-		readonly EvaluationStatistics evaluationStats = new EvaluationStatistics ();
 		readonly object breakpointStoreLock = new object ();
 		BreakpointStore breakpointStore;
 		DebuggerSessionOptions options;
@@ -138,6 +137,16 @@ namespace Mono.Debugging.Client
 		{
 			UseOperationThread = true;
 			frontend = new InternalDebuggerSession (this);
+			EvaluationStats = new DebuggerStatistics ();
+			StepInStats = new DebuggerStatistics ();
+			StepOutStats = new DebuggerStatistics ();
+			StepOverStats = new DebuggerStatistics ();
+			StepInstructionStats = new DebuggerStatistics ();
+			NextInstructionStats = new DebuggerStatistics ();
+			LocalVariableStats = new DebuggerStatistics ();
+			WatchExpressionStats = new DebuggerStatistics ();
+			StackTraceStats = new DebuggerStatistics ();
+			TooltipStats = new DebuggerStatistics ();
 		}
 		
 		/// <summary>
@@ -217,10 +226,46 @@ namespace Mono.Debugging.Client
 			get; set;
 		}
 
-		public EvaluationStatistics EvaluationStats {
-			get { return evaluationStats; }
+		public DebuggerStatistics EvaluationStats {
+			get; private set;
 		}
-		
+
+		public DebuggerStatistics StepInStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics StepOutStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics StepOverStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics StepInstructionStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics NextInstructionStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics LocalVariableStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics WatchExpressionStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics StackTraceStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics TooltipStats {
+			get; private set;
+		}
+
 		/// <summary>
 		/// Gets or sets the breakpoint store for the debugger session.
 		/// </summary>
@@ -440,8 +485,7 @@ namespace Mono.Debugging.Client
 				}
 			}
 		}
-		
-		
+
 		/// <summary>
 		/// Executes one line of code
 		/// </summary>
@@ -450,17 +494,20 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					try {
-						OnNextLine ();
-					} catch (Exception ex) {
-						ForceStop ();
-						if (!HandleException (ex))
-							throw;
+					using (var timer = StepOverStats.StartTimer ()) {
+						try {
+							OnNextLine ();
+							timer.Success = true;
+						} catch (Exception ex) {
+							ForceStop ();
+							if (!HandleException (ex))
+								throw;
+						}
 					}
 				});
 			}
 		}
-		
+
 		/// <summary>
 		/// Executes one line of code, stepping into method invocations
 		/// </summary>
@@ -469,12 +516,15 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					try {
-						OnStepLine ();
-					} catch (Exception ex) {
-						ForceStop ();
-						if (!HandleException (ex))
-							throw;
+					using (var timer = StepInStats.StartTimer ()) {
+						try {
+							OnStepLine ();
+							timer.Success = true;
+						} catch (Exception ex) {
+							ForceStop ();
+							if (!HandleException (ex))
+								throw;
+						}
 					}
 				});
 			}
@@ -488,12 +538,15 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					try {
-						OnNextInstruction ();
-					} catch (Exception ex) {
-						ForceStop ();
-						if (!HandleException (ex))
-							throw;
+					using (var timer = NextInstructionStats.StartTimer ()) {
+						try {
+							OnNextInstruction ();
+							timer.Success = true;
+						} catch (Exception ex) {
+							ForceStop ();
+							if (!HandleException (ex))
+								throw;
+						}
 					}
 				});
 			}
@@ -507,12 +560,15 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					try {
-						OnStepInstruction ();
-					} catch (Exception ex) {
-						ForceStop ();
-						if (!HandleException (ex))
-							throw;
+					using (var timer = StepInstructionStats.StartTimer ()) {
+						try {
+							OnStepInstruction ();
+							timer.Success = true;
+						} catch (Exception ex) {
+							ForceStop ();
+							if (!HandleException (ex))
+								throw;
+						}
 					}
 				});
 			}
@@ -526,14 +582,17 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					try {
-						OnFinish ();
-					} catch (Exception ex) {
-						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
-						var exceptionHandled = HandleException (ex);
-						ForceExit ();
-						if (!exceptionHandled)
-							throw;
+					using (var timer = StepOutStats.StartTimer ()) {
+						try {
+							OnFinish ();
+							timer.Success = true;
+						} catch (Exception ex) {
+							// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
+							var exceptionHandled = HandleException (ex);
+							ForceExit ();
+							if (!exceptionHandled)
+								throw;
+						}
 					}
 				});
 			}
