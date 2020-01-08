@@ -58,6 +58,7 @@ namespace Mono.Debugging.Client
 		ThreadInfo activeThread;
 		bool ownedBreakpointStore;
 		bool adjustingBreakpoints;
+		DebuggerTimer stepTimer;
 		bool disposed;
 		bool attached;
 
@@ -486,6 +487,12 @@ namespace Mono.Debugging.Client
 			}
 		}
 
+		void StartStepTimer (DebuggerStatistics stats)
+		{
+			stepTimer?.Dispose ();
+			stepTimer = stats.StartTimer ();
+		}
+
 		/// <summary>
 		/// Executes one line of code
 		/// </summary>
@@ -494,15 +501,13 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					using (var timer = StepOverStats.StartTimer ()) {
-						try {
-							OnNextLine ();
-							timer.Success = true;
-						} catch (Exception ex) {
-							ForceStop ();
-							if (!HandleException (ex))
-								throw;
-						}
+					StartStepTimer (StepOverStats);
+					try {
+						OnNextLine ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
 					}
 				});
 			}
@@ -516,15 +521,13 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					using (var timer = StepInStats.StartTimer ()) {
-						try {
-							OnStepLine ();
-							timer.Success = true;
-						} catch (Exception ex) {
-							ForceStop ();
-							if (!HandleException (ex))
-								throw;
-						}
+					StartStepTimer (StepInStats);
+					try {
+						OnStepLine ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
 					}
 				});
 			}
@@ -538,15 +541,13 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					using (var timer = NextInstructionStats.StartTimer ()) {
-						try {
-							OnNextInstruction ();
-							timer.Success = true;
-						} catch (Exception ex) {
-							ForceStop ();
-							if (!HandleException (ex))
-								throw;
-						}
+					StartStepTimer (NextInstructionStats);
+					try {
+						OnNextInstruction ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
 					}
 				});
 			}
@@ -560,15 +561,13 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					using (var timer = StepInstructionStats.StartTimer ()) {
-						try {
-							OnStepInstruction ();
-							timer.Success = true;
-						} catch (Exception ex) {
-							ForceStop ();
-							if (!HandleException (ex))
-								throw;
-						}
+					StartStepTimer (StepInstructionStats);
+					try {
+						OnStepInstruction ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
 					}
 				});
 			}
@@ -582,17 +581,15 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
-					using (var timer = StepOutStats.StartTimer ()) {
-						try {
-							OnFinish ();
-							timer.Success = true;
-						} catch (Exception ex) {
-							// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
-							var exceptionHandled = HandleException (ex);
-							ForceExit ();
-							if (!exceptionHandled)
-								throw;
-						}
+					StartStepTimer (StepOutStats);
+					try {
+						OnFinish ();
+					} catch (Exception ex) {
+						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
+						var exceptionHandled = HandleException (ex);
+						ForceExit ();
+						if (!exceptionHandled)
+							throw;
 					}
 				});
 			}
@@ -1186,6 +1183,12 @@ namespace Mono.Debugging.Client
 			// process is paused threadpool kills threads since they are not in use...
 			if (args.Thread != null && args.IsStopEvent)
 				activeThread = args.Thread;
+
+			if (stepTimer != null && (HasExited || args.IsStopEvent)) {
+				stepTimer.Stop (true);
+				stepTimer.Dispose ();
+				stepTimer = null;
+			}
 
 			evnt?.Invoke (this, args);
 
