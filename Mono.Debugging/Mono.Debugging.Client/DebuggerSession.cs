@@ -702,43 +702,54 @@ namespace Mono.Debugging.Client
 
 		bool RemoveBreakEvent (BreakEvent be)
 		{
+			BreakEventInfo binfo = null;
 			lock (breakpoints) {
-				if (breakpoints.TryGetValue (be, out var binfo)) {
-					try {
-						OnRemoveBreakEvent (binfo);
-					} catch (Exception ex) {
-						if (IsConnected)
-							OnDebuggerOutput (false, ex.Message);
-						HandleException (ex);
-						return false;
-					}
-					breakpoints.Remove (be);
-				}
-				return true;
+				if (!breakpoints.TryGetValue (be, out binfo))
+					return true;
+
+				breakpoints.Remove (be);
 			}
+
+			if (binfo != null) {
+				try {
+					OnRemoveBreakEvent (binfo);
+				} catch (Exception ex) {
+					if (IsConnected)
+						OnDebuggerOutput (false, ex.Message);
+					HandleException (ex);
+					return false;
+				}
+			}
+
+			return true;
 		}
-		
+
 		void UpdateBreakEventStatus (BreakEvent be)
 		{
+			BreakEventInfo binfo = null;
 			lock (breakpoints) {
-				if (breakpoints.TryGetValue (be, out var binfo)) {
-					try {
-						OnEnableBreakEvent (binfo, be.Enabled);
-					} catch (Exception ex) {
-						if (IsConnected)
-							OnDebuggerOutput (false, ex.Message);
-						HandleException (ex);
-					}
-				}
+				if (!breakpoints.TryGetValue (be, out binfo))
+					return;
+			}
+
+			try {
+				OnEnableBreakEvent (binfo, be.Enabled);
+			} catch (Exception ex) {
+				if (IsConnected)
+					OnDebuggerOutput (false, ex.Message);
+				HandleException (ex);
 			}
 		}
 		
 		void UpdateBreakEvent (BreakEvent be)
 		{
+			BreakEventInfo binfo;
 			lock (breakpoints) {
-				if (breakpoints.TryGetValue (be, out var binfo))
-					OnUpdateBreakEvent (binfo);
+				if (!breakpoints.TryGetValue (be, out binfo))
+					return;
 			}
+
+			OnUpdateBreakEvent (binfo);
 		}
 		
 		void OnBreakpointAdded (object s, BreakEventArgs args)
