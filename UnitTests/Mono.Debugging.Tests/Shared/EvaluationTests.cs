@@ -1607,23 +1607,23 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("string", val.TypeName);
 
 			val = Eval ("(int)numbers");
-			Assert.IsTrue (val.IsError);
+			Assert.IsTrue (val.IsError, "(int)numbers");
 
 			val = Eval ("(int)this");
-			Assert.IsTrue (val.IsError);
+			Assert.IsTrue (val.IsError, "(int)this");
 
 			val = Eval ("(C)a");
-			Assert.IsTrue (val.IsError);
+			Assert.IsTrue (val.IsError, "(C)a");
 
 			val = Eval ("(C)b");
-			Assert.IsTrue (val.IsError);
+			Assert.IsTrue (val.IsError, "(C)b");
 
 			val = Eval ("(C)c");
 			Assert.AreEqual ("{C}", val.Value);
 			Assert.AreEqual ("C", val.TypeName);
 
 			val = Eval ("(B)a");
-			Assert.IsTrue (val.IsError);
+			Assert.IsTrue (val.IsError, "(B)a");
 
 			val = Eval ("(B)b");
 			Assert.AreEqual ("{B}", val.Value);
@@ -1865,16 +1865,16 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("bool", val.TypeName);
 
 			val = Eval ("false || 1");
-			Assert.IsTrue (val.IsError);
+			Assert.IsTrue (val.IsError, "false || 1");
 
 			val = Eval ("1 || true");
-			Assert.IsTrue (val.IsError);
+			Assert.IsTrue (val.IsError, "1 || true");
 
 			val = Eval ("true && 1");
-			Assert.IsTrue (val.IsError);
+			Assert.IsTrue (val.IsError, "true && 1");
 
 			val = Eval ("1 && true");
-			Assert.IsTrue (val.IsError);
+			Assert.IsTrue (val.IsError, "1 && true");
 
 			// Concat string
 

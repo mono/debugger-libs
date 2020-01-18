@@ -39,6 +39,10 @@ namespace Mono.Debugging.Client
 			}
 		}
 
+		public DebuggerSession DebuggerSession {
+			get { return session; }
+		}
+
 		public int FrameCount {
 			get { return count; }
 		}

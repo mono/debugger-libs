@@ -279,13 +279,11 @@ namespace Mono.Debugging.Evaluation
 			return finfo;
 		}
 
-		EvaluationTimer StartEvaluationTimer ()
+		DebuggerTimer StartEvaluationTimer ()
 		{
 			var evaluationStats = Adaptor.DebuggerSession?.EvaluationStats;
 
-			var timer = new EvaluationTimer (evaluationStats) {
-				Success = false
-			};
+			var timer = new DebuggerTimer (evaluationStats);
 			timer.Start ();
 
 			return timer;

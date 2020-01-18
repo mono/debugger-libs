@@ -55,6 +55,7 @@ namespace Mono.Debugging.Client
 		ProcessInfo[] currentProcesses;
 		ThreadInfo activeThread;
 		bool adjustingBreakpoints;
+		DebuggerTimer stepTimer;
 		bool disposed;
 		bool attached;
 
@@ -142,6 +143,17 @@ namespace Mono.Debugging.Client
 			breakpoints.BreakEventModified += OnBreakpointModified;
 			breakpoints.BreakEventEnableStatusChanged += OnBreakpointStatusChanged;
 			breakpoints.CheckingReadOnly += BreakpointStoreCheckingReadOnly;
+      
+			EvaluationStats = new DebuggerStatistics ();
+			StepInStats = new DebuggerStatistics ();
+			StepOutStats = new DebuggerStatistics ();
+			StepOverStats = new DebuggerStatistics ();
+			StepInstructionStats = new DebuggerStatistics ();
+			NextInstructionStats = new DebuggerStatistics ();
+			LocalVariableStats = new DebuggerStatistics ();
+			WatchExpressionStats = new DebuggerStatistics ();
+			StackTraceStats = new DebuggerStatistics ();
+			TooltipStats = new DebuggerStatistics ();
 		}
 		
 		/// <summary>
@@ -231,10 +243,46 @@ namespace Mono.Debugging.Client
 			get; set;
 		}
 
-		public EvaluationStatistics EvaluationStats {
+		public DebuggerStatistics EvaluationStats {
 			get; private set;
 		}
-		
+
+		public DebuggerStatistics StepInStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics StepOutStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics StepOverStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics StepInstructionStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics NextInstructionStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics LocalVariableStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics WatchExpressionStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics StackTraceStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics TooltipStats {
+			get; private set;
+		}
+
 		/// <summary>
 		/// Gets or sets the breakpoint store for the debugger session.
 		/// </summary>
@@ -409,8 +457,13 @@ namespace Mono.Debugging.Client
 				}
 			}
 		}
-		
-		
+
+		void StartStepTimer (DebuggerStatistics stats)
+		{
+			stepTimer?.Dispose ();
+			stepTimer = stats.StartTimer ();
+		}
+
 		/// <summary>
 		/// Executes one line of code
 		/// </summary>
@@ -419,6 +472,7 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
+					StartStepTimer (StepOverStats);
 					try {
 						OnNextLine ();
 					} catch (Exception ex) {
@@ -429,7 +483,7 @@ namespace Mono.Debugging.Client
 				});
 			}
 		}
-		
+
 		/// <summary>
 		/// Executes one line of code, stepping into method invocations
 		/// </summary>
@@ -438,6 +492,7 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
+					StartStepTimer (StepInStats);
 					try {
 						OnStepLine ();
 					} catch (Exception ex) {
@@ -457,6 +512,7 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
+					StartStepTimer (NextInstructionStats);
 					try {
 						OnNextInstruction ();
 					} catch (Exception ex) {
@@ -476,6 +532,7 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
+					StartStepTimer (StepInstructionStats);
 					try {
 						OnStepInstruction ();
 					} catch (Exception ex) {
@@ -495,6 +552,7 @@ namespace Mono.Debugging.Client
 			lock (slock) {
 				OnRunning ();
 				Dispatch (delegate {
+					StartStepTimer (StepOutStats);
 					try {
 						OnFinish ();
 					} catch (Exception ex) {
@@ -615,43 +673,54 @@ namespace Mono.Debugging.Client
 
 		bool RemoveBreakEvent (BreakEvent be)
 		{
+			BreakEventInfo binfo = null;
 			lock (breakpoints) {
-				if (breakpoints.TryGetValue (be, out var binfo)) {
-					try {
-						OnRemoveBreakEvent (binfo);
-					} catch (Exception ex) {
-						if (IsConnected)
-							OnDebuggerOutput (false, ex.Message);
-						HandleException (ex);
-						return false;
-					}
-					breakpoints.Remove (be);
-				}
-				return true;
+				if (!breakpoints.TryGetValue (be, out binfo))
+					return true;
+
+				breakpoints.Remove (be);
 			}
+
+			if (binfo != null) {
+				try {
+					OnRemoveBreakEvent (binfo);
+				} catch (Exception ex) {
+					if (IsConnected)
+						OnDebuggerOutput (false, ex.Message);
+					HandleException (ex);
+					return false;
+				}
+			}
+
+			return true;
 		}
-		
+
 		void UpdateBreakEventStatus (BreakEvent be)
 		{
+			BreakEventInfo binfo = null;
 			lock (breakpoints) {
-				if (breakpoints.TryGetValue (be, out var binfo)) {
-					try {
-						OnEnableBreakEvent (binfo, be.Enabled);
-					} catch (Exception ex) {
-						if (IsConnected)
-							OnDebuggerOutput (false, ex.Message);
-						HandleException (ex);
-					}
-				}
+				if (!breakpoints.TryGetValue (be, out binfo))
+					return;
+			}
+
+			try {
+				OnEnableBreakEvent (binfo, be.Enabled);
+			} catch (Exception ex) {
+				if (IsConnected)
+					OnDebuggerOutput (false, ex.Message);
+				HandleException (ex);
 			}
 		}
 		
 		void UpdateBreakEvent (BreakEvent be)
 		{
+			BreakEventInfo binfo;
 			lock (breakpoints) {
-				if (breakpoints.TryGetValue (be, out var binfo))
-					OnUpdateBreakEvent (binfo);
+				if (!breakpoints.TryGetValue (be, out binfo))
+					return;
 			}
+
+			OnUpdateBreakEvent (binfo);
 		}
 		
 		void OnBreakpointAdded (object s, BreakEventArgs args)
@@ -1096,6 +1165,12 @@ namespace Mono.Debugging.Client
 			// process is paused threadpool kills threads since they are not in use...
 			if (args.Thread != null && args.IsStopEvent)
 				activeThread = args.Thread;
+
+			if (stepTimer != null && (HasExited || args.IsStopEvent)) {
+				stepTimer.Stop (true);
+				stepTimer.Dispose ();
+				stepTimer = null;
+			}
 
 			evnt?.Invoke (this, args);
 
