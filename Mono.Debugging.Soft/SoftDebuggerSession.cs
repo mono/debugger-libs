@@ -1577,6 +1577,7 @@ namespace Mono.Debugging.Soft
 
 		void Step (StepDepth depth, StepSize size)
 		{
+
 			ThreadPool.QueueUserWorkItem (delegate {
 				try {
 					Adaptor.CancelAsyncOperations (); // This call can block, so it has to run in background thread to avoid keeping the main session lock

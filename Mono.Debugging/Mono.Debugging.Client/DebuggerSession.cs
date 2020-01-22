@@ -500,14 +500,16 @@ namespace Mono.Debugging.Client
 		{
 			lock (slock) {
 				OnRunning ();
-				StartStepTimer (StepOverStats);
-				try {
-					OnNextLine ();
-				} catch (Exception ex) {
-					ForceStop ();
-					if (!HandleException (ex))
-						throw;
-				}
+				Dispatch (delegate {
+					StartStepTimer (StepOverStats);
+					try {
+						OnNextLine ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
+					}
+				});
 			}
 		}
 
@@ -518,14 +520,16 @@ namespace Mono.Debugging.Client
 		{
 			lock (slock) {
 				OnRunning ();
-				StartStepTimer (StepInStats);
-				try {
-					OnStepLine ();
-				} catch (Exception ex) {
-					ForceStop ();
-					if (!HandleException (ex))
-						throw;
-				}
+				Dispatch (delegate {
+					StartStepTimer (StepInStats);
+					try {
+						OnStepLine ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
+					}
+				});
 			}
 		}
 		
@@ -536,14 +540,16 @@ namespace Mono.Debugging.Client
 		{
 			lock (slock) {
 				OnRunning ();
-				StartStepTimer (NextInstructionStats);
-				try {
-					OnNextInstruction ();
-				} catch (Exception ex) {
-					ForceStop ();
-					if (!HandleException (ex))
-						throw;
-				}
+				Dispatch (delegate {
+					StartStepTimer (NextInstructionStats);
+					try {
+						OnNextInstruction ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
+					}
+				});
 			}
 		}
 
@@ -554,14 +560,16 @@ namespace Mono.Debugging.Client
 		{
 			lock (slock) {
 				OnRunning ();
-				StartStepTimer (StepInstructionStats);
-				try {
-					OnStepInstruction ();
-				} catch (Exception ex) {
-					ForceStop ();
-					if (!HandleException (ex))
-						throw;
-				}
+				Dispatch (delegate {
+					StartStepTimer (StepInstructionStats);
+					try {
+						OnStepInstruction ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
+					}
+				});
 			}
 		}
 		
@@ -572,16 +580,18 @@ namespace Mono.Debugging.Client
 		{
 			lock (slock) {
 				OnRunning ();
-				StartStepTimer (StepOutStats);
-				try {
-					OnFinish ();
-				} catch (Exception ex) {
-					// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
-					var exceptionHandled = HandleException (ex);
-					ForceExit ();
-					if (!exceptionHandled)
-						throw;
-				}
+				Dispatch (delegate {
+					StartStepTimer (StepOutStats);
+					try {
+						OnFinish ();
+					} catch (Exception ex) {
+						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
+						var exceptionHandled = HandleException (ex);
+						ForceExit ();
+						if (!exceptionHandled)
+							throw;
+					}
+				});
 			}
 		}
 
