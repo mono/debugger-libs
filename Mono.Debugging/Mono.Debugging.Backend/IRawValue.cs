@@ -29,7 +29,6 @@ using Mono.Debugging.Client;
 
 namespace Mono.Debugging.Backend
 {
-	
 	public interface IRawValue: IDebuggerBackendObject
 	{
 		object CallMethod (string name, object[] parameters, EvaluationOptions options);
@@ -37,5 +36,4 @@ namespace Mono.Debugging.Backend
 		object GetMemberValue (string name, EvaluationOptions options);
 		void SetMemberValue (string name, object value, EvaluationOptions options);
 	}
-	
 }
