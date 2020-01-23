@@ -53,7 +53,7 @@ namespace Mono.Debugging.Tests
 
 		[Test]
 #pragma warning disable VSTHRD200 // Use "Async" suffix for async methods
-		public async Task WhenQueryigBreakpoints_ThenDoNotDeadlockDispatchedMethods()
+		public async Task WhenQueryingBreakpoints_ThenDoNotDeadlockDispatchedMethods()
 #pragma warning restore VSTHRD200 // Use "Async" suffix for async methods
 		{
 			// thread 1 cancels debugging, which triggers hot reload to clear breakpoints 
@@ -88,6 +88,10 @@ namespace Mono.Debugging.Tests
 		class TestDebuggerSession : DebuggerSession
 		{
 			public Action HandleOnExit;
+
+			public TestDebuggerSession () : base (new BreakpointStore ())
+			{
+			}
 
 			protected override void OnAttachToProcess (long processId)
 			{
