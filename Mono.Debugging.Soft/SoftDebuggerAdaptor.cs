@@ -947,7 +947,7 @@ namespace Mono.Debugging.Soft
 			try {
 				val = vthis.Value;
 			} catch (InvalidStackFrameException) {
-+ 				return new ValueReference [0];
+ 				return new ValueReference [0];
 			} catch (AbsentInformationException) {
 				return new ValueReference [0];
 			} catch (EvaluatorException ex) when (ex.InnerException is AbsentInformationException) {
