@@ -946,11 +946,14 @@ namespace Mono.Debugging.Soft
 			object val;
 			try {
 				val = vthis.Value;
+			} catch (InvalidStackFrameException) {
+ 				return new ValueReference [0];
 			} catch (AbsentInformationException) {
 				return new ValueReference [0];
 			} catch (EvaluatorException ex) when (ex.InnerException is AbsentInformationException) {
 				return new ValueReference [0];
 			}
+
 			if (IsNull (cx, val))
 				return new ValueReference [0];
 			
@@ -1009,6 +1012,7 @@ namespace Mono.Debugging.Soft
 				}
 
 				return GetHoistedThisReference (cx, type, val);
+			} catch (InvalidStackFrameException) {
 			} catch (AbsentInformationException) {
 			}
 			return null;
@@ -1050,7 +1054,7 @@ namespace Mono.Debugging.Soft
 
 			if (InGeneratedClosureOrIteratorType (cx) || IsLocalFunction(cx))
 				return FindByName (OnGetLocalVariables (cx), v => v.Name, name, ctx.CaseSensitive);
-			
+
 			try {
 				LocalVariable local = null;
 
@@ -1064,13 +1068,15 @@ namespace Mono.Debugging.Soft
 				} else {
 					local = ctx.CaseSensitive
 						? cx.Frame.GetVisibleVariableByName (name)
-						: FindByName (cx.Frame.GetVisibleVariables(), v => v.Name, name, false);
+						: FindByName (cx.Frame.GetVisibleVariables (), v => v.Name, name, false);
 				}
 
 				if (local != null)
 					return new VariableValueReference (ctx, GetLocalName (cx, local), local);
 
 				return FindByName (OnGetLocalVariables (ctx), v => v.Name, name, ctx.CaseSensitive);
+			} catch (InvalidStackFrameException) {
+				return null;
 			} catch (AbsentInformationException) {
 				return null;
 			}
@@ -1084,6 +1090,7 @@ namespace Mono.Debugging.Soft
 				var vthis = GetThisReference (cx);
 				return GetHoistedLocalVariables (cx, vthis).Union (GetLocalVariables (cx));
 			}
+
 			if (IsLocalFunction (cx)) {
 				var vthis = GetClosureReference (cx);
 				// if there's no closure reference then it didn't capture anything
@@ -1091,6 +1098,7 @@ namespace Mono.Debugging.Soft
 					return GetHoistedLocalVariables (cx, vthis).Union (GetLocalVariables (cx));
 				}
 			}
+
 			return GetLocalVariables (cx);
 		}
 
@@ -1110,6 +1118,8 @@ namespace Mono.Debugging.Soft
 
 			try {
 				locals = cx.Frame.GetVisibleVariables ().Where (x => !x.IsArg && ((IsClosureReferenceLocal (x) && IsGeneratedType (x.Type)) || !IsGeneratedTemporaryLocal (x))).ToArray ();
+			} catch (InvalidStackFrameException) {
+				yield break;
 			} catch (AbsentInformationException) {
 				yield break;
 			}
@@ -1546,6 +1556,8 @@ namespace Mono.Debugging.Soft
 
 			try {
 				locals = soft.Frame.Method.GetLocals ().Where (x => x.IsArg && !IsClosureReferenceLocal (x)).ToArray ();
+			} catch (InvalidStackFrameException) {
+				yield break;
 			} catch (AbsentInformationException) {
 				yield break;
 			}
