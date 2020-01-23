@@ -1577,47 +1577,43 @@ namespace Mono.Debugging.Soft
 
 		void Step (StepDepth depth, StepSize size)
 		{
-
-			ThreadPool.QueueUserWorkItem (delegate {
+			try {
+				Adaptor.CancelAsyncOperations (); // This call can block, so it has to run in background thread to avoid keeping the main session lock
+				var req = vm.CreateStepRequest (current_thread);
+				req.Depth = depth;
+				req.Size = size;
+				req.Filter = ShouldFilterStaticCtor () | StepFilter.DebuggerHidden | StepFilter.DebuggerStepThrough;
+				if (Options.ProjectAssembliesOnly)
+					req.Filter |= StepFilter.DebuggerNonUserCode;
+				if (assemblyFilters != null && assemblyFilters.Count > 0)
+					req.AssemblyFilter = assemblyFilters;
 				try {
-					Adaptor.CancelAsyncOperations (); // This call can block, so it has to run in background thread to avoid keeping the main session lock
-					var req = vm.CreateStepRequest (current_thread);
-					req.Depth = depth;
-					req.Size = size;
-					req.Filter = ShouldFilterStaticCtor() | StepFilter.DebuggerHidden | StepFilter.DebuggerStepThrough;
-					if (Options.ProjectAssembliesOnly)
-						req.Filter |= StepFilter.DebuggerNonUserCode;
-					if (assemblyFilters != null && assemblyFilters.Count > 0)
-						req.AssemblyFilter = assemblyFilters;
-					try {
-						req.Enabled = true;
-					}
-					catch (NotSupportedException e) {
-						if (vm.Version.AtLeast (2, 19)) //catch NotSupportedException thrown by old version of protocol
-							throw e;
-					}
-					currentStepRequest = req;
-					OnResumed ();
-					vm.Resume ();
-					DequeueEventsForFirstThread ();
-				} catch (CommandException ex) {
-					string reason;
-
-					switch (ex.ErrorCode) {
-					case ErrorCode.INVALID_FRAMEID: reason = "invalid frame id"; break;
-					case ErrorCode.NOT_SUSPENDED: reason = "VM not suspended"; break;
-					case ErrorCode.ERR_UNLOADED: reason = "AppDomain has been unloaded"; break;
-					case ErrorCode.NO_SEQ_POINT_AT_IL_OFFSET: reason = "no sequence point at the specified IL offset"; break;
-					default: reason = ex.ErrorCode.ToString (); break;
-					}
-
-					OnDebuggerOutput (true, string.Format ("Step request failed: {0}.", reason));
-					DebuggerLoggingService.LogError ("Step request failed", ex);
-				} catch (Exception ex) {
-					OnDebuggerOutput (true, string.Format ("Step request failed: {0}", ex.Message));
-					DebuggerLoggingService.LogError ("Step request failed", ex);
+					req.Enabled = true;
+				} catch (NotSupportedException e) {
+					if (vm.Version.AtLeast (2, 19)) //catch NotSupportedException thrown by old version of protocol
+						throw e;
 				}
-			});
+				currentStepRequest = req;
+				OnResumed ();
+				vm.Resume ();
+				DequeueEventsForFirstThread ();
+			} catch (CommandException ex) {
+				string reason;
+
+				switch (ex.ErrorCode) {
+				case ErrorCode.INVALID_FRAMEID: reason = "invalid frame id"; break;
+				case ErrorCode.NOT_SUSPENDED: reason = "VM not suspended"; break;
+				case ErrorCode.ERR_UNLOADED: reason = "AppDomain has been unloaded"; break;
+				case ErrorCode.NO_SEQ_POINT_AT_IL_OFFSET: reason = "no sequence point at the specified IL offset"; break;
+				default: reason = ex.ErrorCode.ToString (); break;
+				}
+
+				OnDebuggerOutput (true, string.Format ("Step request failed: {0}.", reason));
+				DebuggerLoggingService.LogError ("Step request failed", ex);
+			} catch (Exception ex) {
+				OnDebuggerOutput (true, string.Format ("Step request failed: {0}", ex.Message));
+				DebuggerLoggingService.LogError ("Step request failed", ex);
+			}
 		}
 
 		private StepFilter ShouldFilterStaticCtor()
