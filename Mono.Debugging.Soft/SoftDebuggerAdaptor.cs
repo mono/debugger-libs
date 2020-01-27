@@ -2805,6 +2805,7 @@ namespace Mono.Debugging.Soft
 
 		public override void Abort ()
 		{
+			var ctx = (SoftEvaluationContext)EvaluationContext;
 			if (handle is IInvokeAsyncResult) {
 				var info = GetInfo ();
 				DebuggerLoggingService.LogMessage ("Aborting invocation of " + info);
