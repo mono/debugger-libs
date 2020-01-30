@@ -1281,23 +1281,22 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		internal protected void BindSourceFileBreakpoints (string fullFilePath)
 		{
+			Dictionary<BreakEvent, BreakEventInfo> breakpointsCopy;
+			StringComparer comparer;
+
+			if (System.IO.Path.DirectorySeparatorChar == '\\')
+				comparer = StringComparer.InvariantCultureIgnoreCase;
+			else
+				comparer = StringComparer.InvariantCulture;
+
 			lock (breakpoints) {
 				// Make a copy of the breakpoints table since it can be modified while iterating
-				var breakpointsCopy = new Dictionary<BreakEvent, BreakEventInfo> (breakpoints);
+				breakpointsCopy = new Dictionary<BreakEvent, BreakEventInfo> (breakpoints);
+			}
 
-				foreach (var bps in breakpointsCopy) {
-					if (bps.Key is Breakpoint bp) {
-						StringComparer comparer;
-
-						if (System.IO.Path.DirectorySeparatorChar == '\\')
-							comparer = StringComparer.InvariantCultureIgnoreCase;
-						else
-							comparer = StringComparer.InvariantCulture;
-
-						if (comparer.Compare (System.IO.Path.GetFullPath (bp.FileName), fullFilePath) == 0)
-							RetryEventBind (bps.Value);
-					}
-				}
+			foreach (var bps in breakpointsCopy) {
+				if (bps.Key is Breakpoint bp && comparer.Compare (System.IO.Path.GetFullPath (bp.FileName), fullFilePath) == 0)
+					RetryEventBind (bps.Value);
 			}
 		}
 		
@@ -1341,21 +1340,19 @@ namespace Mono.Debugging.Client
 			var toUpdate = new List<BreakEventInfo> ();
 
 			lock (breakpoints) {
-				// Make a copy of the breakpoints table since it can be modified while iterating
-				var breakpointsCopy = new Dictionary<BreakEvent, BreakEventInfo> (breakpoints);
-
-				foreach (var bps in breakpointsCopy) {
+				foreach (var bps in breakpoints) {
 					if (bps.Key is Breakpoint bp && bps.Value.Status == BreakEventStatus.Bound) {
 						if (System.IO.Path.GetFullPath (bp.FileName) == fullFilePath)
 							toUpdate.Add (bps.Value);
 					}
 				}
 
-				foreach (var be in toUpdate) {
+				foreach (var be in toUpdate)
 					breakpoints.Remove (be.BreakEvent);
-					NotifyBreakEventStatusChanged (be.BreakEvent);
-				}
 			}
+
+			foreach (var be in toUpdate)
+				NotifyBreakEventStatusChanged (be.BreakEvent);
 		}
 		
 		internal void NotifyBreakEventStatusChanged (BreakEvent be)

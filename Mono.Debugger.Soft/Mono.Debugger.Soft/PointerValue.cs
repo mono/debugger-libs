@@ -48,6 +48,25 @@ namespace Mono.Debugger.Soft
 			get { return type; }
 		}
 
+		// Since protocol version 2.46
+		public Value Value {
+			get {
+				ValueImpl value;
+				if (Address == 0)
+					return null;
+				try {
+					value = vm.conn.Pointer_GetValue (Address, Type);
+				}
+				catch (CommandException ex) {
+				if (ex.ErrorCode == ErrorCode.INVALID_ARGUMENT)
+					throw new ArgumentException ("Invalid pointer address.");
+				else
+					throw;
+				}
+				return vm.DecodeValue (value);
+			}
+		}
+
 		public override bool Equals (object obj) {
 			if (obj != null && obj is PointerValue)
 				return addr == (obj as PointerValue).addr;

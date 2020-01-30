@@ -2805,10 +2805,12 @@ namespace Mono.Debugging.Soft
 
 		public override void Abort ()
 		{
+			var ctx = (SoftEvaluationContext)EvaluationContext;
 			if (handle is IInvokeAsyncResult) {
 				var info = GetInfo ();
 				DebuggerLoggingService.LogMessage ("Aborting invocation of " + info);
 				((IInvokeAsyncResult) handle).Abort ();
+				ctx.Session.StackVersion++;
 				// Don't wait for the abort to finish. The engine will do it.
 			} else {
 				throw new NotSupportedException ();
