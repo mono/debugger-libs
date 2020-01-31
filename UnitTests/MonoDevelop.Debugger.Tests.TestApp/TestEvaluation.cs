@@ -295,9 +295,11 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			});
 			action ();
 
+#if !NETSTANDARD2_0
 			dynamic dynObj = new ExpandoObject ();
 			dynObj.someInt = 53;
 			dynObj.someString = "Hello dynamic objects!";
+#endif
 
 			var objWithMethodA = new ClassWithMethodA ();
 

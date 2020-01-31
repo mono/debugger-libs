@@ -59,7 +59,9 @@ namespace Mono.Debugging.Evaluation
 		{
 			lock (connectedValues) {
 				foreach (RemoteFrameObject val in connectedValues) {
+#if !NETSTANDARD2_0
 					System.Runtime.Remoting.RemotingServices.Disconnect (val);
+#endif
 					IDisposable disp = val as IDisposable;
 					if (disp != null)
 						disp.Dispose ();

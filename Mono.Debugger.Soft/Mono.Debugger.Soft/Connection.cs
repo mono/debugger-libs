@@ -6,6 +6,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Mono.Debugger.Soft
 {
@@ -1597,7 +1598,7 @@ namespace Mono.Debugger.Soft
 							LogPacket (packet_id, encoded_packet, p, command_set, command, watch);
 						/* Run the callback on a tp thread to avoid blocking the receive thread */
 						PacketReader r = new PacketReader (this, p);
-						cb.BeginInvoke (r, null, null);
+						Task.Run (() => cb (r));
 					};
 					reply_cb_counts [id] = count;
 				}
