@@ -1195,10 +1195,12 @@ namespace Mono.Debugging.Client
 			if (args.Thread != null && args.IsStopEvent)
 				activeThread = args.Thread;
 
-			if (stepTimer != null && (HasExited || args.IsStopEvent)) {
-				stepTimer.Stop (true);
-				stepTimer.Dispose ();
-				stepTimer = null;
+			if (HasExited || args.IsStopEvent) {
+				var timer = Interlocked.Exchange (ref stepTimer, null);
+				if (timer != null) {
+					timer.Stop (true);
+					timer.Dispose ();
+				}
 			}
 
 			evnt?.Invoke (this, args);
