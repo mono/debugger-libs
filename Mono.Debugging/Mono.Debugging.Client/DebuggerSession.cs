@@ -470,9 +470,7 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public ThreadInfo ActiveThread {
 			get {
-				lock (slock) {
-					return activeThread;
-				}
+				return activeThread;
 			}
 			set {
 				lock (slock) {
@@ -618,7 +616,12 @@ namespace Mono.Debugging.Client
 			if (!IsConnected || IsRunning || !CanSetNextStatement)
 				throw new NotSupportedException ();
 
-			OnSetNextStatement (ActiveThread.Id, fileName, line, column);
+			var thread = ActiveThread;
+
+			if (thread == null)
+				return;
+
+			OnSetNextStatement (thread.Id, fileName, line, column);
 		}
 
 		/// <summary>
@@ -633,7 +636,12 @@ namespace Mono.Debugging.Client
 			if (!IsConnected || IsRunning || !CanSetNextStatement)
 				throw new NotSupportedException ();
 
-			OnSetNextStatement (ActiveThread.Id, ilOffset);
+			var thread = ActiveThread;
+
+			if (thread == null)
+				return;
+
+			OnSetNextStatement (thread.Id, ilOffset);
 		}
 		
 		/// <summary>
