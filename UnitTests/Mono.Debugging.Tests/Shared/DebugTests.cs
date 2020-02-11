@@ -468,5 +468,20 @@ namespace Mono.Debugging.Tests
 			}
 			return children;
 		}
+
+		public static ObjectValue[] GetAllLocalsSync(this StackFrame frame)
+		{
+			var locals = new List<ObjectValue> ();
+			var values = frame.GetAllLocals ();
+			for (int i = 0; i < values.Length; i++) {
+				var value = values[i].Sync ();
+
+				if (value.IsEvaluatingGroup)
+					locals.AddRange (value.GetAllChildrenSync ());
+				else
+					locals.Add (value);
+			}
+			return locals.ToArray ();
+		}
 	}
 }
