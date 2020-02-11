@@ -106,7 +106,7 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("23", val.Value);
 
 			var frame = Session.ActiveThread.Backtrace.GetFrame (0);
-			var locals = frame.GetAllLocals ();
+			var locals = frame.GetAllLocalsSync ();
 			Assert.AreEqual (4, locals.Length);
 
 			val = locals.Single (l => l.Name == "a");
@@ -139,7 +139,7 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("17", val.Value);
 
 			var frame = Session.ActiveThread.Backtrace.GetFrame (0);
-			var locals = frame.GetAllLocals ();
+			var locals = frame.GetAllLocalsSync ();
 			Assert.AreEqual (3, locals.Length);
 
 			val = locals.Single (l => l.Name == "a");
@@ -168,7 +168,7 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("5", val.Value);
 
 			var frame = Session.ActiveThread.Backtrace.GetFrame (0);
-			var locals = frame.GetAllLocals ();
+			var locals = frame.GetAllLocalsSync ();
 			Assert.AreEqual (2, locals.Length);
 
 			val = locals.Single (l => l.Name == "a");
