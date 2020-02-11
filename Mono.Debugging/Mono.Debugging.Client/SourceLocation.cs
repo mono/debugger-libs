@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 
 namespace Mono.Debugging.Client
@@ -96,6 +97,25 @@ namespace Mono.Debugging.Client
 				ArrayPool<byte>.Shared.Return (unixBuffer);
 				ArrayPool<byte>.Shared.Return (dosBuffer);
 				ArrayPool<byte>.Shared.Return (buffer);
+			}
+		}
+
+		public static List<byte[]> ComputeChecksums (string path, string algorithm)
+		{
+			using (var stream = File.OpenRead (path)) {
+				using (var hash = HashAlgorithm.Create (algorithm)) {
+					using (var dos = HashAlgorithm.Create (algorithm)) {
+						using (var unix = HashAlgorithm.Create (algorithm)) {
+							ComputeHashes (stream, hash, dos, unix);
+
+							var checksums = new List<byte[]> (3);
+							checksums.Add (hash.Hash);
+							checksums.Add (dos.Hash);
+							checksums.Add (unix.Hash);
+							return checksums;
+						}
+					}
+				}
 			}
 		}
 
