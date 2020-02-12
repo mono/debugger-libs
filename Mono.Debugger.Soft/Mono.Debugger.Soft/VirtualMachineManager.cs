@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.Remoting.Messaging;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Mono.Debugger.Soft
 {
@@ -69,12 +69,12 @@ namespace Mono.Debugger.Soft
 			return vm;
 		}
 
-		public static IAsyncResult BeginLaunch (ProcessStartInfo info, AsyncCallback callback)
+		public static Task<VirtualMachine> BeginLaunch (ProcessStartInfo info, Action<Task<VirtualMachine>> callback)
 		{
 			return BeginLaunch (info, callback, null);
 		}
 
-		public static IAsyncResult BeginLaunch (ProcessStartInfo info, AsyncCallback callback, LaunchOptions options)
+		public static Task<VirtualMachine> BeginLaunch (ProcessStartInfo info, Action<Task<VirtualMachine>> callback, LaunchOptions options)
 		{
 			if (info == null)
 				throw new ArgumentNullException ("info");
@@ -111,20 +111,19 @@ namespace Mono.Debugger.Soft
 				socket.Close ();
 			};
 
-			LaunchCallback c = new LaunchCallback (LaunchInternal);
-			return c.BeginInvoke (p, info, socket, callback, socket);
+			Task<VirtualMachine> t3 = Task<VirtualMachine>.Run (() => {
+				return LaunchInternal (p, info, socket);
+			});
+			t3.ContinueWith ((antecendent => callback (antecendent)));
+			return t3;
 		}
 
-		public static VirtualMachine EndLaunch (IAsyncResult asyncResult) {
+		public static VirtualMachine EndLaunch (Task<VirtualMachine> asyncResult) {
 			if (asyncResult == null)
 				throw new ArgumentNullException ("asyncResult");
 
-			if (!asyncResult.IsCompleted)
-				asyncResult.AsyncWaitHandle.WaitOne ();
-
-			AsyncResult result = (AsyncResult) asyncResult;
-			LaunchCallback cb = (LaunchCallback) result.AsyncDelegate;
-			return cb.EndInvoke (asyncResult);
+			asyncResult.Wait ();
+			return asyncResult.Result;
 		}
 
 		public static VirtualMachine Launch (ProcessStartInfo info)
@@ -193,17 +192,17 @@ namespace Mono.Debugger.Soft
 			return Connect (transport, console, null);
 		}
 
-		public static IAsyncResult BeginListen (IPEndPoint dbg_ep, AsyncCallback callback) {
+		public static Task<VirtualMachine> BeginListen (IPEndPoint dbg_ep, Action<Task<VirtualMachine>> callback) {
 			return BeginListen (dbg_ep, null, callback);
 		}
 		
-		public static IAsyncResult BeginListen (IPEndPoint dbg_ep, IPEndPoint con_ep, AsyncCallback callback)
+		public static Task<VirtualMachine> BeginListen (IPEndPoint dbg_ep, IPEndPoint con_ep, Action<Task<VirtualMachine>> callback)
 		{
 			int dbg_port, con_port;
 			return BeginListen (dbg_ep, con_ep, callback, out dbg_port, out con_port);
 		}
 
-		public static IAsyncResult BeginListen (IPEndPoint dbg_ep, IPEndPoint con_ep, AsyncCallback callback,
+		public static Task<VirtualMachine> BeginListen (IPEndPoint dbg_ep, IPEndPoint con_ep, Action<Task<VirtualMachine>> callback,
 			out int dbg_port, out int con_port)
 		{
 			dbg_port = con_port = 0;
@@ -222,21 +221,22 @@ namespace Mono.Debugger.Soft
 				con_sock.Listen (1000);
 				con_port = ((IPEndPoint) con_sock.LocalEndPoint).Port;
 			}
-			
-			ListenCallback c = new ListenCallback (ListenInternal);
-			return c.BeginInvoke (dbg_sock, con_sock, callback, con_sock ?? dbg_sock);
+
+			Task<VirtualMachine> t = Task<VirtualMachine>.Run (() => {
+				return ListenInternal (dbg_sock, con_sock);
+			});
+			t.ContinueWith ((antecendent => callback (antecendent)));
+			return t;
 		}
 
-		public static VirtualMachine EndListen (IAsyncResult asyncResult) {
+		public static VirtualMachine EndListen (Task<VirtualMachine> asyncResult) {
 			if (asyncResult == null)
 				throw new ArgumentNullException ("asyncResult");
 
-			if (!asyncResult.IsCompleted)
-				asyncResult.AsyncWaitHandle.WaitOne ();
+			asyncResult.Wait ();
 
-			AsyncResult result = (AsyncResult) asyncResult;
-			ListenCallback cb = (ListenCallback) result.AsyncDelegate;
-			return cb.EndInvoke (asyncResult);
+
+			return asyncResult.Result;
 		}
 
 		public static VirtualMachine Listen (IPEndPoint dbg_ep)
@@ -292,11 +292,11 @@ namespace Mono.Debugger.Soft
 			return Connect (transport, console, null);
 		}
 
-		public static IAsyncResult BeginConnect (IPEndPoint dbg_ep, AsyncCallback callback) {
+		public static Task<VirtualMachine> BeginConnect (IPEndPoint dbg_ep, Action<Task<VirtualMachine>> callback) {
 			return BeginConnect (dbg_ep, null, callback);
 		}
 
-		public static IAsyncResult BeginConnect (IPEndPoint dbg_ep, IPEndPoint con_ep, AsyncCallback callback) {
+		public static Task<VirtualMachine> BeginConnect (IPEndPoint dbg_ep, IPEndPoint con_ep, Action<Task<VirtualMachine>> callback) {
 			Socket dbg_sock = null;
 			Socket con_sock = null;
 
@@ -305,21 +305,20 @@ namespace Mono.Debugger.Soft
 			if (con_ep != null) {
 				con_sock = new Socket (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 			}
-			
-			ConnectCallback c = new ConnectCallback (ConnectInternal);
-			return c.BeginInvoke (dbg_sock, con_sock, dbg_ep, con_ep, callback, con_sock ?? dbg_sock);
+
+			Task<VirtualMachine> t3 = Task<VirtualMachine>.Run (() => {
+				return ConnectInternal (dbg_sock, con_sock, dbg_ep, con_ep);
+			});
+			t3.ContinueWith((antecendent => callback (antecendent)));
+			return t3;
 		}
 
-		public static VirtualMachine EndConnect (IAsyncResult asyncResult) {
+		public static VirtualMachine EndConnect (Task<VirtualMachine> asyncResult) {
 			if (asyncResult == null)
 				throw new ArgumentNullException ("asyncResult");
 
-			if (!asyncResult.IsCompleted)
-				asyncResult.AsyncWaitHandle.WaitOne ();
-
-			AsyncResult result = (AsyncResult) asyncResult;
-			ConnectCallback cb = (ConnectCallback) result.AsyncDelegate;
-			return cb.EndInvoke (asyncResult);
+			asyncResult.Wait ();
+			return asyncResult.Result;
 		}
 
 		public static void CancelConnection (IAsyncResult asyncResult)

@@ -48,6 +48,7 @@ using System.Security.Cryptography;
 using Mono.Cecil.Cil;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Mono.Debugging.Soft
 {
@@ -290,11 +291,11 @@ namespace Mono.Debugging.Soft
 			IPEndPoint dbgEP, conEP;
 			InitForRemoteSession (dsi, out dbgEP, out conEP);
 
-			AsyncCallback callback = null;
+			Action< Task<VirtualMachine>> callback = null;
 			int attemptNumber = 0;
-			callback = delegate (IAsyncResult ar) {
+			callback = delegate (Task<VirtualMachine> ar) {
 				try {
-					ConnectionStarted (VirtualMachineManager.EndConnect (ar));
+					ConnectionStarted (ar.Result);
 					return;
 				} catch (Exception ex) {
 					attemptNumber++;
@@ -336,9 +337,9 @@ namespace Mono.Debugging.Soft
 		}
 		
 		///<summary>Catches errors in async callbacks and hands off to OnConnectionError</summary>
-		AsyncCallback HandleConnectionCallbackErrors (AsyncCallback callback)
+		Action<Task<VirtualMachine>> HandleConnectionCallbackErrors (Action<Task<VirtualMachine>> callback)
 		{
-			return delegate (IAsyncResult ar) {
+			return delegate (Task<VirtualMachine> ar) {
 				connection = null;
 				try {
 					callback (ar);
@@ -1264,7 +1265,7 @@ namespace Mono.Debugging.Soft
 							foreach (TypeMirror t in vm.GetTypes (exceptionType, false))
 								ProcessType (t);
 						}
-						catch (CommandException exc) {
+						catch (CommandException) {
 							OnDebuggerOutput (false, string.Format ("Error while parsing type ‘{0}’.\n", exceptionType));
 						}
 					}

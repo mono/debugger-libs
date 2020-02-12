@@ -472,8 +472,8 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		class EmptyClassWithoutConstructor
 		{
 		}
-
-#if !NETSTANDARD_2_0
+#if !NETCOREAPP3_0
+#if !NETSTANDARD2_0
 		public void TestBug53371 ()
 		{
 			var domain1 = AppDomain.CreateDomain ("domain1", null, new AppDomainSetup () { ApplicationBase = "." });
@@ -494,7 +494,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			AppDomain.Unload (domain2);
 		}
 #endif
-
+#endif
 		class DontUseThisClassInOtherTests
 		{
 			//Or StaticConstructorStepping will fail because

@@ -1,90 +1,38 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProjectGuid>{05EDFE55-C8D1-47E4-BB61-0BC809CD82E2}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>MonoDevelop.Debugger.Tests.TestApp</RootNamespace>
-    <AssemblyName>MonoDevelop.Debugger.Tests.TestApp</AssemblyName>
     <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <AssemblyTitle>MonoDevelop.Debugger.Tests.TestApp</AssemblyTitle>
+    <NoWarn>1591;1573;219;414;168</NoWarn>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo> 
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <DebugSymbols>True</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>False</Optimize>
     <OutputPath>bin\Debug</OutputPath>
     <DefineConstants>DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
-    <NoWarn>1591;1573;219;414;168</NoWarn>
-    <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
-    <NoWarn>1591;1573;219;414;168</NoWarn>
     <DebugSymbols>true</DebugSymbols>
-    <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>True</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>False</Optimize>
     <OutputPath>bin\Debug</OutputPath>
     <DefineConstants>DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <NoWarn>1591;1573;219;414;168</NoWarn>
-    <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <NoWarn>1591;1573;219;414;168</NoWarn>
     <DebugSymbols>true</DebugSymbols>
-    <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Xml" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="MonoDevelop.Debugger.Tests.NonUserCodeTestLib">
-      <HintPath>..\MonoDevelop.Debugger.Tests.NonUserCodeTestLib\bin\Debug\MonoDevelop.Debugger.Tests.NonUserCodeTestLib.dll</HintPath>
-    </Reference>
-   </ItemGroup>
-   <ItemGroup>
     <PackageReference Include="System.ValueTuple" Version="4.3.1" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Main.cs" />
-    <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="TestEvaluation.cs" />
-    <Compile Include="BreakpointsAndStepping.cs" />
-    <Compile Include="AdvancedEvaluation.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <ProjectReference Include="..\MonoDevelop.Debugger.Tests.NonUserCodeTestLib\MonoDevelop.Debugger.Tests.NonUserCodeTestLib.csproj">
-      <Project>{8AFA4FB4-BD2D-478F-942B-7AE3451535BB}</Project>
-      <Name>MonoDevelop.Debugger.Tests.NonUserCodeTestLib</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\MonoDevelop.Debugger.Tests.AppDomainClient\MonoDevelop.Debugger.Tests.AppDomainClient.csproj">
-      <Project>{7A55BE57-81C9-45EC-9C7C-7F97D0508171}</Project>
-      <Name>MonoDevelop.Debugger.Tests.AppDomainClient</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\MonoDevelop.Debugger.Tests.NonUserCodeTestLib\MonoDevelop.Debugger.Tests.NonUserCodeTestLib.csproj" />
+    <ProjectReference Include="..\MonoDevelop.Debugger.Tests.AppDomainClient\MonoDevelop.Debugger.Tests.AppDomainClient.csproj" />
   </ItemGroup>
 </Project>
