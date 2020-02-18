@@ -148,6 +148,9 @@ namespace Mono.Debugging.Client
 			WatchExpressionStats = new DebuggerStatistics ();
 			StackTraceStats = new DebuggerStatistics ();
 			TooltipStats = new DebuggerStatistics ();
+			CallStackPadUsageCounter = new UsageCounter ();
+			ImmediatePadUsageCounter = new UsageCounter ();
+			ThreadsPadUsageCounter = new UsageCounter ();
 		}
 		
 		/// <summary>
@@ -264,6 +267,18 @@ namespace Mono.Debugging.Client
 		}
 
 		public DebuggerStatistics TooltipStats {
+			get; private set;
+		}
+
+		public UsageCounter CallStackPadUsageCounter {
+			get; private set;
+		}
+
+		public UsageCounter ImmediatePadUsageCounter {
+			get; private set;
+		}
+
+		public UsageCounter ThreadsPadUsageCounter {
 			get; private set;
 		}
 
