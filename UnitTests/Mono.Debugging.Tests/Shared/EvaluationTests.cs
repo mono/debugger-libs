@@ -2068,8 +2068,8 @@ namespace Mono.Debugging.Tests
 				val = val.Sync ();
 			}
 
-			Assert.AreEqual (value, val.Value);
-			Assert.AreEqual (type, val.TypeName);
+			Assert.AreEqual (value, val.Value, $"Eval(\"{assignment}\")");
+			Assert.AreEqual (type, val.TypeName, $"Eval(\"{assignment}\")");
 
 			val = Eval (variable);
 			if (!AllowTargetInvokes && val.IsImplicitNotSupported) {
@@ -2080,8 +2080,8 @@ namespace Mono.Debugging.Tests
 				val = val.Sync ();
 			}
 
-			Assert.AreEqual (value, val.Value);
-			Assert.AreEqual (type, val.TypeName);
+			Assert.AreEqual (value, val.Value, $"Eval(\"{variable}\")");
+			Assert.AreEqual (type, val.TypeName, $"Eval(\"{variable}\")");
 		}
 
 		[Test]
