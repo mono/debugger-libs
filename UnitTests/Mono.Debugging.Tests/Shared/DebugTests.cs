@@ -483,5 +483,15 @@ namespace Mono.Debugging.Tests
 			}
 			return locals.ToArray ();
 		}
+
+		public static ExceptionInfo GetExceptionSync(this StackFrame frame, EvaluationOptions options)
+		{
+			var exception = frame.GetException (options);
+
+			if (exception != null)
+				exception.Instance.Sync ();
+
+			return exception;
+		}
 	}
 }

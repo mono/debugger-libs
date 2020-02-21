@@ -965,7 +965,7 @@ namespace Mono.Debugging.Tests
 			ops.EvaluationTimeout = 0;
 			ops.EllipsizeStrings = false;
 
-			var val = Frame.GetException (ops);
+			var val = Frame.GetExceptionSync (ops);
 			Assert.AreEqual ("System.NotImplementedException", val.Type);
 
 			InitializeTest ();
