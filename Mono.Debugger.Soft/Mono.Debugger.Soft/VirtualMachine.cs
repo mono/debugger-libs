@@ -613,7 +613,9 @@ namespace Mono.Debugger.Soft
 
 		internal EventRequest GetRequest (int id) {
 			lock (requests_lock) {
-				return requests [id];
+				if (requests.ContainsKey(id))
+					return requests [id];
+				return null;
 			}
 		}
 
