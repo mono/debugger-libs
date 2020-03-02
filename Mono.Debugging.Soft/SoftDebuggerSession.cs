@@ -363,7 +363,11 @@ namespace Mono.Debugging.Soft
 			
 			// The session is dead
 			// HandleException doesn't actually handle exceptions, it just displays them.
-			EndSession ();
+			try {
+				EndSession ();
+			} catch (Exception e) {
+				DebuggerLoggingService.LogError ("Unhandled error ending the debugger session", e);
+			}
 		}
 		
 		void ConnectionStarting (IAsyncResult connectionHandle, DebuggerStartInfo dsi, bool listening, int attemptNumber) 
