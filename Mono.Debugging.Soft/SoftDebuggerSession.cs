@@ -1948,10 +1948,10 @@ namespace Mono.Debugging.Soft
 						
 						if (hasBreakInfo) {
 							if (currentRequest != null &&
-								currentRequest is StepEventRequest &&
-								(currentRequest as StepEventRequest).Depth != StepDepth.Out &&
+								(currentRequest is StepEventRequest currentStepRequest) &&
+								currentStepRequest.Depth != StepDepth.Out &&
 								binfo.Location.ILOffset == currentAddress &&
-								e.Thread.Id == (currentRequest as StepEventRequest).Thread.Id &&
+								e.Thread.Id == currentStepRequest.Thread.Id &&
 								currentStackDepth == e.Thread.GetFrames ().Length)
 								redoCurrentStep = true;
 						}
@@ -1982,8 +1982,8 @@ namespace Mono.Debugging.Soft
 
 
 			if (redoCurrentStep) {
-				StepDepth depth = (currentRequest as StepEventRequest).Depth;
-				StepSize size = (currentRequest as StepEventRequest).Size;
+				StepDepth depth = ((StepEventRequest)currentRequest).Depth;
+				StepSize size = ((StepEventRequest)currentRequest).Size;
 
 				current_thread = recent_thread = es[0].Thread;
 
