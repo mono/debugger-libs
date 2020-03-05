@@ -1971,7 +1971,7 @@ namespace Mono.Debugging.Soft
 				}
 			}
 
-			if (currentRequest == null || (currentRequest != null && es[0] != null && es[0].Request != null && es[0].Request.getId () != currentRequest.getId ()))
+			if (currentRequest == null || (currentRequest != null && es[0] != null && es[0].Request != null && es[0].Request.GetId () != currentRequest.GetId ()))
 				currentRequest = es[0].Request;
 
 
