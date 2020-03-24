@@ -26,6 +26,7 @@
 // THE SOFTWARE.
 
 //#define DEBUG_EVENT_QUEUEING
+extern alias ICSharpCode;
 
 using System;
 using System.IO;
@@ -39,7 +40,7 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-using Mono.CompilerServices.SymbolWriter;
+using ICSharpCode::Mono.CompilerServices.SymbolWriter;
 using Mono.Debugging.Client;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Evaluation;
