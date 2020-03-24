@@ -20,7 +20,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <NuGetVersionRoslyn Condition="$(NuGetVersionRoslyn) == ''">2.10.0</NuGetVersionRoslyn>
-    <NuGetVersionCecil Condition="$(NuGetVersionCecil) == ''">0.10.1</NuGetVersionCecil>
+    <NuGetVersionCecil Condition="$(NuGetVersionCecil) == ''">0.10.0-beta5</NuGetVersionCecil>
   </PropertyGroup>
   <Import Project="..\Mono.Debugging.settings" />
   <ItemGroup>
