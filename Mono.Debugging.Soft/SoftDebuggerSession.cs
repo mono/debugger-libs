@@ -94,7 +94,7 @@ namespace Mono.Debugging.Soft
 		Dictionary<string, string> symbolPathMap;
 		ThreadMirror current_thread, recent_thread;
 		List<AssemblyMirror> assemblyFilters;
-		StepEventRequest currentStepRequest;
+		StepEventRequest currentRequest;
 		IConnectionDialog connectionDialog;
 		Thread outputReader, errorReader;
 		bool loggedSymlinkedRuntimesBug;
@@ -1597,7 +1597,7 @@ namespace Mono.Debugging.Soft
 					if (vm.Version.AtLeast (2, 19)) //catch NotSupportedException thrown by old version of protocol
 						throw e;
 				}
-				currentStepRequest = req;
+				currentRequest = req;
 				OnResumed ();
 				vm.Resume ();
 				DequeueEventsForFirstThread ();
@@ -1951,10 +1951,11 @@ namespace Mono.Debugging.Soft
 						}
 						
 						if (hasBreakInfo) {
-							if (currentStepRequest != null &&
-							    currentStepRequest.Depth != StepDepth.Out &&
-							    binfo.Location.ILOffset == currentAddress && 
-							    e.Thread.Id == currentStepRequest.Thread.Id &&
+							if (currentRequest != null &&
+								(currentRequest is StepEventRequest currentStepRequest) &&
+								currentStepRequest.Depth != StepDepth.Out &&
+								binfo.Location.ILOffset == currentAddress &&
+								e.Thread.Id == currentStepRequest.Thread.Id &&
 								currentStackDepth == e.Thread.GetFrames ().Length)
 								redoCurrentStep = true;
 						}
@@ -1973,15 +1974,23 @@ namespace Mono.Debugging.Soft
 					}
 				}
 			}
-			
+
+			if (currentRequest == null || (currentRequest != null && es[0] != null && es[0].Request != null && es[0].Request.GetId () != currentRequest.GetId ()))
+				currentRequest = es[0].Request;
+
+
+			if (!redoCurrentStep && currentRequest != null) {
+				currentRequest.Enabled = false;
+				currentRequest = null;
+			}
+
+
 			if (redoCurrentStep) {
-				StepDepth depth = currentStepRequest.Depth;
-				StepSize size = currentStepRequest.Size;
-				
+				StepDepth depth = ((StepEventRequest)currentRequest).Depth;
+				StepSize size = ((StepEventRequest)currentRequest).Size;
+
 				current_thread = recent_thread = es[0].Thread;
-				currentStepRequest.Enabled = false;
-				currentStepRequest = null;
-				
+
 				Step (depth, size);
 			} else if (resume) {
 				// all breakpoints were conditional and evaluated as false
@@ -1989,11 +1998,6 @@ namespace Mono.Debugging.Soft
 				vm.Resume ();
 				DequeueEventsForFirstThread ();
 			} else {
-				if (currentStepRequest != null) {
-					currentStepRequest.Enabled = false;
-					currentStepRequest = null;
-				}
-				
 				current_thread = recent_thread = es[0].Thread;
 				
 				if (exception != null)
