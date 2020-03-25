@@ -406,6 +406,10 @@ namespace Mono.Debugger.Soft
 		public ErrorCode ErrorCode {
 			get; set;
 		}
+
+		public string ErrorMessage {
+			get; set;
+		}
 	}
 
 	/*
@@ -433,7 +437,7 @@ namespace Mono.Debugger.Soft
 		 * with newer runtimes, and vice versa.
 		 */
 		internal const int MAJOR_VERSION = 2;
-		internal const int MINOR_VERSION = 54;
+		internal const int MINOR_VERSION = 56;
 
 		enum WPSuspendPolicy {
 			NONE = 0,
@@ -789,14 +793,20 @@ namespace Mono.Debugger.Soft
 
 				// For reply packets
 				offset = 0;
-				ReadInt (); // length
+				var len = ReadInt (); // length
 				ReadInt (); // id
 				ReadByte (); // flags
 				ErrorCode = ReadShort ();
+				if (ErrorCode == (int)Mono.Debugger.Soft.ErrorCode.INVALID_ARGUMENT && connection.Version.AtLeast (2, 56) && len > offset)
+					ErrorMsg = ReadString ();
 			}
 
 			public CommandSet CommandSet {
 				get; set;
+			}
+
+			public string ErrorMsg {
+				get; internal set;
 			}
 
 			public int Command {
@@ -1648,7 +1658,7 @@ namespace Mono.Debugger.Soft
 							LogPacket (packetId, encoded_packet, reply, command_set, command, watch);
 						if (r.ErrorCode != 0) {
 							if (ErrorHandler != null)
-								ErrorHandler (this, new ErrorHandlerEventArgs () { ErrorCode = (ErrorCode)r.ErrorCode });
+								ErrorHandler (this, new ErrorHandlerEventArgs () { ErrorCode = (ErrorCode)r.ErrorCode, ErrorMessage = r.ErrorMsg});
 							throw new NotImplementedException ("No error handler set.");
 						} else {
 							return r;
