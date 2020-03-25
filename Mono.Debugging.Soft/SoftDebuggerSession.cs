@@ -94,7 +94,7 @@ namespace Mono.Debugging.Soft
 		Dictionary<string, string> symbolPathMap;
 		ThreadMirror current_thread, recent_thread;
 		List<AssemblyMirror> assemblyFilters;
-		StepEventRequest currentRequest;
+		EventRequest currentRequest;
 		IConnectionDialog connectionDialog;
 		Thread outputReader, errorReader;
 		bool loggedSymlinkedRuntimesBug;
@@ -1736,7 +1736,8 @@ namespace Mono.Debugging.Soft
 			}
 
 			try {
-				vm.Resume ();
+				if (!vm.Version.AtLeast (2, 55) || es.SuspendPolicy != SuspendPolicy.None)
+					vm.Resume ();
 			} catch (VMNotSuspendedException) {
 				if (type != EventType.VMStart && vm.Version.AtLeast (2, 2))
 					throw;
