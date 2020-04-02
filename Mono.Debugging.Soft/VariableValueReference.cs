@@ -89,10 +89,11 @@ namespace Mono.Debugging.Soft
 			return ctx.Adapter.IsNull (ctx, value) ? null : value;
 		}
 
-		public override object GetValue (EvaluationContext ctx)
+		object GetValue (SoftEvaluationContext ctx)
 		{
 			try {
-				value = ((SoftEvaluationContext) ctx).Frame.GetValue (variable);
+				if (value == null)
+					value = batch != null ? batch.GetValue (variable) : ctx.Frame.GetValue (variable);
 
 				return NormalizeValue (ctx, value);
 			} catch (AbsentInformationException ex) {
@@ -102,20 +103,14 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
+		public override object GetValue (EvaluationContext ctx)
+		{
+			return GetValue ((SoftEvaluationContext) Context);
+		}
+
 		public override object Value {
 			get {
-				var ctx = (SoftEvaluationContext) Context;
-
-				try {
-					if (value == null)
-						value = batch != null ? batch.GetValue (variable) : ctx.Frame.GetValue (variable);
-
-					return NormalizeValue (ctx, value);
-				} catch (AbsentInformationException ex) {
-					throw new EvaluatorException (ex, "Value not available");
-				} catch (Exception ex) {
-					throw new EvaluatorException (ex.Message);
-				}
+				return GetValue ((SoftEvaluationContext) Context);
 			}
 			set {
 				((SoftEvaluationContext) Context).Frame.SetValue (variable, (Value) value);
