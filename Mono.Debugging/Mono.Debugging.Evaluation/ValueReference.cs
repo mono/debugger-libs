@@ -137,7 +137,7 @@ namespace Mono.Debugging.Evaluation
 			if (val != null && !ctx.Adapter.IsNull (ctx, val))
 				return ctx.Adapter.CreateObjectValue (ctx, this, new ObjectPath (name), val, Flags);
 
-			return Mono.Debugging.Client.ObjectValue.CreateNullObject (this, name, ctx.Adapter.GetDisplayTypeName (ctx.Adapter.GetTypeName (ctx, Type)), Flags);
+			return DC.ObjectValue.CreateNullObject (this, name, ctx.Adapter.GetDisplayTypeName (ctx.Adapter.GetTypeName (ctx, Type)), Flags);
 		}
 
 		ObjectValue IObjectValueSource.GetValue (ObjectPath path, EvaluationOptions options)
@@ -226,9 +226,15 @@ namespace Mono.Debugging.Evaluation
 			try {
 				var ctx = GetChildrenContext (options);
 
-				return ctx.Adapter.GetObjectValueChildren (ctx, this, GetValue (ctx), index, count);
+				var child = ctx.Adapter.CreateObjectValueAsync (Name, ObjectValueFlags.EvaluatingGroup, delegate {
+					var children = ctx.Adapter.GetObjectValueChildren (ctx, this, GetValue (ctx), index, count);
+
+					return DC.ObjectValue.CreateArray (null, path, "", children.Length, ObjectValueFlags.EvaluatingGroup, children);
+				});
+
+				return new ObjectValue[1] { child };
 			} catch (Exception ex) {
-				return new [] { Mono.Debugging.Client.ObjectValue.CreateFatalError ("", ex.Message, ObjectValueFlags.ReadOnly) };
+				return new [] { DC.ObjectValue.CreateFatalError ("", ex.Message, ObjectValueFlags.ReadOnly) };
 			}
 		}
 
