@@ -1980,17 +1980,14 @@ namespace Mono.Debugging.Soft
 				currentRequest = es[0].Request;
 
 
-			if (!redoCurrentStep && currentRequest != null) {
-				currentRequest.Enabled = false;
-				currentRequest = null;
-			}
-
-
-			if (redoCurrentStep) {
-				StepDepth depth = ((StepEventRequest)currentRequest).Depth;
-				StepSize size = ((StepEventRequest)currentRequest).Size;
+			if (redoCurrentStep && currentRequest is StepEventRequest currentStepRequest2) {
+				StepDepth depth = currentStepRequest2.Depth;
+				StepSize size = currentStepRequest2.Size;
 
 				current_thread = recent_thread = es[0].Thread;
+
+				currentStepRequest2.Enabled = false;
+				currentRequest = null;
 
 				Step (depth, size);
 			} else if (resume) {
@@ -1999,6 +1996,11 @@ namespace Mono.Debugging.Soft
 				vm.Resume ();
 				DequeueEventsForFirstThread ();
 			} else {
+				if (currentRequest != null && currentRequest is StepEventRequest) {
+					currentRequest.Enabled = false;
+					currentRequest = null;
+				}
+
 				current_thread = recent_thread = es[0].Thread;
 				
 				if (exception != null)
