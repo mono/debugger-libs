@@ -614,9 +614,7 @@ namespace Mono.Debugger.Soft
 
 		internal EventRequest GetRequest (int id) {
 			lock (requests_lock) {
-				EventRequest obj;
-				requests.TryGetValue (id, out obj);
-				return obj;
+				return requests [id];
 			}
 		}
 

@@ -34,11 +34,6 @@ namespace Mono.Debugger.Soft
 			}
 		}
 
-		public int GetId ()
-		{
-			return id;
-		}
-
 		public EventType EventType {
 			get {
 				return etype;
