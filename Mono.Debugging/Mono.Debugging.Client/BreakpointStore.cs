@@ -462,6 +462,21 @@ namespace Mono.Debugging.Client
 			}
 		}
 
+		public bool ShouldIgnore (BreakEvent be)
+		{
+			Breakpoint breakpoint = be as Breakpoint;
+
+			var ignore = breakpoints.FirstOrDefault (breakEvent => {
+				var bp = breakEvent as Breakpoint;
+				if (bp != null && bp.Line == breakpoint.Line && bp.Column == breakpoint.Column && bp.Ignore == true)
+					return true;
+				else
+					return false;
+			});
+
+			return ignore != null;
+		}
+
 		[DllImport ("libc")]
 		static extern IntPtr realpath (string path, IntPtr buffer);
 
