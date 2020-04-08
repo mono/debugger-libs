@@ -70,6 +70,10 @@ namespace Mono.Debugging.Client
 			s = elem.GetAttribute ("column");
 			if (string.IsNullOrEmpty (s) || !int.TryParse (s, out column))
 				column = 1;
+
+			s = elem.GetAttribute ("ignore");
+			if (string.IsNullOrEmpty (s) || !bool.TryParse (s, out ignore))
+				ignore = false;
 		}
 
 		internal override XmlElement ToXml (XmlDocument doc, string baseDir)
@@ -131,6 +135,11 @@ namespace Mono.Debugging.Client
 		{
 			ResetAdjustedLine ();
 			line = newLine;
+		}
+
+		public void SetIgnore (bool newIgnore)
+		{
+			ignore = newIgnore;
 		}
 
 		internal void SetFileName (string newFileName)
