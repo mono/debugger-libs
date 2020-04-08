@@ -39,6 +39,7 @@ namespace Mono.Debugging.Client
 		string fileName;
 		int column;
 		int line;
+		bool ignore = false;
 		
 		public Breakpoint (string fileName, int line, int column)
 		{
@@ -86,6 +87,9 @@ namespace Mono.Debugging.Client
 			elem.SetAttribute ("line", line.ToString ());
 			elem.SetAttribute ("column", column.ToString ());
 
+			if (ignore)
+				elem.SetAttribute ("ignore", ignore.ToString ());
+
 			return elem;
 		}
 		
@@ -110,6 +114,11 @@ namespace Mono.Debugging.Client
 		public int Line {
 			get { return adjustedLine == -1 ? line : adjustedLine; }
 			protected set { line = value; }
+		}
+
+		public bool Ignore {
+			get => ignore;
+			protected set => ignore = value;
 		}
 		
 		public void SetColumn (int newColumn)
