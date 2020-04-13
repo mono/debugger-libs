@@ -1952,8 +1952,7 @@ namespace Mono.Debugging.Soft
 						}
 						
 						if (hasBreakInfo) {
-							if (currentRequest != null &&
-								(currentRequest is StepEventRequest currentStepRequest1) &&
+							if ((currentRequest is StepEventRequest currentStepRequest1) &&
 								currentStepRequest1.Depth != StepDepth.Out &&
 							    binfo.Location.ILOffset == currentAddress && 
 							    e.Thread.Id == currentStepRequest1.Thread.Id &&
@@ -1994,7 +1993,7 @@ namespace Mono.Debugging.Soft
 				vm.Resume ();
 				DequeueEventsForFirstThread ();
 			} else {
-				if (currentRequest != null && currentRequest is StepEventRequest currentStepRequest2) {
+				if (currentRequest is StepEventRequest currentStepRequest2) {
 					currentStepRequest2.Enabled = false;
 					currentRequest = null;
 				}
