@@ -163,6 +163,29 @@ namespace Mono.Debugging.Client
 
 			return cp;
 		}
+
+		public IgnoreEvent AddIgnoreHere (string type, string file, int line, int col)
+		{
+			if (string.IsNullOrEmpty (type))
+				throw new ArgumentException (nameof (type));
+
+			if (string.IsNullOrEmpty (file))
+				throw new ArgumentException (nameof (file));
+
+			if (line < 1)
+				throw new ArgumentOutOfRangeException (nameof (line));
+
+			if (col < 1)
+				throw new ArgumentOutOfRangeException (nameof (col));
+
+			if (IsReadOnly)
+				return null;
+
+			var ignore = new IgnoreBreak (type, file, line, col);
+			Add (ignore);
+
+			return ignore;
+		}
 		
 		public bool Remove (string filename, int line, int column)
 		{
@@ -462,8 +485,21 @@ namespace Mono.Debugging.Client
 			}
 		}
 
+		public bool ShouldIgnore (SourceLocation loc)
+		{
+			foreach (var b in breakpoints) {
+				var ignore = b as IgnoreBreak;
+				if (ignore != null) {
+					if (ignore.FileName == loc.FileName && ignore.Line == loc.Line && ignore.Column == loc.Column)
+						return true;
+				}
+			}
+			return false;
+		}
+
 		public bool ShouldIgnore (BreakEvent be)
 		{
+			/*
 			Breakpoint breakpoint = be as Breakpoint;
 
 			var ignore = breakpoints.FirstOrDefault (breakEvent => {
@@ -475,6 +511,8 @@ namespace Mono.Debugging.Client
 			});
 
 			return ignore != null;
+			*/
+			return false;
 		}
 
 		[DllImport ("libc")]
