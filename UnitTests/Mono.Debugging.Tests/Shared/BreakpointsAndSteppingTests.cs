@@ -134,13 +134,13 @@ namespace Mono.Debugging.Tests
 			StepIn ("c5361deb-aff5-468f-9293-0d2e50fc62fd");
 			StepIn ("10e0f5c7-4c77-4897-8324-deef9aae0192");
 			StepIn ("40f0acc2-2de2-44c8-8e18-3867151ba8da");
-			StepIn ("3c0316e9-eace-48e8-b9ed-03a8c6306c66", 1);
+			StepIn ("3c0316e9-eace-48e8-b9ed-03a8c6306c66");
 			StepIn ("d42a19ec-98db-4166-a3b4-fc102ebd7905");
 			StepIn ("f633d197-cb92-418a-860c-4d8eadbe2342");
 			StepIn ("c5361deb-aff5-468f-9293-0d2e50fc62fd");
 			StepIn ("10e0f5c7-4c77-4897-8324-deef9aae0192");
 			StepIn ("ae71a41d-0c90-433d-b925-0b236b8119a9");
-			StepIn ("3c0316e9-eace-48e8-b9ed-03a8c6306c66", 1);
+			StepIn ("3c0316e9-eace-48e8-b9ed-03a8c6306c66");
 			StepIn ("f633d197-cb92-418a-860c-4d8eadbe2342");
 			StepIn ("6d50c480-1cd1-49a9-9758-05f65c07c037");
 		}
@@ -205,14 +205,14 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("b0abae8d-fbd0-4bde-b586-bb511b954d8a");
 			StartTest ("DebuggerHiddenMethod");
 			CheckPosition ("b0abae8d-fbd0-4bde-b586-bb511b954d8a");
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsDebuggerHidden);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
 			StepIn ("b0abae8d-fbd0-4bde-b586-bb511b954d8a");
 			StepIn ("b0abae8d-fbd0-4bde-b586-bb511b954d8a", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (2).IsDebuggerHidden);
@@ -220,20 +220,20 @@ namespace Mono.Debugging.Tests
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (4).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (5).IsDebuggerHidden);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (2).IsDebuggerHidden);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (3).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (4).IsDebuggerHidden);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (2).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (3).IsDebuggerHidden);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsDebuggerHidden);
@@ -257,14 +257,14 @@ namespace Mono.Debugging.Tests
 			if (!IsVsDebugger) {
 				// VsDebugger does not support stepping into non-user code
 				//entering testClass.DebuggerNonUserCodeMethod (true);
-				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", -1);
+				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f");
 				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", 1);
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce", -2);
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce", -1);
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce");
 			}
 			//entering EmptyTestMethod
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			if (IsVsDebugger)
 				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
@@ -287,31 +287,31 @@ namespace Mono.Debugging.Tests
 			StepIn ("02757896-0e76-40b8-8235-d09d2110da78", 1);
 			if (!IsVsDebugger) {
 				//entering testClass.DebuggerNonUserCodeMethod (true, 3); starts here
-				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", -1);
+				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f");
 				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", 1);
 				StepIn ("6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7", -2);
 				StepIn ("6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7", -1);
 				StepIn ("6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7");
 				//entering resursion
-				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", -1);
+				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f");
 				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", 1);
 				StepIn ("6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7", -2);
 				StepIn ("6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7", -1);
 				StepIn ("6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7");
 				//entering resursion
-				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", -1);
+				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f");
 				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", 1);
 				StepIn ("6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7", -2);
 				StepIn ("6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7", -1);
 				StepIn ("6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7");
-				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", -1);
+				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f");
 				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", 1);
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce", -2);
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce", -1);
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce");
 			}
 			//entering EmptyTestMethod
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			if (IsVsDebugger)
 				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
@@ -338,7 +338,7 @@ namespace Mono.Debugging.Tests
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce");
 			}
 			//entering EmptyTestMethod
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			if (IsVsDebugger)
 				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
@@ -365,7 +365,7 @@ namespace Mono.Debugging.Tests
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce");
 			}
 			//entering EmptyTestMethod
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			if (IsVsDebugger)
 				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
@@ -392,7 +392,7 @@ namespace Mono.Debugging.Tests
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce");
 			}
 			//entering EmptyTestMethod
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			if (IsVsDebugger)
 				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
@@ -416,7 +416,7 @@ namespace Mono.Debugging.Tests
 			if (!IsVsDebugger) {
 				// VsDebugger does not support stepping into non-user code
 				//entering testClass.DebuggerNonUserCodeMethod (false);
-				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", -1);
+				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f");
 				StepIn ("5b9b96b6-ce24-413f-8660-715fccfc412f", 1);
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce", -2);
 				StepIn ("754272b8-a14b-4de0-9075-6a911c37e6ce", -1);
@@ -432,14 +432,14 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("02757896-0e76-40b8-8235-d09d2110da78");
 			StartTest ("DebuggerNonUserCodeMethod");
 			CheckPosition ("02757896-0e76-40b8-8235-d09d2110da78");
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
 			StepIn ("02757896-0e76-40b8-8235-d09d2110da78");
 			StepIn ("02757896-0e76-40b8-8235-d09d2110da78", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			if (IsVsDebugger)
@@ -453,7 +453,7 @@ namespace Mono.Debugging.Tests
 				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (4).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (5).IsExternalCode);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			if (IsVsDebugger)
@@ -463,7 +463,7 @@ namespace Mono.Debugging.Tests
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (3).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (4).IsExternalCode);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			if (IsVsDebugger)
@@ -475,7 +475,7 @@ namespace Mono.Debugging.Tests
 			else
 				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (3).IsExternalCode);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
@@ -551,7 +551,7 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("707ccd6c-3464-4700-8487-a83c948aa0c3");
 			StartTest ("DebuggerStepThroughMethod");
 			CheckPosition ("707ccd6c-3464-4700-8487-a83c948aa0c3");
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
 			if (IsVsDebugger)
 				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
@@ -564,13 +564,13 @@ namespace Mono.Debugging.Tests
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
 			StepIn ("707ccd6c-3464-4700-8487-a83c948aa0c3");
 			StepIn ("707ccd6c-3464-4700-8487-a83c948aa0c3", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
-			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", -1);
+			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
 			StepIn ("707ccd6c-3464-4700-8487-a83c948aa0c3", 1);
 			StepIn ("707ccd6c-3464-4700-8487-a83c948aa0c3", 2);
@@ -775,15 +775,15 @@ namespace Mono.Debugging.Tests
 			IgnoreVsDebugger ("This test passes but causes all future tests to hang due to infinite loop in app being debugged");
 
 			InitializeTest ();
-			AddBreakpoint ("946d5781-a162-4cd9-a7b6-c320564cc594", -1);
+			AddBreakpoint ("946d5781-a162-4cd9-a7b6-c320564cc594");
 			StartTest ("EmptyForLoopTest");
-			CheckPosition ("946d5781-a162-4cd9-a7b6-c320564cc594", -1);
+			CheckPosition ("946d5781-a162-4cd9-a7b6-c320564cc594");
 			//make 3 loops...
-			StepIn ("a2ff92da-3796-47e3-886a-4bd786a07547", -1);
+			StepIn ("a2ff92da-3796-47e3-886a-4bd786a07547");
 			StepIn ("a2ff92da-3796-47e3-886a-4bd786a07547", 1);
-			StepIn ("a2ff92da-3796-47e3-886a-4bd786a07547", -1);
+			StepIn ("a2ff92da-3796-47e3-886a-4bd786a07547");
 			StepIn ("a2ff92da-3796-47e3-886a-4bd786a07547", 1);
-			StepIn ("a2ff92da-3796-47e3-886a-4bd786a07547", -1);
+			StepIn ("a2ff92da-3796-47e3-886a-4bd786a07547");
 			StepIn ("a2ff92da-3796-47e3-886a-4bd786a07547", 1);
 		}
 
@@ -820,7 +820,7 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("956bd9fd-39fe-4587-9d9e-a2a817d76286");
 			StartTest ("TestBug7901");
 			CheckPosition ("956bd9fd-39fe-4587-9d9e-a2a817d76286");
-			StepIn ("f456a9b0-9c1a-4b34-bef4-d80b8541ebdb", -1);
+			StepIn ("f456a9b0-9c1a-4b34-bef4-d80b8541ebdb");
 			StepIn ("f456a9b0-9c1a-4b34-bef4-d80b8541ebdb", 1);
 			StepIn ("11259de1-944d-4052-b970-62662e21876a", -1);
 			StepIn ("11259de1-944d-4052-b970-62662e21876a");
@@ -928,7 +928,7 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("eef5bea2-aaa6-4718-b26f-b35be6a6a13e");
 			StartTest ("ForLoop10");
 			CheckPosition ("eef5bea2-aaa6-4718-b26f-b35be6a6a13e");
-			SetNextStatement ("c35046f7-e87d-4b8f-b260-43e181a0a07c", -1, "{");
+			SetNextStatement ("c35046f7-e87d-4b8f-b260-43e181a0a07c", 0, "{");
 			StepIn ("c35046f7-e87d-4b8f-b260-43e181a0a07c", 1, "int");
 		}
 
@@ -945,7 +945,7 @@ namespace Mono.Debugging.Tests
 			SetNextStatement ("f4e3a214-229e-44dd-9da2-db82ddfbec11", 1);
 			StepOver ("f4e3a214-229e-44dd-9da2-db82ddfbec11", 2);
 			StepOver ("f4e3a214-229e-44dd-9da2-db82ddfbec11", 3);
-			SetNextStatement ("f4e3a214-229e-44dd-9da2-db82ddfbec11", -1);
+			SetNextStatement ("f4e3a214-229e-44dd-9da2-db82ddfbec11");
 			StepOver ("f4e3a214-229e-44dd-9da2-db82ddfbec11", 1);
 		}
 
