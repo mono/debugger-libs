@@ -233,26 +233,26 @@ namespace Mono.Debugging.Tests
 			StartTest ("InvocationsCountDuringExpandingTest");
 			CheckPosition ("8865cace-6b57-42cc-ad55-68a2c12dd3d7");
 			var options = Session.EvaluationOptions.Clone ();
-			options.GroupPrivateMembers = false; // to access private fields (else there are in Private subgroup)
+			options.GroupPrivateMembers = false; // to access private fields (otherwise they are in a Private subgroup)
 			var value = Eval ("mutableFieldClass");
 			var sharedX = value.GetChildSync ("sharedX", options);
-			Assert.NotNull (sharedX);
+			Assert.NotNull (sharedX, "sharedX");
 
 			var prop1 = value.GetChildSync("Prop1", options);
-			Assert.NotNull (prop1);
+			Assert.NotNull (prop1, "Prop1");
 			Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.AdvancedEvaluation.MutableField", prop1.TypeName);
 			var prop1X = prop1.GetChildSync ("x", options);
-			Assert.NotNull (prop1X);
-			Assert.AreEqual ("0", prop1X.Value); // before CorValRef optimization this field evaluated to 2,
+			Assert.NotNull (prop1X, "Prop1.x");
+			Assert.AreEqual ("0", prop1X.Value, "Prop1.x"); // before CorValRef optimization this field evaluated to 2,
 			// because every value to the root object was recalculated - this was wrong behavior
 
 			var prop2 = value.GetChildSync ("Prop2", options);
-			Assert.NotNull (prop2);
+			Assert.NotNull (prop2, "Prop2");
 			var prop2X = prop2.GetChildSync("x", options);
-			Assert.NotNull (prop2X);
-			Assert.AreEqual ("1", prop2X.Value);
+			Assert.NotNull (prop2X, "Prop2.x");
+			Assert.AreEqual ("1", prop2X.Value, "Prop2.x");
 
-			Assert.AreEqual ("2", sharedX.Value);
+			Assert.AreEqual ("2", sharedX.Value, "sharedX");
 		}
 
 		[Test]
