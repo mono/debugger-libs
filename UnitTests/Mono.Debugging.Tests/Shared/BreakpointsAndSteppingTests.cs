@@ -667,7 +667,7 @@ namespace Mono.Debugging.Tests
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
 			StepIn ("1463a77d-f27e-4bcd-8f92-89a682faa1c7", 2, "}");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
-			StepIn ("e01a5428-b067-4ca3-ac8c-a19d5d800228", 1, "}");
+			StepIn ("e01a5428-b067-4ca3-ac8c-a19d5d800228", 0, "}");
 		}
 
 		[Test]
@@ -677,7 +677,7 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "testClass.Iter_1");
 			AddBreakpoint ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
 			AddBreakpoint ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "var");
-			AddBreakpoint ("e01a5428-b067-4ca3-ac8c-a19d5d800228", 1);//end of method
+			AddBreakpoint ("e01a5428-b067-4ca3-ac8c-a19d5d800228");//end of method
 			StartTest ("ForeachEnumerable");
 			CheckPosition ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "testClass.Iter_1");
 			Continue ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
@@ -685,7 +685,7 @@ namespace Mono.Debugging.Tests
 			Continue ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
 			Continue ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "var");
 			Continue ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
-			Continue ("e01a5428-b067-4ca3-ac8c-a19d5d800228", 1);//end of method
+			Continue ("e01a5428-b067-4ca3-ac8c-a19d5d800228");//end of method
 		}
 
 		[Test]
@@ -698,8 +698,8 @@ namespace Mono.Debugging.Tests
 			RunToCursor ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "testClass.Iter_1");
 			RunToCursor ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "var");
 			RunToCursor ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
-			RunToCursor ("69dba3ab-0941-47e9-99fa-10222a2e894d", 1, "}");
-			RunToCursor ("e01a5428-b067-4ca3-ac8c-a19d5d800228", 1);
+			RunToCursor ("69dba3ab-0941-47e9-99fa-10222a2e894d", 0, "}");
+			RunToCursor ("e01a5428-b067-4ca3-ac8c-a19d5d800228");
 		}
 
 		[Test]
