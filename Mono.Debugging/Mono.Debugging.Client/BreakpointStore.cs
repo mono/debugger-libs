@@ -186,6 +186,20 @@ namespace Mono.Debugging.Client
 
 			return ignore;
 		}
+
+		public IgnoreEvent AddIgnoreEverywhere (string type)
+		{
+			if (string.IsNullOrEmpty (type))
+				throw new ArgumentException (nameof (type));
+
+			if (IsReadOnly)
+				return null;
+
+			var ignore = new IgnoreCatch (type);
+			Add (ignore);
+
+			return ignore;
+		}
 		
 		public bool Remove (string filename, int line, int column)
 		{
@@ -485,33 +499,21 @@ namespace Mono.Debugging.Client
 			}
 		}
 
-		public bool ShouldIgnore (SourceLocation loc)
+		public bool ShouldIgnore (SourceLocation loc, string type)
 		{
 			foreach (var b in breakpoints) {
 				var ignore = b as IgnoreBreak;
 				if (ignore != null) {
-					if (ignore.FileName == loc.FileName && ignore.Line == loc.Line && ignore.Column == loc.Column)
+					if (ignore.Enabled && ignore.FileName == loc.FileName && ignore.Line == loc.Line && ignore.Column == loc.Column)
+						return true;
+				}
+
+				var ic = b as IgnoreCatch;
+				if (ic != null) {
+					if (ic.Enabled && !string.IsNullOrEmpty(ic.ExceptionName) && ic.ExceptionName == type)
 						return true;
 				}
 			}
-			return false;
-		}
-
-		public bool ShouldIgnore (BreakEvent be)
-		{
-			/*
-			Breakpoint breakpoint = be as Breakpoint;
-
-			var ignore = breakpoints.FirstOrDefault (breakEvent => {
-				var bp = breakEvent as Breakpoint;
-				if (bp != null && bp.Line == breakpoint.Line && bp.Column == breakpoint.Column && bp.Ignore == true)
-					return true;
-				else
-					return false;
-			});
-
-			return ignore != null;
-			*/
 			return false;
 		}
 
