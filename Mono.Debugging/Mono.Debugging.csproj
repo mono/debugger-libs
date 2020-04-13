@@ -142,6 +142,9 @@
     <Compile Include="Mono.Debugging.Client\SourceLink.cs" />
     <Compile Include="Mono.Debugging.Client\DebuggerStatistics.cs" />
     <Compile Include="Mono.Debugging.Client\UsageCounter.cs" />
+    <Compile Include="Mono.Debugging.Client\IgnoreCatch.cs" />
+    <Compile Include="Mono.Debugging.Client\IgnoreBreak.cs" />
+    <Compile Include="Mono.Debugging.Client\IgnoreEvent.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Buffers" Version="4.5.0" />

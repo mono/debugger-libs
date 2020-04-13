@@ -26,8 +26,8 @@
 //
 
 using System;
-using System.Xml;
 using System.IO;
+using System.Xml;
 
 namespace Mono.Debugging.Client
 {
@@ -39,8 +39,7 @@ namespace Mono.Debugging.Client
 		string fileName;
 		int column;
 		int line;
-		bool ignore = false;
-		
+
 		public Breakpoint (string fileName, int line, int column)
 		{
 			FileName = fileName;
@@ -70,10 +69,6 @@ namespace Mono.Debugging.Client
 			s = elem.GetAttribute ("column");
 			if (string.IsNullOrEmpty (s) || !int.TryParse (s, out column))
 				column = 1;
-
-			s = elem.GetAttribute ("ignore");
-			if (string.IsNullOrEmpty (s) || !bool.TryParse (s, out ignore))
-				ignore = false;
 		}
 
 		internal override XmlElement ToXml (XmlDocument doc, string baseDir)
@@ -90,9 +85,6 @@ namespace Mono.Debugging.Client
 
 			elem.SetAttribute ("line", line.ToString ());
 			elem.SetAttribute ("column", column.ToString ());
-
-			if (ignore)
-				elem.SetAttribute ("ignore", ignore.ToString ());
 
 			return elem;
 		}
@@ -120,11 +112,6 @@ namespace Mono.Debugging.Client
 			protected set { line = value; }
 		}
 
-		public bool Ignore {
-			get => ignore;
-			protected set => ignore = value;
-		}
-		
 		public void SetColumn (int newColumn)
 		{
 			ResetAdjustedColumn ();
@@ -135,11 +122,6 @@ namespace Mono.Debugging.Client
 		{
 			ResetAdjustedLine ();
 			line = newLine;
-		}
-
-		public void SetIgnore (bool newIgnore)
-		{
-			ignore = newIgnore;
 		}
 
 		internal void SetFileName (string newFileName)
