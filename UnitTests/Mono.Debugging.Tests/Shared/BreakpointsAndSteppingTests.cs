@@ -657,13 +657,13 @@ namespace Mono.Debugging.Tests
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "var");
 			StepIn ("69dba3ab-0941-47e9-99fa-10222a2e894d", -1, "{");
-			StepIn ("69dba3ab-0941-47e9-99fa-10222a2e894d", 1, "}");
+			StepIn ("69dba3ab-0941-47e9-99fa-10222a2e894d", 0, "}");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
 			StepIn ("1463a77d-f27e-4bcd-8f92-89a682faa1c7", 1, "yield return 2;");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "var");
 			StepIn ("69dba3ab-0941-47e9-99fa-10222a2e894d", -1, "{");
-			StepIn ("69dba3ab-0941-47e9-99fa-10222a2e894d", 1, "}");
+			StepIn ("69dba3ab-0941-47e9-99fa-10222a2e894d", 0, "}");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
 			StepIn ("1463a77d-f27e-4bcd-8f92-89a682faa1c7", 2, "}");
 			StepIn ("b73bec88-2c43-4157-8574-ad517730bc74", 1, "in");
@@ -724,7 +724,7 @@ namespace Mono.Debugging.Tests
 			AddBreakpoint ("41eb3a30-3b19-4ea5-a7dc-e4c76871f391");
 			StartTest ("PListSchemeTest");
 			CheckPosition ("41eb3a30-3b19-4ea5-a7dc-e4c76871f391");
-			StepIn ("c9b18785-1348-42e3-a479-9cac1e7c5360", -1);
+			StepIn ("c9b18785-1348-42e3-a479-9cac1e7c5360");
 		}
 
 		/// <summary>
