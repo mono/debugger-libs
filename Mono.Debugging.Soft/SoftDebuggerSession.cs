@@ -780,13 +780,15 @@ namespace Mono.Debugging.Soft
 			return GetPdbData (method.DeclaringType.Assembly);
 		}
 
-		Dictionary<AssemblyMirror, SourceLinkMap []> SourceLinkCache = new Dictionary<AssemblyMirror, SourceLinkMap []> ();
+		readonly Dictionary<AssemblyMirror, SourceLinkMap []> SourceLinkCache = new Dictionary<AssemblyMirror, SourceLinkMap []> ();
 		SourceLinkMap [] GetSourceLinkMaps (MethodMirror method)
 		{
 			var asm = method.DeclaringType.Assembly;
+			SourceLinkMap[] maps;
 
-			if (SourceLinkCache.TryGetValue (asm, out SourceLinkMap[] maps)) {
-				return maps;
+			lock (SourceLinkCache) {
+				if (SourceLinkCache.TryGetValue (asm, out maps))
+					return maps;
 			}
 
 			string jsonString = null;
@@ -809,7 +811,10 @@ namespace Mono.Debugging.Soft
 				}
 			}
 
-			SourceLinkCache [asm] = maps ?? Array.Empty<SourceLinkMap> ();
+			lock (SourceLinkCache) {
+				SourceLinkCache[asm] = maps ?? Array.Empty<SourceLinkMap> ();
+			}
+
 			return maps;
 		}
 
