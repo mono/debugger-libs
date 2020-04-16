@@ -504,7 +504,9 @@ namespace Mono.Debugging.Client
 			foreach (var b in breakpoints) {
 				var ignore = b as IgnoreBreak;
 				if (ignore != null) {
-					if (ignore.Enabled && ignore.FileName == loc.FileName && ignore.Line == loc.Line && ignore.Column == loc.Column)
+					// TODO: In ExceptionCaughtAdornmentManager we set column to 1. If we can figure out
+					//       the correct column then we can check it here.
+					if (ignore.Enabled && ignore.FileName == loc.FileName && ignore.Line == loc.Line)
 						return true;
 				}
 
