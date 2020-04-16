@@ -29,7 +29,6 @@ using NUnit.Framework;
 namespace Mono.Debugging.Tests.Soft
 {
 	[TestFixture]
-	[Ignore("Skipped due to issue https://work.azdo.io/1090747")]
 	public class SdbStackFrameAllowTargetInvokesTests : StackFrameTests
 	{
 		public SdbStackFrameAllowTargetInvokesTests (): base ("Mono.Debugger.Soft", true)
@@ -38,7 +37,6 @@ namespace Mono.Debugging.Tests.Soft
 	}
 
 	[TestFixture]
-	[Ignore("Skipped due to issue https://work.azdo.io/1090747")]
 	public class SdbStackFrameNoTargetInvokesTests : StackFrameTests
 	{
 		public SdbStackFrameNoTargetInvokesTests (): base ("Mono.Debugger.Soft", false)
