@@ -445,7 +445,7 @@ namespace Mono.Debugging.Client
 		/// </remarks>
 		public ObjectValue GetChild (string name)
 		{
-			return GetChild (name, parentFrame.DebuggerSession.EvaluationOptions);
+			return GetChild (name, parentFrame?.DebuggerSession.EvaluationOptions);
 		}
 		
 		/// <summary>
