@@ -61,9 +61,9 @@ namespace Mono.Debugging.Client
 		public string Location {
 			get {
 				if (location == null) {
-					Backtrace bt = Backtrace;
-					if (bt != null && bt.FrameCount > 0)
-						location = bt.GetFrame (0).ToString ();
+					PrefetchBacktrace ();
+					if (backtrace != null && backtrace.FrameCount > 0)
+						location = backtrace.GetFrame (0).ToString ();
 				}
 				return location;
 			}
@@ -75,15 +75,14 @@ namespace Mono.Debugging.Client
 
 		public Backtrace Backtrace {
 			get {
-				if (backtrace == null)
-					backtrace = session.GetBacktrace (processId, id);
+				PrefetchBacktrace ();
 				return backtrace;
 			}
 		}
 
 		public long ElapsedTime {
 			get {
-				long elapsedTime = session.GetElapsedTime (processId, id);
+				var elapsedTime = session.GetElapsedTime (processId, id);
 				return elapsedTime;
 			}
 		}
@@ -91,6 +90,12 @@ namespace Mono.Debugging.Client
 		public void SetActive ()
 		{
 			session.ActiveThread = this;
+		}
+
+		public void PrefetchBacktrace ()
+		{
+			if (backtrace == null)
+				backtrace = session.GetBacktrace (processId, id);
 		}
 		
 		public ThreadInfo (long processId, long id, string name, string location): this (processId, id, name, location, null)
@@ -108,10 +113,9 @@ namespace Mono.Debugging.Client
 		
 		public override bool Equals (object obj)
 		{
-			ThreadInfo ot = obj as ThreadInfo;
-			if (ot == null)
-				return false;
-			return id == ot.id && processId == ot.processId && session == ot.session;
+			if (obj is ThreadInfo ot)
+				return id == ot.id && processId == ot.processId && session == ot.session;
+			return false;
 		}
 		
 		public override int GetHashCode ()
@@ -134,7 +138,7 @@ namespace Mono.Debugging.Client
 		{
 			if (object.ReferenceEquals (t1, t2))
 				return false;
-			if ((object)t1 == null || (object)t2 == null)
+			if (t1 == null || t2 == null)
 				return true;
 			return !t1.Equals (t2);
 		}
