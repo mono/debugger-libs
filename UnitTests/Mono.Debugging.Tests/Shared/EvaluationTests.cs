@@ -3226,18 +3226,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void RawByteArrayToArray ()
 		{
-			var val = Eval ("Convert.FromBase64String (\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==\")");
-			if (!AllowTargetInvokes) {
-				var options = Session.Options.EvaluationOptions.Clone ();
-				options.AllowTargetInvoke = true;
-
-				if (!IsVsDebugger)
-					Assert.IsTrue (val.IsImplicitNotSupported);
-
-				val.Refresh (options);
-				val = val.Sync ();
-			}
-			Assert.AreEqual ("byte[]", val.TypeName);
+			var val = Eval ("rawByteArray");
+			Assert.AreEqual ("byte[]", val.TypeName, "rawByteArray");
 			Assert.AreEqual ("{byte[256]}", val.Value);
 
 			var rawArray = (RawValueArray)val.GetRawValue ();
@@ -3249,18 +3239,8 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void RawByteArrayChunking ()
 		{
-			var val = Eval ("Convert.FromBase64String (\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==\")");
-			if (!AllowTargetInvokes) {
-				var options = Session.Options.EvaluationOptions.Clone ();
-				options.AllowTargetInvoke = true;
-
-				if (!IsVsDebugger)
-					Assert.IsTrue (val.IsImplicitNotSupported);
-
-				val.Refresh (options);
-				val = val.Sync ();
-			}
-			Assert.AreEqual ("byte[]", val.TypeName);
+			var val = Eval ("rawByteArray");
+			Assert.AreEqual ("byte[]", val.TypeName, "rawByteArray");
 			Assert.AreEqual ("{byte[256]}", val.Value);
 
 			var rawArray = (RawValueArray)val.GetRawValue ();
@@ -3278,26 +3258,16 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void RawByteArrayRandomAccess ()
 		{
-			var val = Eval ("Convert.FromBase64String (\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==\")");
-			if (!AllowTargetInvokes) {
-				var options = Session.Options.EvaluationOptions.Clone ();
-				options.AllowTargetInvoke = true;
-
-				if (!IsVsDebugger)
-					Assert.IsTrue (val.IsImplicitNotSupported);
-
-				val.Refresh (options);
-				val = val.Sync ();
-			}
-			Assert.AreEqual ("byte[]", val.TypeName);
+			var val = Eval ("rawByteArray");
+			Assert.AreEqual ("byte[]", val.TypeName, "rawByteArray");
 			Assert.AreEqual ("{byte[256]}", val.Value);
 
 			var rawArray = (RawValueArray)val.GetRawValue ();
-			var indexes = new int[] { 57, 227, 99, 177 };
+			var indexes = new int[] { 57, 179, 97, 229 };
 
 			foreach (var startIndex in indexes) {
-				var bytes = rawArray.GetValues (startIndex, 32);
 				var expected = Math.Min(32, 256 - startIndex);
+				var bytes = rawArray.GetValues (startIndex, expected);
 				Assert.AreEqual (expected, bytes.Length, "expected {0} bytes for chunk starting at {1}", expected, startIndex);
 				for (int i = 0; i < bytes.Length; i++)
 					Assert.AreEqual ((byte) (startIndex + i), bytes.GetValue (i), "incorrect byte at index {0}", startIndex + i);
