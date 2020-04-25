@@ -2873,13 +2873,11 @@ namespace Mono.Debugging.Tests
 			}
 			Assert.AreEqual ("byte[]", val.TypeName);
 			Assert.AreEqual ("{byte[3]}", val.Value);
-			if (!IsVsDebugger) {
-				// Note: this is not currently supported in the NetCoreDebugger
-				var bytes = ((RawValueArray)val.GetRawValue ()).ToArray ();
-				Assert.AreEqual (239, bytes.GetValue (0));
-				Assert.AreEqual (187, bytes.GetValue (1));
-				Assert.AreEqual (191, bytes.GetValue (2));
-			}
+
+			var bytes = ((RawValueArray)val.GetRawValue ()).ToArray ();
+			Assert.AreEqual (239, bytes.GetValue (0));
+			Assert.AreEqual (187, bytes.GetValue (1));
+			Assert.AreEqual (191, bytes.GetValue (2));
 
 			val = Eval ("b.TestMethod ()");
 			if (!AllowTargetInvokes) {
@@ -3223,6 +3221,87 @@ namespace Mono.Debugging.Tests
 			val = Eval ("default (int?)");
 			Assert.AreEqual ("int?", val.TypeName);
 			Assert.AreEqual ("(null)", val.Value);
+		}
+
+		[Test]
+		public void RawByteArrayToArray ()
+		{
+			var val = Eval ("Convert.FromBase64String (\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==\")");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("byte[]", val.TypeName);
+			Assert.AreEqual ("{byte[256]}", val.Value);
+
+			var rawArray = (RawValueArray)val.GetRawValue ();
+			var bytes = rawArray.ToArray ();
+			for (int i = 0; i < 256; i++)
+				Assert.AreEqual ((byte) i, bytes.GetValue (i));
+		}
+
+		[Test]
+		public void RawByteArrayChunking ()
+		{
+			var val = Eval ("Convert.FromBase64String (\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==\")");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("byte[]", val.TypeName);
+			Assert.AreEqual ("{byte[256]}", val.Value);
+
+			var rawArray = (RawValueArray)val.GetRawValue ();
+			int index = 0;
+
+			while (index < 256) {
+				var bytes = rawArray.GetValues (index, 32);
+				Assert.AreEqual (32, bytes.Length);
+				for (int i = 0; i < bytes.Length; i++)
+					Assert.AreEqual ((byte) (index + i), bytes.GetValue (i));
+				index += bytes.Length;
+			}
+		}
+
+		[Test]
+		public void RawByteArrayRandomAccess ()
+		{
+			var val = Eval ("Convert.FromBase64String (\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==\")");
+			if (!AllowTargetInvokes) {
+				var options = Session.Options.EvaluationOptions.Clone ();
+				options.AllowTargetInvoke = true;
+
+				if (!IsVsDebugger)
+					Assert.IsTrue (val.IsImplicitNotSupported);
+
+				val.Refresh (options);
+				val = val.Sync ();
+			}
+			Assert.AreEqual ("byte[]", val.TypeName);
+			Assert.AreEqual ("{byte[256]}", val.Value);
+
+			var rawArray = (RawValueArray)val.GetRawValue ();
+			var indexes = new int[] { 57, 227, 99, 177 };
+
+			foreach (var startIndex in indexes) {
+				var bytes = rawArray.GetValues (startIndex, 32);
+				var expected = Math.Min(32, 256 - startIndex);
+				Assert.AreEqual (expected, bytes.Length, "expected {0} bytes for chunk starting at {1}", expected, startIndex);
+				for (int i = 0; i < bytes.Length; i++)
+					Assert.AreEqual ((byte) (startIndex + i), bytes.GetValue (i), "incorrect byte at index {0}", startIndex + i);
+			}
 		}
 	}
 }
