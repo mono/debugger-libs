@@ -215,7 +215,12 @@ namespace Mono.Debugging.Evaluation
 
 					var value = Adaptor.CreateObjectValueAsync (tmpExp, ObjectValueFlags.Field, delegate {
 						var cctx = GetEvaluationContext (frameIndex, options);
-						return Adaptor.GetExpressionValue (cctx, tmpExp);
+						var result = Adaptor.GetExpressionValue (cctx, tmpExp);
+
+						// uncache the frame since values of local variables/params/etc may have changed.
+						frameInfo.Remove (frameIndex);
+
+						return result;
 					});
 					value.Name = expression;
 
@@ -226,8 +231,12 @@ namespace Mono.Debugging.Evaluation
 			}
 
 			var ctx = GetEvaluationContext (frameIndex, options);
+			var evaluated = ctx.Adapter.GetExpressionValuesAsync (ctx, expressions);
 
-			return ctx.Adapter.GetExpressionValuesAsync (ctx, expressions);
+			// uncache the frame since values of local variables/params/etc may have changed.
+			frameInfo.Remove (frameIndex);
+
+			return evaluated;
 		}
 		
 		public virtual CompletionData GetExpressionCompletionData (int frameIndex, string exp)
