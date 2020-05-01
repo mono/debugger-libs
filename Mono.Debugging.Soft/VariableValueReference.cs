@@ -34,10 +34,11 @@ namespace Mono.Debugging.Soft
 {
 	public class VariableValueReference : ValueReference
 	{
+		readonly LocalVariableBatch batch;
 		readonly LocalVariable variable;
-		LocalVariableBatch batch;
+		readonly string name;
 		Value value;
-		string name;
+		int version;
 
 		public VariableValueReference (EvaluationContext ctx, string name, LocalVariable variable, LocalVariableBatch batch) : base (ctx)
 		{
@@ -48,6 +49,7 @@ namespace Mono.Debugging.Soft
 
 		public VariableValueReference (EvaluationContext ctx, string name, LocalVariable variable, Value value) : base (ctx)
 		{
+			version = ((SoftEvaluationContext)ctx).Session.StackVersion;
 			this.variable = variable;
 			this.value = value;
 			this.name = name;
@@ -91,8 +93,10 @@ namespace Mono.Debugging.Soft
 		object GetValue (SoftEvaluationContext ctx)
 		{
 			try {
-				if (value == null)
-					value = batch != null ? batch.GetValue (variable) : ctx.Frame.GetValue (variable);
+				if (value == null || version != ctx.Session.StackVersion) {
+					value = batch != null ? batch.GetValue (ctx, variable) : ctx.Frame.GetValue (variable);
+					version = ctx.Session.StackVersion;
+				}
 
 				return NormalizeValue (ctx, value);
 			} catch (AbsentInformationException ex) {
@@ -102,9 +106,26 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
+		void SetValue (SoftEvaluationContext ctx, object value)
+		{
+			if (batch != null) {
+				batch.SetValue (ctx, variable, (Value) value);
+			} else {
+				ctx.Frame.SetValue (variable, (Value) value);
+				ctx.Session.StackVersion++;
+			}
+			version = ctx.Session.StackVersion;
+			this.value = (Value) value;
+		}
+
 		public override object GetValue (EvaluationContext ctx)
 		{
-			return GetValue ((SoftEvaluationContext) Context);
+			return GetValue ((SoftEvaluationContext) ctx);
+		}
+
+		public override void SetValue (EvaluationContext ctx, object value)
+		{
+			SetValue ((SoftEvaluationContext) ctx, value);
 		}
 
 		public override object Value {
@@ -112,8 +133,7 @@ namespace Mono.Debugging.Soft
 				return GetValue ((SoftEvaluationContext) Context);
 			}
 			set {
-				((SoftEvaluationContext) Context).Frame.SetValue (variable, (Value) value);
-				this.value = (Value) value;
+				SetValue ((SoftEvaluationContext) Context, value);
 			}
 		}
 

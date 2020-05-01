@@ -32,22 +32,23 @@ namespace Mono.Debugging.Soft
 	public class LocalVariableBatch
 	{
 		readonly LocalVariable[] variables;
-		readonly StackFrame frame;
 		Value[] values;
+		int version;
 
-		public LocalVariableBatch (StackFrame frame, LocalVariable[] variables)
+		public LocalVariableBatch (LocalVariable[] variables)
 		{
 			this.variables = variables;
-			this.frame = frame;
 		}
 
-		public Value GetValue (LocalVariable variable)
+		public Value GetValue (SoftEvaluationContext ctx, LocalVariable variable)
 		{
 			if (variable == null)
 				throw new ArgumentNullException ("variable");
 
-			if (values == null)
-				values = frame.GetValues (variables);
+			if (values == null || version != ctx.Session.StackVersion) {
+				values = ctx.Frame.GetValues (variables);
+				version = ctx.Session.StackVersion;
+			}
 
 			for (int i = 0; i < variables.Length; i++) {
 				if (variable == variables[i])
@@ -55,6 +56,28 @@ namespace Mono.Debugging.Soft
 			}
 
 			throw new ArgumentOutOfRangeException ("variable");
+		}
+
+		public void SetValue (SoftEvaluationContext ctx, LocalVariable variable, Value value)
+		{
+			var canUpdateCache = values != null && version == ctx.Session.StackVersion;
+
+			ctx.Frame.SetValue (variable, value);
+			ctx.Session.StackVersion++;
+
+			if (canUpdateCache) {
+				for (int i = 0; i < variables.Length; i++) {
+					if (variable == variables[i]) {
+						values[i] = value;
+						break;
+					}
+				}
+
+				version = ctx.Session.StackVersion;
+			} else {
+				values = null;
+				version = 0;
+			}
 		}
 	}
 }
