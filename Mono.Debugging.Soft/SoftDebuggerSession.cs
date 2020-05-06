@@ -1942,7 +1942,7 @@ namespace Mono.Debugging.Soft
 					}
 				}
 			}
-			if (vm.Version.AtLeast (2, 57))
+			if (vm.Version.AtLeast (2, 57)  && !redoCurrentStep)
 				if (currentRequest == null || (currentRequest != null && es[0] != null && es[0].Request != null && es[0].Request.GetId () != currentRequest.GetId ()))
 					currentRequest = es[0].Request;
 
