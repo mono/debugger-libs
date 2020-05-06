@@ -9,12 +9,10 @@ namespace Mono.Debugger.Soft
 		Guid guid;
 		AssemblyMirror assembly;
 
-		internal ModuleMirror (VirtualMachine vm, long id) : base (vm, id)
-		{
+		internal ModuleMirror (VirtualMachine vm, long id) : base (vm, id) {
 		}
 
-		void ReadInfo ()
-		{
+		void ReadInfo () {
 			if (info == null)
 				info = vm.conn.Module_GetInfo (id);
 		}
