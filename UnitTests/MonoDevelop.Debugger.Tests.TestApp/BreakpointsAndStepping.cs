@@ -233,10 +233,8 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		{
 			var testClass = new TestClass ();/*b73bec88-2c43-4157-8574-ad517730bc74*/
 			foreach (var a in testClass.Iter_1()) {
-				/*69dba3ab-0941-47e9-99fa-10222a2e894d*/
-			}
-			/*e01a5428-b067-4ca3-ac8c-a19d5d800228*/
-		}
+			}/*69dba3ab-0941-47e9-99fa-10222a2e894d*/
+		}/*e01a5428-b067-4ca3-ac8c-a19d5d800228*/
 
 		public void SimpleConstrutor ()
 		{
@@ -285,8 +283,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 
 			public static PListScheme Load (System.Xml.XmlReader reader)
-			{
-				/*c9b18785-1348-42e3-a479-9cac1e7c5360*/
+			{/*c9b18785-1348-42e3-a479-9cac1e7c5360*/
 				var result = new PListScheme ();
 				var doc = new System.Xml.XmlDocument ();
 				doc.Load (reader);
@@ -330,16 +327,13 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		}
 
 		private void EmptyForLoop ()
-		{
-			/*946d5781-a162-4cd9-a7b6-c320564cc594*/
-			for (; ;) {
-				/*a2ff92da-3796-47e3-886a-4bd786a07547*/
+		{/*946d5781-a162-4cd9-a7b6-c320564cc594*/
+			for (; ;) {/*a2ff92da-3796-47e3-886a-4bd786a07547*/
 			}
 		}
 
 		public void ForLoop10 ()
-		{
-			/*c35046f7-e87d-4b8f-b260-43e181a0a07c*/
+		{/*c35046f7-e87d-4b8f-b260-43e181a0a07c*/
 			for (int i = 0; i < 10; i++) {
 				Console.Write ("");/*eef5bea2-aaa6-4718-b26f-b35be6a6a13e*/
 			}
@@ -386,8 +380,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		}
 
 		private void EmptyMethod ()
-		{
-			/*3c27f60f-fdfa-44c0-b58f-552ecaaa77f1*/
+		{/*3c27f60f-fdfa-44c0-b58f-552ecaaa77f1*/
 		}
 
 		public void ConitionalBreakpointEnum ()
@@ -443,8 +436,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		}
 
 		public void SimpleMethod ()
-		{
-			/*f4e3a214-229e-44dd-9da2-db82ddfbec11*/
+		{/*f4e3a214-229e-44dd-9da2-db82ddfbec11*/
 			int a = 1;
 			int b = 2;
 			int c = a + b;
@@ -461,8 +453,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		}
 
 		class EmptyClassWithConstructor
-		{
-			/*1f37aea1-77a1-40c1-9ea5-797db48a14f9*/
+		{/*1f37aea1-77a1-40c1-9ea5-797db48a14f9*/
 			public EmptyClassWithConstructor ()
 			{
 				int i = 0;/*494fddfb-85f1-4ad0-b5b3-9b2f990bb6d0*/
@@ -552,12 +543,10 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 				if (obj == null)/*10e0f5c7-4c77-4897-8324-deef9aae0192*/
 					return null;/*40f0acc2-2de2-44c8-8e18-3867151ba8da*/
 				return null;/*ae71a41d-0c90-433d-b925-0b236b8119a9*/
-				/*3c0316e9-eace-48e8-b9ed-03a8c6306c66*/
-			}
+			}/*3c0316e9-eace-48e8-b9ed-03a8c6306c66*/
 
 			public void EmptyTestMethod ()
-			{
-				/*49326780-f51b-4510-a52c-03e7af442dda*/
+			{/*49326780-f51b-4510-a52c-03e7af442dda*/
 			}
 
 			[System.Diagnostics.DebuggerHidden]
@@ -576,8 +565,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 
 			[System.Diagnostics.DebuggerNonUserCode]
 			public void DebuggerNonUserCodeMethod (bool callEmptyMethod, int resursive = 0)
-			{
-				/*5b9b96b6-ce24-413f-8660-715fccfc412f*/
+			{/*5b9b96b6-ce24-413f-8660-715fccfc412f*/
 				if (resursive > 0) {
 					Console.Write ("");
 					DebuggerNonUserCodeMethod (callEmptyMethod, resursive - 1);/*6b2c05cd-1cb8-48fe-b6bf-c4949121d4c7*/
@@ -668,8 +656,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 
 			public void SetDayOfWeek (DateTime date)
-			{
-				/*f456a9b0-9c1a-4b34-bef4-d80b8541ebdb*/
+			{/*f456a9b0-9c1a-4b34-bef4-d80b8541ebdb*/
 				if (myScrollView != null) {
 					curRect = myScrollView.VisbleContentRect;/*11259de1-944d-4052-b970-62662e21876a*/
 					curZoom = myScrollView.ZoomScale;

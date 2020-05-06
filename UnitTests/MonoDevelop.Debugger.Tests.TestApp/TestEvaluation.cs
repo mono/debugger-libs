@@ -340,6 +340,13 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			BaseClass bar = new OverrideClass();
 			INamedTypeSymbol namedTypeSymbol = new NamedTypeSymbol ();
 
+			byte[] rawByteArray = new byte[256];
+			char[] rawCharArray = new char[256];
+			for (int i = 0; i < 256; i++) {
+				rawByteArray[i] = (byte) i;
+				rawCharArray[i] = (char) i;
+			}
+
 			Console.WriteLine (n); /*break*/
 		}
 

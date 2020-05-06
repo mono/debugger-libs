@@ -522,24 +522,24 @@ namespace Mono.Debugging.Client
 		
 		void OnBreakEventAdded (BreakEvent be)
 		{
-			OnChanged ();
 			BreakEventAdded?.Invoke (this, new BreakEventArgs (be));
 			if (be is Breakpoint bp) {
 				BreakpointAdded?.Invoke (this, new BreakpointEventArgs (bp));
 			} else if (be is Catchpoint ce) {
 				CatchpointAdded?.Invoke (this, new CatchpointEventArgs (ce));
 			}
+			OnChanged ();
 		}
 		
 		void OnBreakEventRemoved (BreakEvent be)
 		{
-			OnChanged ();
 			BreakEventRemoved?.Invoke (this, new BreakEventArgs (be));
 			if (be is Breakpoint bp) {
 				BreakpointRemoved?.Invoke (this, new BreakpointEventArgs (bp));
 			} else if (be is Catchpoint ce) {
 				CatchpointRemoved?.Invoke (this, new CatchpointEventArgs (ce));
 			}
+			OnChanged ();
 		}
 		
 		void OnChanged ()

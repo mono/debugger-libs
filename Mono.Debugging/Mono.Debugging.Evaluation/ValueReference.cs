@@ -226,13 +226,7 @@ namespace Mono.Debugging.Evaluation
 			try {
 				var ctx = GetChildrenContext (options);
 
-				var child = ctx.Adapter.CreateObjectValueAsync (Name, ObjectValueFlags.EvaluatingGroup, delegate {
-					var children = ctx.Adapter.GetObjectValueChildren (ctx, this, GetValue (ctx), index, count);
-
-					return DC.ObjectValue.CreateArray (null, path, "", children.Length, ObjectValueFlags.EvaluatingGroup, children);
-				});
-
-				return new ObjectValue[1] { child };
+				return ctx.Adapter.GetObjectValueChildren (ctx, this, GetValue (ctx), index, count);
 			} catch (Exception ex) {
 				return new [] { DC.ObjectValue.CreateFatalError ("", ex.Message, ObjectValueFlags.ReadOnly) };
 			}

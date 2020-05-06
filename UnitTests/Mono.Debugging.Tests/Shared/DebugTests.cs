@@ -455,18 +455,31 @@ namespace Mono.Debugging.Tests
 
 		public static ObjectValue GetChildSync (this ObjectValue val, string name, EvaluationOptions ops)
 		{
-			var result = val.GetChild (name, ops);
-
-			return result != null ? result.Sync () : null;
+			var children = val.GetAllChildrenSync (ops);
+			foreach (var child in children) {
+				if (child.Name == name)
+					return child;
+			}
+			return null;
 		}
 
-		public static ObjectValue[] GetAllChildrenSync (this ObjectValue val)
+		public static ObjectValue[] GetAllChildrenSync (this ObjectValue val, EvaluationOptions ops = null)
 		{
-			var children = val.GetAllChildren ();
-			foreach (var child in children) {
-				child.Sync ();
+			var children = new List<ObjectValue> ();
+			var values = ops == null ? val.GetAllChildren () : val.GetAllChildren (ops);
+			for (int i = 0; i < values.Length; i++) {
+				var value = values[i].Sync ();
+
+				if (value.IsEvaluatingGroup) {
+					if (ops != null)
+						children.AddRange (value.GetAllChildrenSync (ops));
+					else
+						children.AddRange (value.GetAllChildrenSync ());
+				} else {
+					children.Add (value);
+				}
 			}
-			return children;
+			return children.ToArray ();
 		}
 
 		public static ObjectValue[] GetAllLocalsSync(this StackFrame frame)

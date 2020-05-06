@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 using Mono.Debugging.Backend;
 
@@ -23,6 +25,10 @@ namespace Mono.Debugging.Client
 		
 		[NonSerialized]
 		DebuggerSession session;
+		[NonSerialized]
+		bool haveParameterValues;
+		[NonSerialized]
+		ObjectValue[] parameters;
 
 		public StackFrame (long address, string addressSpace, SourceLocation location, string language, bool isExternalCode, bool hasDebugInfo, bool isDebuggerHidden, string fullModuleName, string fullTypeName)
 		{
@@ -122,63 +128,110 @@ namespace Mono.Debugging.Client
 		/// <summary>
 		/// Gets the full name of the stackframe. Which respects Session.EvaluationOptions.StackFrameFormat
 		/// </summary>
-		public virtual string FullStackframeText {
-			get {
-				var methodNameBuilder = new StringBuilder (this.SourceLocation.MethodName);
-				var options = session.EvaluationOptions.Clone ();
-				if (options.StackFrameFormat.ParameterValues) {
-					options.AllowMethodEvaluation = true;
-					options.AllowToStringCalls = true;
-					options.AllowTargetInvoke = true;
-				} else {
-					options.AllowMethodEvaluation = false;
-					options.AllowToStringCalls = false;
-					options.AllowTargetInvoke = false;
-				}
+		[Obsolete]
+		public string FullStackframeText {
+			get { return GetFullStackFrameText (); }
+		}
 
-				var args = this.GetParameters (options);
+		public string GetFullStackFrameText ()
+		{
+			return GetFullStackFrameText (session.EvaluationOptions);
+		}
 
-				//MethodName starting with "["... it's something like [ExternalCode]
-				if (!this.SourceLocation.MethodName.StartsWith ("[", StringComparison.Ordinal)) {
-					if (options.StackFrameFormat.Module && !string.IsNullOrEmpty (this.FullModuleName)) {
-						methodNameBuilder.Insert (0, System.IO.Path.GetFileName (this.FullModuleName) + "!");
-					}
-					if (options.StackFrameFormat.ParameterTypes || options.StackFrameFormat.ParameterNames || options.StackFrameFormat.ParameterValues) {
-						methodNameBuilder.Append ("(");
-						for (int n = 0; n < args.Length; n++) {
-							if (args [n].IsEvaluating) {
-								var manualReset = new ManualResetEvent (false);
-								EventHandler updated = (s, e) => {
-									manualReset.Set ();
-								};
-								args [n].ValueChanged += updated;
-								if (args [n].IsEvaluating)
-									if (!manualReset.WaitOne (2000))
-										session.OnDebuggerOutput (true, "Timeout evaluating parameters for StackFrame.");
-								args [n].ValueChanged -= updated;
-							}
-							if (n > 0)
-								methodNameBuilder.Append (", ");
-							if (options.StackFrameFormat.ParameterTypes) {
-								methodNameBuilder.Append (args [n].TypeName);
-								if (options.StackFrameFormat.ParameterNames)
-									methodNameBuilder.Append (" ");
-							}
-							if (options.StackFrameFormat.ParameterNames)
-								methodNameBuilder.Append (args [n].Name);
-							if (options.StackFrameFormat.ParameterValues) {
-								if (options.StackFrameFormat.ParameterTypes || options.StackFrameFormat.ParameterNames)
-									methodNameBuilder.Append (" = ");
-								var val = args [n].Value ?? "";
-								methodNameBuilder.Append (val.Replace ("\r\n", " ").Replace ("\n", " "));
-							}
-						}
-						methodNameBuilder.Append (")");
-					}
-				}
+		public virtual string GetFullStackFrameText (EvaluationOptions options)
+		{
+			using (var cts = new CancellationTokenSource (options.MemberEvaluationTimeout))
+				return GetFullStackFrameTextAsync (options, false, cts.Token).GetAwaiter ().GetResult ();
+		}
 
-				return methodNameBuilder.ToString ();
+		public Task<string> GetFullStackFrameTextAsync (CancellationToken cancellationToken = default (CancellationToken))
+		{
+			return GetFullStackFrameTextAsync (session.EvaluationOptions, true, cancellationToken);
+		}
+
+		public virtual Task<string> GetFullStackFrameTextAsync (EvaluationOptions options, CancellationToken cancellationToken = default (CancellationToken))
+		{
+			return GetFullStackFrameTextAsync (options, true, cancellationToken);
+		}
+
+		async Task<string> GetFullStackFrameTextAsync (EvaluationOptions options, bool doAsync, CancellationToken cancellationToken)
+		{
+			// If MethodName starts with "[", then it's something like [ExternalCode]
+			if (SourceLocation.MethodName.StartsWith ("[", StringComparison.Ordinal))
+				return SourceLocation.MethodName;
+
+			options = options.Clone ();
+			if (options.StackFrameFormat.ParameterValues) {
+				options.AllowMethodEvaluation = true;
+				options.AllowToStringCalls = true;
+				options.AllowTargetInvoke = true;
+			} else {
+				options.AllowMethodEvaluation = false;
+				options.AllowToStringCalls = false;
+				options.AllowTargetInvoke = false;
 			}
+
+			// Cache the method parameters. Only refresh the method params iff the cached args do not
+			// already have parameter values. Once we have parameter values, we never have to
+			// refresh the cached parameters because we can just omit the parameter values when
+			// constructing the display string.
+			if (parameters == null || (options.StackFrameFormat.ParameterValues && !haveParameterValues)) {
+				haveParameterValues = options.StackFrameFormat.ParameterValues;
+				parameters = GetParameters (options);
+			}
+
+			var methodNameBuilder = new StringBuilder ();
+
+			if (options.StackFrameFormat.Module && !string.IsNullOrEmpty (FullModuleName)) {
+				methodNameBuilder.Append (Path.GetFileName (FullModuleName));
+				methodNameBuilder.Append ('!');
+			}
+
+			methodNameBuilder.Append (SourceLocation.MethodName);
+
+			if (options.StackFrameFormat.ParameterTypes || options.StackFrameFormat.ParameterNames || options.StackFrameFormat.ParameterValues) {
+				methodNameBuilder.Append ('(');
+				for (int n = 0; n < parameters.Length; n++) {
+					if (parameters[n].IsEvaluating) {
+						var tcs = new TaskCompletionSource<bool> ();
+						EventHandler updated = (s, e) => {
+							tcs.TrySetResult (true);
+						};
+						parameters[n].ValueChanged += updated;
+						try {
+							using (var registration = cancellationToken.Register (() => tcs.TrySetCanceled ())) {
+								if (parameters[n].IsEvaluating) {
+									if (doAsync) {
+										await tcs.Task.ConfigureAwait (false);
+									} else {
+										tcs.Task.Wait (cancellationToken);
+									}
+								}
+							}
+						} finally {
+							parameters[n].ValueChanged -= updated;
+						}
+					}
+					if (n > 0)
+						methodNameBuilder.Append (", ");
+					if (options.StackFrameFormat.ParameterTypes) {
+						methodNameBuilder.Append (parameters[n].TypeName);
+						if (options.StackFrameFormat.ParameterNames)
+							methodNameBuilder.Append (' ');
+					}
+					if (options.StackFrameFormat.ParameterNames)
+						methodNameBuilder.Append (parameters[n].Name);
+					if (options.StackFrameFormat.ParameterValues) {
+						if (options.StackFrameFormat.ParameterTypes || options.StackFrameFormat.ParameterNames)
+							methodNameBuilder.Append (" = ");
+						var val = parameters[n].Value ?? string.Empty;
+						methodNameBuilder.Append (val.Replace ("\r\n", " ").Replace ("\n", " "));
+					}
+				}
+				methodNameBuilder.Append (')');
+			}
+
+			return methodNameBuilder.ToString ();
 		}
 		
 		public ObjectValue[] GetLocalVariables ()
