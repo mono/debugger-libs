@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Text;
-using Mono.Cecil.Metadata;
 
 namespace Mono.Debugger.Soft {
 
@@ -141,6 +140,7 @@ namespace Mono.Debugger.Soft {
 				}
 				res [i] = new CustomAttributeDataMirror (ctor, ctor_args, named_args.ToArray ());
 			}
+
 			return res;
 		}
 	}
