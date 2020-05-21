@@ -145,16 +145,17 @@ namespace Mono.Debugging.Client
 		{
 			UseOperationThread = true;
 			frontend = new InternalDebuggerSession (this);
-			EvaluationStats = new DebuggerStatistics ();
-			StepInStats = new DebuggerStatistics ();
-			StepOutStats = new DebuggerStatistics ();
-			StepOverStats = new DebuggerStatistics ();
-			StepInstructionStats = new DebuggerStatistics ();
-			NextInstructionStats = new DebuggerStatistics ();
-			LocalVariableStats = new DebuggerStatistics ();
-			WatchExpressionStats = new DebuggerStatistics ();
-			StackTraceStats = new DebuggerStatistics ();
-			TooltipStats = new DebuggerStatistics ();
+			EvaluationStats = new DebuggerStatistics (nameof (EvaluationStats));
+			StepInStats = new DebuggerStatistics (nameof (StepInStats));
+			StepOutStats = new DebuggerStatistics (nameof (StepOutStats));
+			StepOverStats = new DebuggerStatistics (nameof (StepOverStats));
+			StepInstructionStats = new DebuggerStatistics (nameof (StepInstructionStats));
+			NextInstructionStats = new DebuggerStatistics (nameof (NextInstructionStats));
+			LocalVariableStats = new DebuggerStatistics (nameof (LocalVariableStats));
+			LocalVariableRenderingStats = new DebuggerStatistics (nameof (LocalVariableRenderingStats));
+			WatchExpressionStats = new DebuggerStatistics (nameof (WatchExpressionStats));
+			StackTraceStats = new DebuggerStatistics (nameof (StackTraceStats));
+			TooltipStats = new DebuggerStatistics (nameof (TooltipStats));
 			CallStackPadUsageCounter = new UsageCounter ();
 			ImmediatePadUsageCounter = new UsageCounter ();
 			ThreadsPadUsageCounter = new UsageCounter ();
@@ -268,6 +269,10 @@ namespace Mono.Debugging.Client
 		}
 
 		public DebuggerStatistics LocalVariableStats {
+			get; private set;
+		}
+
+		public DebuggerStatistics LocalVariableRenderingStats {
 			get; private set;
 		}
 
@@ -516,7 +521,7 @@ namespace Mono.Debugging.Client
 		void StartStepTimer (DebuggerStatistics stats)
 		{
 			stepTimer?.Dispose ();
-			stepTimer = stats.StartTimer ();
+			stepTimer = stats.StartTimer (null);
 		}
 
 		/// <summary>
