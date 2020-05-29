@@ -1127,7 +1127,7 @@ namespace Mono.Debugging.Soft
 			if (locals.Length == 0)
 				yield break;
 
-			var batch = new LocalVariableBatch (cx.Frame, locals);
+			var batch = new LocalVariableBatch (locals);
 
 			for (int i = 0; i < locals.Length; i++) {
 				if (IsClosureReferenceLocal (locals[i]) && IsGeneratedType (locals[i].Type)) {
@@ -1565,7 +1565,7 @@ namespace Mono.Debugging.Soft
 			if (locals.Length == 0)
 				yield break;
 
-			var batch = new LocalVariableBatch (soft.Frame, locals);
+			var batch = new LocalVariableBatch (locals);
 				
 			for (int i = 0; i < locals.Length; i++) {
 				var name = !string.IsNullOrEmpty (locals[i].Name) ? locals[i].Name : "arg" + locals[i].Index;
