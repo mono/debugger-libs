@@ -2032,16 +2032,23 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
+		public void AddUserAssembly(string userAssembly)
+		{
+			if (userAssemblyNames != null && !userAssemblyNames.Contains(userAssembly))
+				userAssemblyNames.Add(userAssembly);
+		}
+
 		void HandleAssemblyLoadEvents (AssemblyLoadEvent[] events)
 		{
 			var asm = events [0].Assembly;
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
-			RegisterAssembly (asm);
+
+			OnAssemblyLoaded(asm.Location);
+
+			RegisterAssembly(asm);
 			bool isExternal;
 			isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
-
-			OnAssemblyLoaded (asm.Location);
 
 			string flagExt = isExternal ? " [External]" : "";
 			OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
