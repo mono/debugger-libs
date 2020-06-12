@@ -24,6 +24,7 @@ namespace Mono.Debugger.Soft
 		MethodBodyMirror body;
 		MethodMirror gmd;
 		TypeMirror[] type_args;
+		readonly object locker = new object ();
 
 		internal MethodMirror (VirtualMachine vm, long id) : base (vm, id) {
 		}
@@ -218,19 +219,21 @@ namespace Mono.Debugger.Soft
 		}
 
 		public ParameterInfoMirror[] GetParameters () {
-			if (param_info == null) {
-				var pi = vm.conn.Method_GetParamInfo (id);
-				param_info = new ParameterInfoMirror [pi.param_count];
-				// Return
-				ret_param = new ParameterInfoMirror (this, -1, vm.GetType (pi.ret_type), null, ParameterAttributes.Retval);
-				// FIXME: this
-				// FIXME: Attributes
-				for (int i = 0; i < pi.param_count; ++i) {
-					param_info [i] = new ParameterInfoMirror (this, i, vm.GetType (pi.param_types [i]), pi.param_names [i], 0);
+			lock (locker) {
+				if (param_info == null) {
+					var pi = vm.conn.Method_GetParamInfo (id);
+					param_info = new ParameterInfoMirror[pi.param_count];
+					// Return
+					ret_param = new ParameterInfoMirror (this, -1, vm.GetType (pi.ret_type), null, ParameterAttributes.Retval);
+					// FIXME: this
+					// FIXME: Attributes
+					for (int i = 0; i < pi.param_count; ++i) {
+						param_info[i] = new ParameterInfoMirror (this, i, vm.GetType (pi.param_types[i]), pi.param_names[i], 0);
+					}
 				}
-			}
 
-			return param_info;
+				return param_info;
+			}
 		}
 
 		public ParameterInfoMirror ReturnParameter {
@@ -248,32 +251,34 @@ namespace Mono.Debugger.Soft
 		}
 
 		public LocalVariable[] GetLocals () {
-			if (locals == null) {
-				LocalsInfo li = new LocalsInfo ();
-				try {
-					li = vm.conn.Method_GetLocalsInfo (id);
-				} catch (CommandException) {
-					throw new AbsentInformationException ();
+			lock (locker) {
+				if (locals == null) {
+					LocalsInfo li = new LocalsInfo ();
+					try {
+						li = vm.conn.Method_GetLocalsInfo (id);
+					} catch (CommandException) {
+						throw new AbsentInformationException ();
+					}
+
+					// Add the arguments as well
+					var pi = GetParameters ();
+
+					locals = new LocalVariable[pi.Length + li.names.Length];
+
+					for (int i = 0; i < pi.Length; ++i)
+						locals[i] = new LocalVariable (vm, this, i, pi[i].ParameterType.Id, pi[i].Name, -1, -1, true);
+
+					for (int i = 0; i < li.names.Length; ++i)
+						locals[i + pi.Length] = new LocalVariable (vm, this, i, li.types[i], li.names[i], li.live_range_start[i], li.live_range_end[i], false);
+
+					if (vm.Version.AtLeast (2, 43)) {
+						scopes = new LocalScope[li.scopes_start.Length];
+						for (int i = 0; i < scopes.Length; ++i)
+							scopes[i] = new LocalScope (vm, this, li.scopes_start[i], li.scopes_end[i]);
+					}
 				}
-
-				// Add the arguments as well
-				var pi = GetParameters ();
-
-				locals = new LocalVariable [pi.Length + li.names.Length];
-
-				for (int i = 0; i < pi.Length; ++i)
-					locals [i] = new LocalVariable (vm, this, i, pi[i].ParameterType.Id, pi[i].Name, -1, -1, true);
-
-				for (int i = 0; i < li.names.Length; ++i)
-					locals [i + pi.Length] = new LocalVariable (vm, this, i, li.types [i], li.names [i], li.live_range_start [i], li.live_range_end [i], false);
-
-				if (vm.Version.AtLeast (2, 43)) {
-					scopes = new LocalScope [li.scopes_start.Length];
-					for (int i = 0; i < scopes.Length; ++i)
-						scopes [i] = new LocalScope (vm, this, li.scopes_start [i], li.scopes_end [i]);
-				}
+				return locals;
 			}
-			return locals;
 		}
 
 		public LocalVariable GetLocal (string name) {
