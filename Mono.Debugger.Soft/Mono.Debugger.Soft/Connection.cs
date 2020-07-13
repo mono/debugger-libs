@@ -1329,7 +1329,7 @@ namespace Mono.Debugger.Soft
 		protected abstract void TransportSetTimeouts (int send_timeout, int receive_timeout);
 		protected abstract void TransportClose ();
 		// Shutdown breaks all communication, resuming blocking waits
-		protected abstract void TransportShutdown ();
+		protected virtual void TransportShutdown () { }
 
 		internal VersionInfo Version;
 		
