@@ -81,11 +81,13 @@ namespace Mono.Debugger.Soft
 		{
 			if (threads.Count == 0)
 				return;
-			threads [0].vm.conn.StartBuffering ();
-			foreach (var thread in threads) {
-				thread.FetchFrames ();
+			lock (threads[0].vm.conn) {
+				threads[0].vm.conn.StartBuffering ();
+				foreach (var thread in threads) {
+					thread.FetchFrames ();
+				}
+				threads[0].vm.conn.StopBuffering ();
 			}
-			threads [0].vm.conn.StopBuffering ();
 		}
 
 		public string Name {
