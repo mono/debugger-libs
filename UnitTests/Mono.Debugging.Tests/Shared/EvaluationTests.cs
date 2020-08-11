@@ -134,6 +134,10 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("<type>", val.TypeName);
 			Assert.AreEqual (ObjectValueFlags.Type, val.Flags & ObjectValueFlags.OriginMask);
 
+			// Type resolving is not done for .NET Core debugger since that is handled by vsdbg
+			if (IsVsDebugger)
+				return;
+
 			val = Eval ("TestEvaluation");
 			Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.TestEvaluation", val.Value);
 			Assert.AreEqual ("<type>", val.TypeName);
@@ -342,7 +346,7 @@ namespace Mono.Debugging.Tests
 		{
 			ObjectValue val;
 			val = Eval ("System.Collections.Generic.Dictionary<string,int>");
-			Assert.AreEqual ("System.Collections.Generic.Dictionary<string,int>", val.Value);
+			Assert.AreEqual (IsVsDebugger ? "Dictionary<string, int>" : "System.Collections.Generic.Dictionary<string,int>", val.Value);
 			Assert.AreEqual ("<type>", val.TypeName);
 			Assert.AreEqual (ObjectValueFlags.Type, val.Flags & ObjectValueFlags.OriginMask);
 
@@ -1242,7 +1246,7 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual ("<namespace>", val.TypeName);
 
 			val = Eval ("MonoDevelop.Debugger.Tests.TestApp.TestEvaluation");
-			Assert.AreEqual ("MonoDevelop.Debugger.Tests.TestApp.TestEvaluation", val.Value);
+			Assert.AreEqual (IsVsDebugger ? "TestEvaluation" : "MonoDevelop.Debugger.Tests.TestApp.TestEvaluation", val.Value);
 			Assert.AreEqual ("<type>", val.TypeName);
 
 			val = Eval ("MonoDevelop.Debugger.Tests.TestApp.TestEvaluation.staticString");
