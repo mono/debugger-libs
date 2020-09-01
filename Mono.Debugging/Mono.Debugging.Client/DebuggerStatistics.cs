@@ -136,7 +136,7 @@ namespace Mono.Debugging.Client
 			this.stats = stats;
 			if (stats != null && traceListener != null) {
 				traceId = Interlocked.Increment (ref traceSeq);
-				traceListener?.TraceEvent (null, stats.Name, TraceEventType.Start, traceId, name);
+				traceListener.TraceEvent (null, stats.Name, TraceEventType.Start, traceId, name);
 			}
 		}
 
