@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -64,6 +64,7 @@
     <Compile Include="Mono.Debugging.Client\DebuggerSession.cs" />
     <Compile Include="Mono.Debugging.Client\Backtrace.cs" />
     <Compile Include="Mono.Debugging.Client\DebuggerStartInfo.cs" />
+    <Compile Include="Mono.Debugging.Client\OutputOptions.cs" />
     <Compile Include="Mono.Debugging.Client\ProcessEventArgs.cs" />
     <Compile Include="Mono.Debugging.Client\SourceLocation.cs" />
     <Compile Include="Mono.Debugging.Client\StackFrame.cs" />

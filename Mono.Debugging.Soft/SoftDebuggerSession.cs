@@ -618,7 +618,7 @@ namespace Mono.Debugging.Soft
 					vm.Resume ();
 					DequeueEventsForFirstThread ();
 				} catch (Exception ex) {
-					if (!HandleException (ex))
+					if (!HandleException (ex) && outputOptions.ExceptionMessage)
 						OnDebuggerOutput (true, ex.ToString ());
 				}
 			});
@@ -1240,7 +1240,8 @@ namespace Mono.Debugging.Soft
 								ProcessType (t);
 						}
 						catch (CommandException exc) {
-							OnDebuggerOutput (false, string.Format ("Error while parsing type ‘{0}’.\n", exceptionType));
+							if (outputOptions.ExceptionMessage)
+								OnDebuggerOutput (false, string.Format ("Error while parsing type ‘{0}’.\n", exceptionType));
 						}
 					}
 				}
@@ -1580,10 +1581,12 @@ namespace Mono.Debugging.Soft
 				default: reason = ex.ErrorCode.ToString (); break;
 				}
 
-				OnDebuggerOutput (true, string.Format ("Step request failed: {0}.", reason));
+				if (outputOptions.ExceptionMessage)
+					OnDebuggerOutput (true, string.Format ("Step request failed: {0}.", reason));
 				DebuggerLoggingService.LogError ("Step request failed", ex);
 			} catch (Exception ex) {
-				OnDebuggerOutput (true, string.Format ("Step request failed: {0}", ex.Message));
+				if (outputOptions.ExceptionMessage)
+					OnDebuggerOutput(true, string.Format ("Step request failed: {0}", ex.Message));
 				DebuggerLoggingService.LogError ("Step request failed", ex);
 			}
 		}
@@ -1614,7 +1617,7 @@ namespace Mono.Debugging.Soft
 					if (HasExited)
 						break;
 
-					if (!HandleException (ex))
+					if (!HandleException (ex) && outputOptions.ExceptionMessage)
 						OnDebuggerOutput (true, ex.ToString ());
 
 					if (ex is VMDisconnectedException || ex is IOException || ex is SocketException)
@@ -2050,8 +2053,10 @@ namespace Mono.Debugging.Soft
 			bool isExternal;
 			isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
 
-			string flagExt = isExternal ? " [External]" : "";
-			OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
+			if (outputOptions.ModuleLoaded) { 
+				string flagExt = isExternal ? " [External]" : "";
+				OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
+			}
 		}
 
 		void RegisterAssembly (AssemblyMirror asm)
@@ -2120,7 +2125,8 @@ namespace Mono.Debugging.Soft
 					pair.Value.RemoveAll (m => m.Assembly == asm);
 			}
 
-			OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", GetAssemblyLocation (asm) ?? "<unknown>"));
+			if (outputOptions.ModuleUnoaded)
+				OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", GetAssemblyLocation (asm) ?? "<unknown>"));
 		}
 
 		static string GetAssemblyLocation (AssemblyMirror asm)
@@ -2196,7 +2202,8 @@ namespace Mono.Debugging.Soft
 
 			var name = GetThreadName (thread);
 			var id = GetId (thread);
-			OnDebuggerOutput (false, string.Format ("Thread finished: {0} #{1}\n", name, id));
+			if (outputOptions.ThreadExited)
+				OnDebuggerOutput (false, string.Format ("Thread finished: {0} #{1}\n", name, id));
 			OnTargetEvent (new TargetEventArgs (TargetEventType.ThreadStopped) {
 				Thread = new ThreadInfo (0, id, name, null),
 			});
@@ -2296,7 +2303,7 @@ namespace Mono.Debugging.Soft
 						try {
 							 HandleBreakEventSet (es.ToArray (), true);
 						} catch (Exception ex) {
-							if (!HandleException (ex))
+							if (!HandleException (ex) && outputOptions.ExceptionMessage)
 								OnDebuggerOutput (true, ex.ToString ());
 
 							if (ex is VMDisconnectedException || ex is IOException || ex is SocketException) {

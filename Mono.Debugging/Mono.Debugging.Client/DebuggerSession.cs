@@ -62,6 +62,8 @@ namespace Mono.Debugging.Client
 		bool disposed;
 		bool attached;
 
+		protected OutputOptions outputOptions;
+
 		/// <summary>
 		/// Reports a debugger event
 		/// </summary>
@@ -151,8 +153,9 @@ namespace Mono.Debugging.Client
 			CallStackPadUsageCounter = new UsageCounter ();
 			ImmediatePadUsageCounter = new UsageCounter ();
 			ThreadsPadUsageCounter = new UsageCounter ();
+			outputOptions = new OutputOptions { ExceptionMessage = true, ModuleLoaded = true, ModuleUnoaded = true, ProcessExited = true, SymbolSearch = true, ThreadExited = true };
 		}
-		
+
 		/// <summary>
 		/// Releases all resource used by the <see cref="Mono.Debugging.Client.DebuggerSession"/> object.
 		/// </summary>
@@ -173,7 +176,12 @@ namespace Mono.Debugging.Client
 				}
 			});
 		}
-		
+
+		public void SetOutputOptions(OutputOptions options)
+		{
+			outputOptions = options;
+		}
+
 		/// <summary>
 		/// Gets or sets an exception handler to be invoked when an exception is raised by the debugger engine.
 		/// </summary>
@@ -737,7 +745,7 @@ namespace Mono.Debugging.Client
 				try {
 					OnRemoveBreakEvent (binfo);
 				} catch (Exception ex) {
-					if (IsConnected)
+					if (IsConnected && outputOptions.ExceptionMessage)
 						OnDebuggerOutput (false, ex.Message);
 					HandleException (ex);
 					return false;
@@ -758,7 +766,7 @@ namespace Mono.Debugging.Client
 			try {
 				OnEnableBreakEvent (binfo, be.Enabled);
 			} catch (Exception ex) {
-				if (IsConnected)
+				if (IsConnected && outputOptions.ExceptionMessage)
 					OnDebuggerOutput (false, ex.Message);
 				HandleException (ex);
 			}
@@ -992,7 +1000,8 @@ namespace Mono.Debugging.Client
 				try {
 					resolved = OnResolveExpression (expression, location);
 				} catch (Exception ex) {
-					OnDebuggerOutput (true, "Error while resolving expression: " + ex.Message);
+					if (outputOptions.ExceptionMessage)
+						OnDebuggerOutput (true, "Error while resolving expression: " + ex.Message);
 				}
 				resolvedExpressionCache [key] = resolved;
 			}
