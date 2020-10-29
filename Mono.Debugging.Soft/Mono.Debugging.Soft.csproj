@@ -64,6 +64,7 @@
     <Compile Include="PortablePdbData.cs" />
     <Compile Include="SourceLinkMap.cs" />
     <Compile Include="JsonSourceLink.cs" />
+    <Compile Include="Subprocess.cs" />
   </ItemGroup>
   <PropertyGroup>
     <NuGetVersionRoslyn Condition="$(NuGetVersionRoslyn) == ''">2.10.0</NuGetVersionRoslyn>

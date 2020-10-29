@@ -2686,7 +2686,7 @@ namespace Mono.Debugging.Soft
 				if (sm.Type.IsPrimitive) {
 					// Boxed primitive
 					if (sm.Type.FullName == "System.IntPtr")
-						return new EvaluationResult ("0x" + ((long)((PrimitiveValue)sm.Fields [0]).Value).ToString ("x"));
+						return new EvaluationResult ("0x" + ((long)((PointerValue)sm.Fields [0]).Address).ToString ("x"));
 					if (sm.Fields.Length > 0 && (sm.Fields[0] is PrimitiveValue))
 						return ((PrimitiveValue)sm.Fields[0]).Value;
 				} else if (sm.Type.FullName == "System.Decimal") {

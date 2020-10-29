@@ -135,7 +135,12 @@ namespace Mono.Debugging.Client
 		/// Raised when an assembly is loaded
 		/// </summary>
 		public event EventHandler<AssemblyEventArgs> AssemblyLoaded;
-		
+
+		/// <summary>
+		/// Raised when a subprocess is started
+		/// </summary>
+		public event EventHandler<SubprocessStartedEventArgs> SubprocessStarted;
+
 		protected DebuggerSession ()
 		{
 			UseOperationThread = true;
@@ -1117,7 +1122,7 @@ namespace Mono.Debugging.Client
 			}
 		}
 		
-		internal Backtrace GetBacktrace (long processId, long threadId)
+		internal protected Backtrace GetBacktrace (long processId, long threadId)
 		{
 			lock (slock) {
 				var bt = OnGetThreadBacktrace (processId, threadId);
@@ -1299,7 +1304,12 @@ namespace Mono.Debugging.Client
 		{
 			BusyStateChanged?.Invoke (this, args);
 		}
-		
+
+		internal protected void OnSubprocessStarted (DebuggerSession session)
+		{
+			SubprocessStarted?.Invoke (this, new SubprocessStartedEventArgs { SubprocessSession = session });
+		}
+
 		/// <summary>
 		/// Tries to bind all unbound breakpoints of a source file
 		/// </summary>
@@ -1820,6 +1830,11 @@ namespace Mono.Debugging.Client
 		
 		//message may be null in which case the dialog should construct a default
 		void SetMessage (DebuggerStartInfo dsi, string message, bool listening, int attemptNumber);
+	}
+
+	public class SubprocessStartedEventArgs : EventArgs
+	{
+		public DebuggerSession SubprocessSession { get; set; }
 	}
 }
 

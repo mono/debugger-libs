@@ -114,6 +114,8 @@ namespace Mono.Debugging.Soft
 		{
 			if (HasExited)
 				throw new InvalidOperationException ("Already exited");
+
+			SetupProcessStartHooks ();
 			
 			var dsi = (SoftDebuggerStartInfo) startInfo;
 			if (dsi.StartArgs is SoftDebuggerLaunchArgs) {
@@ -197,6 +199,10 @@ namespace Mono.Debugging.Soft
 				psi.RedirectStandardOutput = false;
 				psi.RedirectStandardError = false;
 			}
+			if (args.CustomProcessLauncher != null) {
+				options = options ?? new LaunchOptions ();
+				options.CustomProcessLauncher = args.CustomProcessLauncher;
+			}
 
 			var sdbLog = Environment.GetEnvironmentVariable ("MONODEVELOP_SDB_LOG");
 			if (!string.IsNullOrEmpty (sdbLog)) {
@@ -212,7 +218,7 @@ namespace Mono.Debugging.Soft
 			
 			if (!string.IsNullOrEmpty (dsi.LogMessage))
 				OnDebuggerOutput (false, dsi.LogMessage + Environment.NewLine);
-			
+
 			var callback = HandleConnectionCallbackErrors (ar => ConnectionStarted (VirtualMachineManager.EndLaunch (ar)));
 			ConnectionStarting (VirtualMachineManager.BeginLaunch (psi, callback, options), dsi, true, 0);
 		}
@@ -397,6 +403,150 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
+		const string StartWithShellExecuteExMarker = "___Process_StartWithShellExecuteEx_Marker___";
+		const string StartWithCreateProcessMarker = "___Process_StartWithCreateProcess_Marker__";
+		const string SetProcessIdMarker = "___Process_SetProcessId_Marker__";
+
+		void SetupProcessStartHooks ()
+		{
+			if (!Options.DebugSubprocesses)
+				return;
+
+			// Subprocess lauch is intercepted using 3 function breakpoints.
+			// The first breakpoint is used to intercept calls to start a process with shell execute.
+			var bp = Breakpoints.OfType< FunctionBreakpoint> ().FirstOrDefault (b => b.CustomActionId == StartWithShellExecuteExMarker);
+			if (bp == null) {
+				bp = new FunctionBreakpoint ("System.Diagnostics.Process.StartWithShellExecuteEx", "C#");
+				bp.HitAction = HitAction.CustomAction;
+				bp.CustomActionId = StartWithShellExecuteExMarker;
+				bp.NonUserBreakpoint = true;
+				Breakpoints.Add (bp);
+			}
+
+			// The second breakpoint is used to intercept calls to start a process with CreateProcess
+			bp = Breakpoints.OfType<FunctionBreakpoint> ().FirstOrDefault (b => b.CustomActionId == StartWithCreateProcessMarker);
+			if (bp == null) {
+				bp = new FunctionBreakpoint ("System.Diagnostics.Process.StartWithCreateProcess", "C#");
+				bp.HitAction = HitAction.CustomAction;
+				bp.CustomActionId = StartWithCreateProcessMarker;
+				bp.NonUserBreakpoint = true;
+				Breakpoints.Add (bp);
+			}
+
+			// The third breakpoint is used to intercept the method that assigns an ID to the process. This is used to
+			// retrieve the process id, and also as a signal that the process has started running
+			bp = Breakpoints.OfType<FunctionBreakpoint> ().FirstOrDefault (b => b.CustomActionId == SetProcessIdMarker);
+			if (bp == null) {
+				bp = new FunctionBreakpoint ("System.Diagnostics.Process.SetProcessId", "C#");
+				bp.HitAction = HitAction.CustomAction;
+				bp.CustomActionId = SetProcessIdMarker;
+				bp.NonUserBreakpoint = true;
+				Breakpoints.Add (bp);
+			}
+		}
+
+		bool HandleProcessStartHook (ThreadMirror thread, BreakEvent b)
+		{
+			if (!Options.DebugSubprocesses)
+				return false;
+
+			// Subprocess debugging is achieved by intercepting calls to start a process using function breakpoints.
+			// This is achieved in 3 stages:
+			// 1) Process start interception: this is done by adding a function breakpoint to Process.StartWithShellExecuteEx
+			//    and Process.StartWithCreateProcess. If the process being launched is a mono process a new debug session
+			//    is creaated, and the process start info object is patched to add the debugger agent configuration options.
+			// 2) Process launch. This is actually done by the current executing process. The new process is bound to
+			//    the new debug session. However, to complete the debug session initialization we need an actual reference
+			//    to the process, so that the session can get the process id and subscribe process events, and that's
+			//    done in step 3.
+			// 3) Process launched interception: this is done by adding a function breakpoint to Process.SetProcessId.
+			//    This method is called after starting the process, so at this point it is possible to get a reference
+			//    to the running process object and assign it to the debug session to complete the initialization.
+
+			// A potential process start call has been intercepted.
+
+			var evalOptions = EvaluationOptions.DefaultOptions.Clone ();
+			evalOptions.AllowTargetInvoke = evalOptions.AllowMethodEvaluation = evalOptions.FlattenHierarchy = true;
+			evalOptions.GroupPrivateMembers = evalOptions.GroupStaticMembers = evalOptions.AllowToStringCalls = evalOptions.EllipsizeStrings = false;
+
+			if (b.CustomActionId == StartWithShellExecuteExMarker || b.CustomActionId == StartWithCreateProcessMarker) {
+
+				// A project start call has been intercepted. We need to check if a mono process is being started.
+
+				var fr = thread.GetFrames ()[0];
+				var ctx = new SoftEvaluationContext (this, fr, evalOptions);
+				var eval = ctx.Evaluator;
+
+				var parameters = eval.GetParameters (ctx);
+				var startInfo = parameters.First();
+				var exe = (string) startInfo.GetChild ("FileName", evalOptions).GetRawValue (evalOptions);
+
+				// The process being launched is a mono process if the target file is a .exe or .dll, or if the launcher is mono.
+
+				var ext = Path.GetExtension (exe).ToLower ();
+				if (ext == ".exe" || ext == ".dll" || Subprocess.IsMonoLauncher (exe)) {
+
+					// If the runtime arguments are already setting up a debugger agent, don't override it
+					var arguments = (string)startInfo.GetChild ("Arguments", evalOptions).GetRawValue (evalOptions);
+					if (arguments.Contains ("--debugger-agent"))
+						return false;
+
+					// Create the new debug session
+					Subprocess sp;
+					lock (subprocessesStarting) {
+						sp = new Subprocess (GetId (thread), this);
+						subprocessesStarting.Add (sp);
+					}
+
+					if (sp.CreateSession (startInfo, evalOptions)) {
+						// Notify that the new session has started
+						OnSubprocessStarted (sp.SubprocessSession);
+					}
+				}
+				return true;
+			} else if (b.CustomActionId == SetProcessIdMarker) {
+
+				// A call to SetProcessId has been intercepted
+				// Check if there is a subprocess waiting for the start signal
+
+				var tid = GetId (thread);
+				Subprocess subprocess;
+
+				lock (subprocessesStarting)
+					subprocess  = subprocessesStarting.FirstOrDefault (s => s.ThreadId == tid);
+
+				if (subprocess != null) {
+					lock (subprocessesStarting)
+						subprocessesStarting.Remove (subprocess);
+
+					var fr = thread.GetFrames ()[0];
+					var ctx = new SoftEvaluationContext (this, fr, evalOptions);
+					var eval = ctx.Evaluator;
+
+					try {
+						// The first parameter is the process ID
+						var parameters = eval.GetParameters (ctx);
+						var id = (int)parameters.First ().GetRawValue (evalOptions);
+
+						// Get the start info object from the process
+						var ts = eval.GetThisReference (ctx);
+						var si = ts.GetChild ("startInfo", evalOptions);
+
+						// Tell the subprocess that the process has started. This will finish the initialization
+						// of the debug session.
+						subprocess.SetStarted (si, id, ctx);
+					} catch {
+						subprocess.Shutdown ();
+						throw;
+					}
+				}
+				return true;
+			}
+			return false;
+		}
+
+		List<Subprocess> subprocessesStarting = new List<Subprocess> ();
+
 		public Dictionary<Tuple<TypeMirror, string>, MethodMirror[]> OverloadResolveCache {
 			get {
 				return overloadResolveCache;
@@ -428,6 +578,9 @@ namespace Mono.Debugging.Soft
 			connection = null;
 			
 			vm = machine;
+
+			// Allocate the process list now, so it is cached and can be queried while the session is running
+			OnGetProcesses ();
 
 			ConnectOutput (machine.StandardOutput, false);
 			ConnectOutput (machine.StandardError, true);
@@ -541,7 +694,6 @@ namespace Mono.Debugging.Soft
 		{
 			current_threads = null;
 			current_thread = null;
-			procs = null;
 			activeExceptionsByThread.Clear ();
 		}
 		
@@ -582,6 +734,11 @@ namespace Mono.Debugging.Soft
 				return;
 
 			disposed = true;
+
+			lock (subprocessesStarting) {
+				foreach (var s in subprocessesStarting)
+					s.Shutdown ();
+			}
 
 			if (!HasExited)
 				EndLaunch ();
@@ -2342,6 +2499,8 @@ namespace Mono.Debugging.Soft
 				}
 			}
 			if ((bp.HitAction & HitAction.CustomAction) != HitAction.None) {
+				if (HandleProcessStartHook (thread, bp))
+					return true;
 				// If custom action returns true, execution must continue
 				return binfo.RunCustomBreakpointAction (bp.CustomActionId);
 			}
