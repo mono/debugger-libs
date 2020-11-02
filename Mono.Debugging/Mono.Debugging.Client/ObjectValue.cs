@@ -191,6 +191,12 @@ namespace Mono.Debugging.Client
 				name = ""
 			};
 		}
+
+		public DebuggerSession DebuggerSession {
+			get {
+				return parentFrame?.DebuggerSession;
+			}
+		}
 		
 		/// <summary>
 		/// Gets the flags of the value

@@ -184,6 +184,17 @@ namespace Mono.Debugging.Evaluation
 			SetRawValue (path, value, options);
 		}
 
+		public object GetRawValue (EvaluationOptions options)
+		{
+			var ctx = GetContext (options);
+			return ctx.Adapter.ToRawValue (ctx, this, GetValue (ctx));
+		}
+
+		public void SetRawValue (object value, EvaluationOptions options)
+		{
+			SetRawValue (new ObjectPath (), value, options);
+		}
+
 		protected virtual void SetRawValue (ObjectPath path, object value, EvaluationOptions options)
 		{
 			var ctx = GetContext (options);

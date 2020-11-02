@@ -209,5 +209,7 @@ namespace Mono.Debugging.Soft
 		public string MonoExecutableFileName { get; set; }
 		
 		public override ISoftDebuggerConnectionProvider ConnectionProvider { get { return null; } }
+
+		internal Mono.Debugger.Soft.LaunchOptions.ProcessLauncher CustomProcessLauncher { get; set; }
 	}
 }

@@ -43,5 +43,6 @@ namespace Mono.Debugging.Client
 		public bool StepOverPropertiesAndOperators { get; set; }
 		public bool ProjectAssembliesOnly { get; set; }
 		public AutomaticSourceDownload AutomaticSourceLinkDownload { get; set; }
+		public bool DebugSubprocesses { get; set; }
 	}
 }
