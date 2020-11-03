@@ -163,43 +163,6 @@ namespace Mono.Debugging.Client
 
 			return cp;
 		}
-
-		public IgnoreEvent AddIgnoreHere (string type, string file, int line, int col)
-		{
-			if (string.IsNullOrEmpty (type))
-				throw new ArgumentException (nameof (type));
-
-			if (string.IsNullOrEmpty (file))
-				throw new ArgumentException (nameof (file));
-
-			if (line < 1)
-				throw new ArgumentOutOfRangeException (nameof (line));
-
-			if (col < 1)
-				throw new ArgumentOutOfRangeException (nameof (col));
-
-			if (IsReadOnly)
-				return null;
-
-			var ignore = new IgnoreBreak (type, file, line, col);
-			Add (ignore);
-
-			return ignore;
-		}
-
-		public IgnoreEvent AddIgnoreEverywhere (string type)
-		{
-			if (string.IsNullOrEmpty (type))
-				throw new ArgumentException (nameof (type));
-
-			if (IsReadOnly)
-				return null;
-
-			var ignore = new IgnoreCatch (type);
-			Add (ignore);
-
-			return ignore;
-		}
 		
 		public bool Remove (string filename, int line, int column)
 		{
@@ -497,26 +460,6 @@ namespace Mono.Debugging.Client
 			foreach (var bp in loadedBreakpoints) {
 				OnBreakEventAdded (bp);
 			}
-		}
-
-		public bool ShouldIgnore (SourceLocation loc, string type)
-		{
-			foreach (var b in breakpoints) {
-				var ignore = b as IgnoreBreak;
-				if (ignore != null) {
-					// TODO: In ExceptionCaughtAdornmentManager we set column to 1. If we can figure out
-					//       the correct column then we can check it here.
-					if (ignore.Enabled && ignore.FileName == loc.FileName && ignore.Line == loc.Line)
-						return true;
-				}
-
-				var ic = b as IgnoreCatch;
-				if (ic != null) {
-					if (ic.Enabled && !string.IsNullOrEmpty(ic.ExceptionName) && ic.ExceptionName == type)
-						return true;
-				}
-			}
-			return false;
 		}
 
 		[DllImport ("libc")]

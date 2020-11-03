@@ -50,7 +50,6 @@ namespace Mono.Debugging.Client
 		string traceExpression;
 		int hitCount;
 		string lastTraceValue;
-		IList<IgnoreEvent> ignores;
 		
 		public BreakEvent ()
 		{
@@ -89,17 +88,6 @@ namespace Mono.Debugging.Client
 			s = elem.GetAttribute ("breakIfConditionChanges");
 			if (!string.IsNullOrEmpty (s) && !bool.TryParse (s, out breakIfConditionChanges))
 				breakIfConditionChanges = false;
-
-			var loadedIgnores = new List<IgnoreEvent> ();
-			foreach (XmlNode n in elem.ChildNodes) {
-				var e = n as XmlElement;
-				if (e == null)
-					continue;
-				IgnoreEvent ignore = IgnoreEvent.FromXml (elem, baseDir);
-				if (ignore != null)
-					loadedIgnores.Add (ignore);
-				ignores = loadedIgnores;
-			}
 		}
 		
 		internal virtual XmlElement ToXml (XmlDocument doc, string baseDir)
@@ -123,15 +111,6 @@ namespace Mono.Debugging.Client
 					elem.SetAttribute ("breakIfConditionChanges", "True");
 			}
 
-			if (ignores != null && ignores.Any ()) {
-				using (var sw = new StringWriter (new StringBuilder ())) {
-					var xs = new XmlSerializer (typeof (IList<IgnoreEvent>));
-					xs.Serialize (sw, ignores);
-
-					elem.SetAttribute ("ignores", sw.ToString ());
-				}
-			}
-
 			return elem;
 		}
 		
@@ -143,10 +122,6 @@ namespace Mono.Debugging.Client
 				return new Breakpoint (elem, baseDir);
 			if (elem.Name == "Catchpoint")
 				return new Catchpoint (elem, baseDir);
-			if (elem.Name == "IgnoreBreak")
-				return new IgnoreBreak (elem, baseDir);
-			if (elem.Name == "IgnoreCatch")
-				return new IgnoreCatch (elem, baseDir);
 
 			return null;
 		}
@@ -171,11 +146,6 @@ namespace Mono.Debugging.Client
 				if (store != null)
 					store.EnableBreakEvent (this, value);
 			}
-		}
-
-		public IList<IgnoreEvent> Ignores {
-			get => ignores;
-			set => ignores = value;
 		}
 
 		/// <summary>

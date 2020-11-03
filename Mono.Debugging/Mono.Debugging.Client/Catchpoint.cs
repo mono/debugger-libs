@@ -26,6 +26,8 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Xml;
 
 namespace Mono.Debugging.Client
@@ -55,6 +57,9 @@ namespace Mono.Debugging.Client
 				// fall back to the old default behavior
 				includeSubclasses = true;
 			}
+			foreach (var child in elem.ChildNodes.OfType<XmlElement>()) {
+				Ignored.Add (child.InnerText);
+			}
 		}
 
 		internal override XmlElement ToXml (XmlDocument doc, string baseDir)
@@ -62,7 +67,11 @@ namespace Mono.Debugging.Client
 			var elem = base.ToXml (doc, baseDir);
 			elem.SetAttribute ("exceptionName", exceptionName);
 			elem.SetAttribute ("includeSubclasses", includeSubclasses.ToString ());
-
+			foreach (var item in Ignored) {
+				var newChild = doc.CreateElement ("Ignore");
+				newChild.InnerText = item;
+				elem.AppendChild (newChild);
+			}
 			return elem;
 		}
 
@@ -77,6 +86,13 @@ namespace Mono.Debugging.Client
 			set { includeSubclasses = value; }
 		}
 
+		public HashSet<string> Ignored { get; private set; } = new HashSet<string> ();
+
+		public bool ShouldIgnore(string type, string locationSignature)
+		{
+			return Ignored.Contains (type) || Ignored.Contains (locationSignature);
+		}
+
 		public override void CopyFrom (BreakEvent ev)
 		{
 			base.CopyFrom (ev);
@@ -84,7 +100,12 @@ namespace Mono.Debugging.Client
 			var cp = (Catchpoint) ev;
 			exceptionName = cp.exceptionName;
 			includeSubclasses = cp.includeSubclasses;
+			Ignored = cp.Ignored;
 		}
 
+		public void AddIgnore (string ignore)
+		{
+			Ignored.Add (ignore);
+		}
 	}
 }

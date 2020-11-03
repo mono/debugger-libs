@@ -2024,6 +2024,25 @@ namespace Mono.Debugging.Soft
 			return false;
 		}
 
+		bool ShouldIgnore (ExceptionEvent ev)
+		{
+			BreakInfo binfo;
+			if (!breakpoints.TryGetValue (ev.Request, out binfo))
+				return false;
+
+			var cp = binfo.BreakEvent as Catchpoint;
+			if (cp == null)
+				return false;
+
+			var backtrace = GetThreadBacktrace (ev.Thread);
+			if (backtrace.FrameCount == 0) {
+				return cp.ShouldIgnore (ev.Exception.Type.FullName, null);
+			} else {
+				var frame = backtrace.GetFrame (0);
+				return cp.ShouldIgnore (ev.Exception.Type.FullName, frame.GetLocationSignature ());
+			}
+		}
+
 		void HandleBreakEventSet (Event[] es, bool dequeuing)
 		{
 			if (dequeuing && HasExited)
@@ -2051,7 +2070,7 @@ namespace Mono.Debugging.Soft
 				} else {
 					// Set the exception for this thread so that CatchPoint Print message(tracing) of {$exception} works
 					activeExceptionsByThread [es[0].Thread.ThreadId] = exception;
-					if (ExceptionInUserCode(ev) && !HandleBreakpoint (es [0].Thread, ev.Request)) {
+					if (ExceptionInUserCode(ev) && !ShouldIgnore(ev) && !HandleBreakpoint (es [0].Thread, ev.Request)) {
 						etype = TargetEventType.ExceptionThrown;
 						resume = false;
 					}

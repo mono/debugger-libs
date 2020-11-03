@@ -133,6 +133,11 @@ namespace Mono.Debugging.Client
 			get { return GetFullStackFrameText (); }
 		}
 
+		public string GetLocationSignature ()
+		{
+			return $"{Path.GetFileNameWithoutExtension (this.FullModuleName)}!{this.SourceLocation.MethodName}:{this.Address}";
+		}
+
 		public string GetFullStackFrameText ()
 		{
 			return GetFullStackFrameText (session.EvaluationOptions);
