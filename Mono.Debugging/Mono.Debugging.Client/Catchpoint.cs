@@ -107,5 +107,10 @@ namespace Mono.Debugging.Client
 		{
 			Ignored.Add (ignore);
 		}
+
+		public void RemoveIgnore (string ignore)
+		{
+			Ignored.Remove (ignore);
+		}
 	}
 }
