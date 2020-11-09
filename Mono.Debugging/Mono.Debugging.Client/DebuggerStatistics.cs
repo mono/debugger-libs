@@ -27,6 +27,8 @@
 using System;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 
 namespace Mono.Debugging.Client
 {
@@ -38,6 +40,11 @@ namespace Mono.Debugging.Client
 		readonly object mutex = new object ();
 		TimeSpan minTime = TimeSpan.MaxValue;
 		TimeSpan maxTime, totalTime;
+
+		public DebuggerStatistics(string name)
+		{
+			Name = name;
+		}
 
 		public double MaxTime {
 			get { return maxTime.TotalMilliseconds; }
@@ -59,12 +66,11 @@ namespace Mono.Debugging.Client
 		public int TimingsCount { get; private set; }
 
 		public int FailureCount { get; private set; }
+		public string Name { get; }
 
-		public DebuggerTimer StartTimer ()
+		public DebuggerTimer StartTimer (string name)
 		{
-			var timer = new DebuggerTimer (this);
-			timer.Start ();
-			return timer;
+			return new DebuggerTimer (this, name);
 		}
 
 		int GetBucketIndex (TimeSpan duration)
@@ -120,10 +126,18 @@ namespace Mono.Debugging.Client
 		readonly DebuggerStatistics stats;
 		readonly Stopwatch stopwatch;
 
-		public DebuggerTimer (DebuggerStatistics stats)
+		static readonly TraceListener traceListener = new TraceSource (nameof (DebuggerTimer)).Listeners.OfType<TraceListener> ().FirstOrDefault (l => l.Name == nameof (DebuggerTimer));
+		static int traceSeq = 0;
+		int traceId;
+
+		public DebuggerTimer (DebuggerStatistics stats, string name)
 		{
-			stopwatch = new Stopwatch ();
+			stopwatch = Stopwatch.StartNew ();
 			this.stats = stats;
+			if (stats != null && traceListener != null) {
+				traceId = Interlocked.Increment (ref traceSeq);
+				traceListener.TraceEvent (null, stats.Name, TraceEventType.Start, traceId, name);
+			}
 		}
 
 		/// <summary>
@@ -136,19 +150,14 @@ namespace Mono.Debugging.Client
 			get { return stopwatch.Elapsed; }
 		}
 
-		public void Start ()
-		{
-			stopwatch.Start ();
-		}
-
 		public void Stop (bool success)
 		{
 			stopwatch.Stop ();
-
 			Success = success;
 
 			if (stats == null)
 				return;
+			traceListener?.TraceEvent (null, stats.Name, TraceEventType.Stop, traceId, "Stop1");
 
 			if (success)
 				stats.AddTime (stopwatch.Elapsed);
@@ -159,9 +168,9 @@ namespace Mono.Debugging.Client
 		public void Stop (ObjectValue val)
 		{
 			stopwatch.Stop ();
-
 			if (stats == null)
 				return;
+			traceListener?.TraceEvent (null, stats.Name, TraceEventType.Stop, traceId, "Stop2");
 
 			if (val.IsEvaluating || val.IsEvaluatingGroup) {
 				// Do not capture timing - evaluation not finished.
@@ -180,6 +189,7 @@ namespace Mono.Debugging.Client
 
 				if (stats == null)
 					return;
+				traceListener?.TraceEvent (null, stats.Name, TraceEventType.Stop, traceId, "Dispose");
 
 				if (Success)
 					stats.AddTime (stopwatch.Elapsed);
