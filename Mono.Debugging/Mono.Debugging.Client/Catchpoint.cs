@@ -106,11 +106,15 @@ namespace Mono.Debugging.Client
 		public void AddIgnore (string ignore)
 		{
 			Ignored.Add (ignore);
+			IgnoreListChanged?.Invoke ();
 		}
 
 		public void RemoveIgnore (string ignore)
 		{
 			Ignored.Remove (ignore);
+			IgnoreListChanged?.Invoke ();
 		}
+
+		public event Action IgnoreListChanged;
 	}
 }
