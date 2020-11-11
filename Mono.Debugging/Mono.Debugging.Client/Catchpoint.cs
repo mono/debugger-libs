@@ -85,7 +85,7 @@ namespace Mono.Debugging.Client
 			set { includeSubclasses = value; }
 		}
 
-		public HashSet<string> Ignored { get; private set; } = new HashSet<string> ();
+		public HashSet<string> Ignored { get; private set; } = new HashSet<string> (StringComparer.Ordinal);
 
 		public bool ShouldIgnore(string type, string locationSignature)
 		{
