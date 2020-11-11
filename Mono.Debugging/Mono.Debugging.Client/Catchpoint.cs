@@ -67,14 +67,13 @@ namespace Mono.Debugging.Client
 			var elem = base.ToXml (doc, baseDir);
 			elem.SetAttribute ("exceptionName", exceptionName);
 			elem.SetAttribute ("includeSubclasses", includeSubclasses.ToString ());
-			foreach (var item in Ignored) {
+			foreach (var item in Ignored.OrderBy(s => s)) {
 				var newChild = doc.CreateElement ("Ignore");
 				newChild.InnerText = item;
 				elem.AppendChild (newChild);
 			}
 			return elem;
 		}
-
 		
 		public string ExceptionName {
 			get { return exceptionName; }

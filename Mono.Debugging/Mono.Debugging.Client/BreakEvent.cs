@@ -26,12 +26,7 @@
 //
 
 using System;
-using System.IO;
 using System.Xml;
-using System.Linq;
-using System.Text;
-using System.Xml.Serialization;
-using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
