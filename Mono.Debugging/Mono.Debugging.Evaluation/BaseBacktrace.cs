@@ -58,7 +58,7 @@ namespace Mono.Debugging.Evaluation
 				var val = Adaptor.CreateObjectValueAsync ("Local Variables", ObjectValueFlags.EvaluatingGroup, delegate {
 					frame = GetFrameInfo (frameIndex, options, true);
 					foreach (var local in frame.LocalVariables) {
-						using (var timer = StartEvaluationTimer ()) {
+						using (var timer = StartEvaluationTimer (local.Name)) {
 							var localValue = local.CreateObjectValue (false, options);
 							timer.Stop (localValue);
 							list.Add (localValue);
@@ -86,7 +86,7 @@ namespace Mono.Debugging.Evaluation
 				var value = Adaptor.CreateObjectValueAsync ("Parameters", ObjectValueFlags.EvaluatingGroup, delegate {
 					frame = GetFrameInfo (frameIndex, options, true);
 					foreach (var param in frame.Parameters) {
-						using (var timer = StartEvaluationTimer ()) {
+						using (var timer = StartEvaluationTimer (param.Name)) {
 							var paramValue = param.CreateObjectValue (false, options);
 							timer.Stop (paramValue);
 							values.Add (paramValue);
@@ -115,7 +115,7 @@ namespace Mono.Debugging.Evaluation
 					ObjectValue[] values;
 
 					if (frame.This != null) {
-						using (var timer = StartEvaluationTimer ()) {
+						using (var timer = StartEvaluationTimer ("this")) {
 							var thisValue = frame.This.CreateObjectValue (false, options);
 							timer.Stop (thisValue);
 							values = new [] { thisValue };
@@ -141,7 +141,7 @@ namespace Mono.Debugging.Evaluation
 					ObjectValue[] values;
 
 					if (frame.Exception != null) {
-						using (var timer = StartEvaluationTimer ()) {
+						using (var timer = StartEvaluationTimer ("Exception")) {
 							var exceptionValue = frame.Exception.CreateObjectValue (false, options);
 							timer.Stop (exceptionValue);
 							values = new [] { exceptionValue };
@@ -170,7 +170,7 @@ namespace Mono.Debugging.Evaluation
 					ObjectValue[] values;
 
 					if (frame.Exception != null) {
-						using (var timer = StartEvaluationTimer ()) {
+						using (var timer = StartEvaluationTimer ("Exception")) {
 							var exceptionValue = frame.Exception.Exception.CreateObjectValue (false, options);
 							timer.Stop (exceptionValue);
 							values = new [] { exceptionValue };
@@ -279,14 +279,9 @@ namespace Mono.Debugging.Evaluation
 			return finfo;
 		}
 
-		DebuggerTimer StartEvaluationTimer ()
+		DebuggerTimer StartEvaluationTimer (string name)
 		{
-			var evaluationStats = Adaptor.DebuggerSession?.EvaluationStats;
-
-			var timer = new DebuggerTimer (evaluationStats);
-			timer.Start ();
-
-			return timer;
+			return new DebuggerTimer (Adaptor.DebuggerSession?.EvaluationStats, name);
 		}
 	}
 	

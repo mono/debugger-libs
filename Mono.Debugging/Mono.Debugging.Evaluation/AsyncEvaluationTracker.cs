@@ -80,7 +80,7 @@ namespace Mono.Debugging.Evaluation
 						// be done elsewhere.
 						val = evaluator ();
 					} else {
-						using (var timer = session.EvaluationStats.StartTimer ()) {
+						using (var timer = session.EvaluationStats.StartTimer (name)) {
 							val = evaluator ();
 							timer.Stop (val);
 						}
