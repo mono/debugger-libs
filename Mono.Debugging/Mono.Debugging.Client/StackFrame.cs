@@ -133,6 +133,14 @@ namespace Mono.Debugging.Client
 			get { return GetFullStackFrameText (); }
 		}
 
+		/// <summary>
+		/// Used to ignore a first-chance exception in the given location (module, type, method and IL offset).
+		/// </summary>
+		public string GetLocationSignature ()
+		{
+			return $"{Path.GetFileNameWithoutExtension (this.FullModuleName)}!{this.SourceLocation.MethodName}:{this.Address}";
+		}
+
 		public string GetFullStackFrameText ()
 		{
 			return GetFullStackFrameText (session.EvaluationOptions);

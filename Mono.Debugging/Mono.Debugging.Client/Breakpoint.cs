@@ -26,8 +26,8 @@
 //
 
 using System;
-using System.Xml;
 using System.IO;
+using System.Xml;
 
 namespace Mono.Debugging.Client
 {
@@ -39,7 +39,7 @@ namespace Mono.Debugging.Client
 		string fileName;
 		int column;
 		int line;
-		
+
 		public Breakpoint (string fileName, int line, int column)
 		{
 			FileName = fileName;
@@ -111,7 +111,7 @@ namespace Mono.Debugging.Client
 			get { return adjustedLine == -1 ? line : adjustedLine; }
 			protected set { line = value; }
 		}
-		
+
 		public void SetColumn (int newColumn)
 		{
 			ResetAdjustedColumn ();

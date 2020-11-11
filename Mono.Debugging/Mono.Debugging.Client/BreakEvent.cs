@@ -105,6 +105,7 @@ namespace Mono.Debugging.Client
 				if (breakIfConditionChanges)
 					elem.SetAttribute ("breakIfConditionChanges", "True");
 			}
+
 			return elem;
 		}
 		
