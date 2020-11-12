@@ -14,7 +14,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
+    <DebugType>portable</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;MDBG_FEATURE_INTEROP,MDBGENG_FEATURE_TRACECALLS,MDBGENG_FEATURE_CAPTUREOUTPUT,CORAPI_EXPOSE_RAW_INTERFACES</DefineConstants>
