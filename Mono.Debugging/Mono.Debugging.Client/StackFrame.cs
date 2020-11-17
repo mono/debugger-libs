@@ -20,7 +20,7 @@ namespace Mono.Debugging.Client
 		bool isExternalCode;
 		bool isDebuggerHidden;
 		bool hasDebugInfo;
-		string fullModuleName;
+		protected string fullModuleName;
 		string fullTypeName;
 		
 		[NonSerialized]
