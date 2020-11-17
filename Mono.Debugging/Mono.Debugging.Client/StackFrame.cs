@@ -20,7 +20,6 @@ namespace Mono.Debugging.Client
 		bool isExternalCode;
 		bool isDebuggerHidden;
 		bool hasDebugInfo;
-		protected string fullModuleName;
 		string fullTypeName;
 		
 		[NonSerialized]
@@ -39,7 +38,7 @@ namespace Mono.Debugging.Client
 			this.isExternalCode = isExternalCode;
 			this.isDebuggerHidden = isDebuggerHidden;
 			this.hasDebugInfo = hasDebugInfo;
-			this.fullModuleName = fullModuleName;
+			this.FullModuleName = fullModuleName;
 			this.fullTypeName = fullTypeName;
 		}
 
@@ -117,9 +116,7 @@ namespace Mono.Debugging.Client
 			get { return hasDebugInfo; }
 		}
 		
-		public string FullModuleName {
-			get { return fullModuleName; }
-		}
+		public string FullModuleName { get; protected set; }
 		
 		public string FullTypeName {
 			get { return fullTypeName; }
