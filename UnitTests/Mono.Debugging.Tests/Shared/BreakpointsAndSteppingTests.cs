@@ -266,10 +266,7 @@ namespace Mono.Debugging.Tests
 			//entering EmptyTestMethod
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
-			else
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
@@ -313,10 +310,7 @@ namespace Mono.Debugging.Tests
 			//entering EmptyTestMethod
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
-			else
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
@@ -340,10 +334,7 @@ namespace Mono.Debugging.Tests
 			//entering EmptyTestMethod
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
-			else
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
@@ -367,10 +358,7 @@ namespace Mono.Debugging.Tests
 			//entering EmptyTestMethod
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
-			else
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
@@ -394,10 +382,7 @@ namespace Mono.Debugging.Tests
 			//entering EmptyTestMethod
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
-			else
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
@@ -434,50 +419,35 @@ namespace Mono.Debugging.Tests
 			CheckPosition ("02757896-0e76-40b8-8235-d09d2110da78");
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
 			StepIn ("02757896-0e76-40b8-8235-d09d2110da78");
 			StepIn ("02757896-0e76-40b8-8235-d09d2110da78", 1);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
-			else
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
-			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (3).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (4).IsExternalCode);
-			else
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (4).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (3).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (4).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (5).IsExternalCode);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
-			else
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
-			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (3).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (3).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (4).IsExternalCode);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
-			else
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (3).IsExternalCode);
-			else
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (3).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
+			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (3).IsExternalCode);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.AreEqual (!IsVsDebugger, Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda", 1);
 			StepIn ("02757896-0e76-40b8-8235-d09d2110da78", 1);
@@ -553,10 +523,7 @@ namespace Mono.Debugging.Tests
 			CheckPosition ("707ccd6c-3464-4700-8487-a83c948aa0c3");
 			StepIn ("49326780-f51b-4510-a52c-03e7af442dda");
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsExternalCode);
-			if (IsVsDebugger)
-				Assert.IsTrue (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
-			else
-				Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
+			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (2).IsExternalCode);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (0).IsDebuggerHidden);
 			Assert.IsFalse (Session.ActiveThread.Backtrace.GetFrame (1).IsDebuggerHidden);
