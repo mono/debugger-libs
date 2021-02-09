@@ -1,92 +1,41 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{DE40756E-57F6-4AF2-B155-55E3A88CCED8}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>Mono.Debugging.Soft</RootNamespace>
-    <AssemblyName>Mono.Debugging.Soft</AssemblyName>
+    <TargetFramework>net472</TargetFramework>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Mono.Debugging\mono.debugging.snk</AssemblyOriginatorKeyFile>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <NoWarn>1591;1573</NoWarn>
+    <DocumentationFile>bin\$(Configuration)\Mono.Debugging.Soft.xml</DocumentationFile>
     <DebugSymbols>True</DebugSymbols>
     <DebugType>embedded</DebugType>
-    <Optimize>False</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <NoWarn>1591;1573</NoWarn>
-    <DocumentationFile>bin\Debug\Mono.Debugging.Soft.xml</DocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>embedded</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <DebugSymbols>true</DebugSymbols>
-    <NoWarn>1591;1573</NoWarn>
-    <DocumentationFile>bin\Release\Mono.Debugging.Soft.xml</DocumentationFile>
-  </PropertyGroup>
+
+  <Import Project="..\Mono.Debugging.settings" />
+
   <ItemGroup>
-    <ProjectReference Include="..\Mono.Debugging\Mono.Debugging.csproj">
-      <Project>{90C99ADB-7D4B-4EB4-98C2-40BD1B14C7D2}</Project>
-      <Name>Mono.Debugging</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\Mono.Debugger.Soft\Mono.Debugger.Soft.csproj">
-      <Project>{372E8E3E-29D5-4B4D-88A2-4711CD628C4E}</Project>
-      <Name>Mono.Debugger.Soft</Name>
-      <Private>False</Private>
-    </ProjectReference>
+    <ProjectReference Include="..\Mono.Debugging\Mono.Debugging.csproj" />
+    <ProjectReference Include="..\Mono.Debugger.Soft\Mono.Debugger.Soft.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="ArrayAdaptor.cs" />
-    <Compile Include="FieldValueReference.cs" />
-    <Compile Include="InstructionBreakpoint.cs" />
-    <Compile Include="PropertyValueReference.cs" />
-    <Compile Include="SoftDebuggerSession.cs" />
-    <Compile Include="VariableValueReference.cs" />
-    <Compile Include="SoftEvaluationContext.cs" />
-    <Compile Include="SoftDebuggerAdaptor.cs" />
-    <Compile Include="SoftDebuggerBacktrace.cs" />
-    <Compile Include="SoftDebuggerStartInfo.cs" />
-    <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="StringAdaptor.cs" />
-    <Compile Include="SoftValueReference.cs" />
-    <Compile Include="LocalVariableBatch.cs" />
-    <Compile Include="ThisValueReference.cs" />
-    <Compile Include="FieldReferenceBatch.cs" />
-    <Compile Include="PortablePdbData.cs" />
-    <Compile Include="SourceLinkMap.cs" />
-    <Compile Include="JsonSourceLink.cs" />
-    <Compile Include="Subprocess.cs" />
-  </ItemGroup>
+
   <PropertyGroup>
     <NuGetVersionRoslyn Condition="$(NuGetVersionRoslyn) == ''">2.10.0</NuGetVersionRoslyn>
     <NuGetVersionCecil Condition="$(NuGetVersionCecil) == ''">0.10.1</NuGetVersionCecil>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Mono.Cecil" Version="$(NuGetVersionCecil)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" />
-    <PackageReference Include="Newtonsoft.Json">
-      <Version>10.0.3</Version>
-    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
   </ItemGroup>
+
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
     <Reference Condition=" '$(OS)' != 'Windows_NT' " Include="Mono.Posix" />
     <PackageReference Condition=" '$(OS)' == 'Windows_NT' " Include="Mono.Posix-4.5" Version="4.5.0" />
   </ItemGroup>
-  <Import Project="..\Mono.Debugging.settings" />
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+
   <ItemGroup>
     <None Include="Makefile.am" />
   </ItemGroup>
+
 </Project>
