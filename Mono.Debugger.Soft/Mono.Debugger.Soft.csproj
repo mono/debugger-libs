@@ -10,6 +10,7 @@
     <DebugType>embedded</DebugType>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
+    <AssemblyVersion>0.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <Import Project="..\Mono.Debugging.settings" />
