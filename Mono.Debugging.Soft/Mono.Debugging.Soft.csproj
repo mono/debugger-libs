@@ -8,6 +8,7 @@
     <DocumentationFile>bin\$(Configuration)\Mono.Debugging.Soft.xml</DocumentationFile>
     <DebugSymbols>True</DebugSymbols>
     <DebugType>embedded</DebugType>
+    <AssemblyVersion>0.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <Import Project="..\Mono.Debugging.settings" />
