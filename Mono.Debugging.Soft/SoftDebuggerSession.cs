@@ -3304,6 +3304,19 @@ namespace Mono.Debugging.Soft
 			return lines.ToArray ();
 		}
 
+		public void ApplyChanges (ModuleMirror module, byte[] metadataDelta, byte[] ilDelta, byte[] pdbDelta = null)
+		{
+			var rootDomain = VirtualMachine.RootDomain;
+			var metadataArray = rootDomain.CreateByteArray (metadataDelta);
+			var ilArray = rootDomain.CreateByteArray (ilDelta);
+			Value pdbArray;
+			if (pdbDelta == null)
+				pdbArray = VirtualMachine.CreateValue (null);
+			else
+				pdbArray = rootDomain.CreateByteArray (pdbDelta);
+
+			module.ApplyChanges (metadataArray, ilArray, pdbArray);
+		}
 		static string EscapeString (string text)
 		{
 			var escaped = new StringBuilder ();
