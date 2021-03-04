@@ -83,20 +83,20 @@ namespace Mono.Debugging.Evaluation
 			return expr.AcceptVisitor (evaluator);
 		}
 
-		public override string Resolve (DebuggerSession session, SourceLocation location, string exp)
+		public override string Resolve (DebuggerSession session, EvaluationContext ctx, SourceLocation location, string expression)
 		{
-			return Resolve (session, location, exp, false);
+			return Resolve (session, ctx, location, expression, false);
 		}
 
-		string Resolve (DebuggerSession session, SourceLocation location, string expression, bool tryTypeOf)
+		string Resolve (DebuggerSession session, EvaluationContext ctx, SourceLocation location, string expression, bool tryTypeOf)
 		{
 			expression = expression.Trim ();
 
 			if (expression.Length > 0 && expression[0] == '?')
-				return "?" + Resolve (session, location, expression.Substring (1).Trim ());
+				return "?" + Resolve (session, ctx, location, expression.Substring (1).TrimStart ());
 
 			if (expression.Length > 3 && expression.StartsWith ("var", StringComparison.Ordinal) && char.IsWhiteSpace (expression[3]))
-				return "var " + Resolve (session, location, expression.Substring (4).Trim (' ', '\t'));
+				return "var " + Resolve (session, ctx, location, expression.Substring (4).TrimStart ());
 
 			expression = ReplaceExceptionTag (expression, session.Options.EvaluationOptions.CurrentExceptionTag);
 
@@ -104,7 +104,7 @@ namespace Mono.Debugging.Evaluation
 			if (expr == null)
 				return expression;
 
-			var resolver = new NRefactoryExpressionResolverVisitor (session, location, expression);
+			var resolver = new NRefactoryExpressionResolverVisitor (this, session, ctx, location, expression);
 			expr.AcceptVisitor (resolver);
 
 			string resolved = resolver.GetResolvedExpression ();
@@ -112,7 +112,7 @@ namespace Mono.Debugging.Evaluation
 				// This is a hack to be able to parse expressions such as "List<string>". The NRefactory parser
 				// can parse a single type name, so a solution is to wrap it around a typeof(). We do it if
 				// the evaluation fails.
-				string res = Resolve (session, location, "typeof(" + expression + ")", true);
+				string res = Resolve (session, ctx, location, "typeof(" + expression + ")", true);
 				return res.Substring (7, res.Length - 8);
 			}
 

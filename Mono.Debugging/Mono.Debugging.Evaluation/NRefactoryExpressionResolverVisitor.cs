@@ -24,6 +24,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Linq;
 using System.Text;
 using System.Collections.Generic;
 
@@ -38,8 +39,10 @@ namespace Mono.Debugging.Evaluation
 	public class NRefactoryExpressionResolverVisitor : DepthFirstAstVisitor
 	{
 		readonly List<Replacement> replacements = new List<Replacement> ();
+		readonly ExpressionEvaluator evaluator;
 		readonly SourceLocation location;
 		readonly DebuggerSession session;
+		readonly EvaluationContext ctx;
 		readonly string expression;
 		string parentType;
 
@@ -50,11 +53,13 @@ namespace Mono.Debugging.Evaluation
 			public int Length;
 		}
 
-		public NRefactoryExpressionResolverVisitor (DebuggerSession session, SourceLocation location, string expression)
+		public NRefactoryExpressionResolverVisitor (ExpressionEvaluator evaluator, DebuggerSession session, EvaluationContext ctx, SourceLocation location, string expression)
 		{
 			this.expression = expression.Replace ("\n", "").Replace ("\r", "");
+			this.evaluator = evaluator;
 			this.session = session;
 			this.location = location;
+			this.ctx = ctx;
 		}
 
 		internal string GetResolvedExpression ()
@@ -128,8 +133,17 @@ namespace Mono.Debugging.Evaluation
 
 			int length = identifierExpression.IdentifierToken.EndLocation.Column - identifierExpression.IdentifierToken.StartLocation.Column;
 			int offset = identifierExpression.IdentifierToken.StartLocation.Column - 1;
+			var name = identifierExpression.Identifier;
 
-			ReplaceType (identifierExpression.Identifier, identifierExpression.TypeArguments.Count, offset, length);
+			// check if the identifier is a local variable or a member variable
+			if (evaluator.GetLocalVariable (ctx, name) != null)
+				return;
+
+			var thisReference = evaluator.GetThisReference (ctx);
+			if (thisReference != null && thisReference.GetChild (name, ctx.Options) != null)
+				return;
+
+			ReplaceType (name, identifierExpression.TypeArguments.Count, offset, length);
 		}
 
 		public override void VisitTypeReferenceExpression (TypeReferenceExpression typeReferenceExpression)

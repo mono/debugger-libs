@@ -183,11 +183,16 @@ namespace Mono.Debugging.Evaluation
 			get { return true; }
 		}
 
-		public abstract string Resolve (DebuggerSession session, SourceLocation location, string expression);
+		public abstract string Resolve (DebuggerSession session, EvaluationContext ctx, SourceLocation location, string expression);
 
 		public virtual IEnumerable<ValueReference> GetLocalVariables (EvaluationContext ctx)
 		{
 			return ctx.Adapter.GetLocalVariables (ctx);
+		}
+
+		public virtual ValueReference GetLocalVariable (EvaluationContext ctx, string name)
+		{
+			return ctx.Adapter.GetLocalVariable (ctx, name);
 		}
 
 		public virtual ValueReference GetThisReference (EvaluationContext ctx)
@@ -198,6 +203,11 @@ namespace Mono.Debugging.Evaluation
 		public virtual IEnumerable<ValueReference> GetParameters (EvaluationContext ctx)
 		{
 			return ctx.Adapter.GetParameters (ctx);
+		}
+
+		public virtual ValueReference GetParameter (EvaluationContext ctx, string name)
+		{
+			return ctx.Adapter.GetParameter (ctx, name);
 		}
 
 		public virtual ValueReference GetCurrentException (EvaluationContext ctx)

@@ -1,5 +1,6 @@
 
 using Mono.Debugging.Client;
+using Mono.Debugging.Evaluation;
 
 namespace Mono.Debugging.Backend
 {
@@ -12,6 +13,7 @@ namespace Mono.Debugging.Backend
 		ObjectValue GetThisReference (int frameIndex, EvaluationOptions options);
 		ExceptionInfo GetException (int frameIndex, EvaluationOptions options);
 		ObjectValue[] GetAllLocals (int frameIndex, EvaluationOptions options);
+		EvaluationContext GetEvaluationContext (int frameIndex, EvaluationOptions options);
 		ObjectValue[] GetExpressionValues (int frameIndex, string[] expressions, EvaluationOptions options);
 		CompletionData GetExpressionCompletionData (int frameIndex, string exp);
 		AssemblyLine[] Disassemble (int frameIndex, int firstLine, int count);
