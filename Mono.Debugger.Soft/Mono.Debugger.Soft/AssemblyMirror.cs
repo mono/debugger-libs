@@ -189,7 +189,9 @@ namespace Mono.Debugger.Soft
 			if (HasFetchedPdb)
 				return pdb_blob;
 			
-			vm.CheckProtocolVersion (2, 47);
+			if (!vm.Version.AtLeast (2, 47))
+				return null;
+			
 			var blob = vm.conn.Assembly_GetPdbBlob (id);
 			if (blob != null && blob.Length > 0) {
 				pdb_blob = blob;
