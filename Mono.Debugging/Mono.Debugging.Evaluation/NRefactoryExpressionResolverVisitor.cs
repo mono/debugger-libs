@@ -27,15 +27,17 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 
-using ICSharpCode.NRefactory.CSharp;
+using Microsoft.CodeAnalysis.CSharp;
 
 using Mono.Debugging.Client;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis;
 
 namespace Mono.Debugging.Evaluation
 {
 	// FIXME: if we passed the DebuggerSession and SourceLocation into the NRefactoryExpressionEvaluatorVisitor,
 	// we wouldn't need to do this resolve step.
-	public class NRefactoryExpressionResolverVisitor : DepthFirstAstVisitor
+	public class NRefactoryExpressionResolverVisitor : CSharpSyntaxWalker
 	{
 		readonly List<Replacement> replacements = new List<Replacement> ();
 		readonly SourceLocation location;
@@ -114,55 +116,31 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		void ReplaceType (AstType type)
+		void ReplaceType (SyntaxNode type)
 		{
-			int length = type.EndLocation.Column - type.StartLocation.Column;
-			int offset = type.StartLocation.Column - 1;
+			int length = type.Span.Length;
+			int offset = type.Span.Start;
 
-			ReplaceType (type.ToString (), 0, offset, length);
+			ReplaceType (type.ToString(), 0, offset, length);
 		}
 
-		public override void VisitIdentifierExpression (IdentifierExpression identifierExpression)
+		public override void VisitIdentifierName (IdentifierNameSyntax node)
 		{
-			base.VisitIdentifierExpression (identifierExpression);
+			base.VisitIdentifierName (node);
+			int length = node.Span.Length;
+			int offset = node.Span.Start;
 
-			int length = identifierExpression.IdentifierToken.EndLocation.Column - identifierExpression.IdentifierToken.StartLocation.Column;
-			int offset = identifierExpression.IdentifierToken.StartLocation.Column - 1;
-
-			ReplaceType (identifierExpression.Identifier, identifierExpression.TypeArguments.Count, offset, length);
+			ReplaceType (node.Identifier.ValueText, node.Arity, offset, length);
 		}
 
-		public override void VisitTypeReferenceExpression (TypeReferenceExpression typeReferenceExpression)
+		public override void VisitSimpleBaseType (SimpleBaseTypeSyntax node)
 		{
-			ReplaceType (typeReferenceExpression.Type);
+			ReplaceType (node);
 		}
 
-		public override void VisitComposedType (ComposedType composedType)
+		public override void VisitPredefinedType (PredefinedTypeSyntax node)
 		{
-			// Note: we specifically do not handle this case because the 'base' implementation will eventually
-			// call VisitMemberType() or VisitSimpleType() on the ComposedType.BaseType which is all we really
-			// care to resolve.
-			base.VisitComposedType (composedType);
-		}
-
-		public override void VisitMemberType (MemberType memberType)
-		{
-			base.VisitMemberType (memberType);
-			if (parentType == null)
-				return;
-			int length = memberType.MemberNameToken.EndLocation.Column - memberType.MemberNameToken.StartLocation.Column;
-			int offset = memberType.MemberNameToken.StartLocation.Column - 1;
-			ReplaceType (parentType + "." + memberType.MemberName, memberType.TypeArguments.Count, offset, length, true);
-		}
-
-		public override void VisitSimpleType (SimpleType simpleType)
-		{
-			base.VisitSimpleType (simpleType);
-
-			int length = simpleType.IdentifierToken.EndLocation.Column - simpleType.IdentifierToken.StartLocation.Column;
-			int offset = simpleType.IdentifierToken.StartLocation.Column - 1;
-
-			ReplaceType (simpleType.Identifier, simpleType.TypeArguments.Count, offset, length);
+			ReplaceType (node);
 		}
 	}
 }
