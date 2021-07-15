@@ -33,6 +33,10 @@ namespace Mono.Debugger.Soft
 		internal MethodMirror (VirtualMachine vm, long id) : base (vm, id) {
 		}
 
+		public long GetId() {
+			return id;
+		}
+
 		public string Name {
 			get {
 				if (name == null)
@@ -246,6 +250,13 @@ namespace Mono.Debugger.Soft
 					GetParameters ();
 				return ret_param;
 			}
+		}
+
+		public void ClearCachedLocalsDebugInfo ()
+		{
+			locals = null;
+			debug_info = null;
+			locations = null;
 		}
 
 		public LocalScope [] GetScopes () {

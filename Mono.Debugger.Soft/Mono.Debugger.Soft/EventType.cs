@@ -28,6 +28,8 @@ namespace Mono.Debugger.Soft
 		UserLog = 16,
 		// Fatal error handling
 		Crash = 17,
+		EnCUpdate = 18,
+		MethodUpdate = 19,
 		// Not part of the wire protocol
 		VMDisconnect = 99
 	}

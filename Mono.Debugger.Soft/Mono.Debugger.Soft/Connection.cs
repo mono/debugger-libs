@@ -483,7 +483,9 @@ namespace Mono.Debugger.Soft
 			KEEPALIVE = 14,
 			USER_BREAK = 15,
 			USER_LOG = 16,
-			CRASH = 17
+			CRASH = 17,
+			ENC_UPDATE = 18,
+			METHOD_UPDATE = 19,
 		}
 
 		enum ModifierKind {
@@ -1620,6 +1622,9 @@ namespace Mono.Debugger.Soft
 								//EventHandler.Exception (req_id, thread_id, id, loc);
 							} else if (kind == EventKind.KEEPALIVE) {
 								events [i] = new EventInfo (etype, req_id) { };
+							} else if (kind == EventKind.METHOD_UPDATE) {
+								long id = r.ReadId ();
+								events[i] = new EventInfo (etype, req_id) { ThreadId = thread_id, Id = id };
 							} else {
 								throw new NotImplementedException ("Unknown event kind: " + kind);
 							}

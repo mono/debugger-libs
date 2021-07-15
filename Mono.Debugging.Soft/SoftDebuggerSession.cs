@@ -602,6 +602,9 @@ namespace Mono.Debugging.Soft
 				machine.EnableEvents (EventType.TypeLoad);
 			}
 			
+
+			machine.EnableEvents (EventType.MethodUpdate);
+
 			started = true;
 			
 			/* Wait for the VMStart event */
@@ -1347,6 +1350,17 @@ namespace Mono.Debugging.Soft
 			InsertBreakpoint (bp, bi, bi.Location.Method, bi.Location.ILOffset);
 		}
 
+		void UpdateBreakpoint (Breakpoint bp, BreakInfo bi)
+		{
+			foreach (var req in bi.Requests)
+			{
+				req.Key.Disable ();
+				var request = vm.SetBreakpoint (bi.Location.Method, bi.Location.ILOffset);
+				req.Key.UpdateReqId (request.GetId());
+				req.Key.Enabled = bp.Enabled;
+			}
+		}
+
 		void InsertBreakpoint (Breakpoint bp, BreakInfo bi, MethodMirror method, int ilOffset)
 		{
 			EventRequest request;
@@ -1857,6 +1871,9 @@ namespace Mono.Debugging.Soft
 				break;
 			case EventType.UserLog:
 				HandleUserLogEvents (Array.ConvertAll (es.Events, item => (UserLogEvent)item));
+				break;
+			case EventType.MethodUpdate:
+				HandleMethodUpdateEvents (Array.ConvertAll (es.Events, item => (MethodUpdateEvent)item));
 				break;
 			default:
 				DebuggerLoggingService.LogMessage ("Ignoring unknown debugger event type {0}", type);
@@ -2389,6 +2406,22 @@ namespace Mono.Debugging.Soft
 		{
 			foreach (var ul in events)
 				OnTargetDebug (ul.Level, ul.Category, ul.Message);
+		}
+
+		void HandleMethodUpdateEvents(MethodUpdateEvent[] methods)
+		{
+			foreach (var method in methods)
+			{
+				foreach (var bp in breakpoints) {
+					if (bp.Value.Location.Method.GetId() == method.GetMethod().GetId())
+					{
+						bool dummy = false;
+						var l = FindLocationByMethod (bp.Value.Location.Method, bp.Value.Location.SourceFile, bp.Value.Location.LineNumber, bp.Value.Location.ColumnNumber, ref dummy);
+						bp.Value.Location = l;
+						UpdateBreakpoint ((Breakpoint)bp.Value.BreakEvent, bp.Value);
+					}
+				}
+			}
 		}
 
 		public ObjectMirror GetExceptionObject (ThreadMirror thread)

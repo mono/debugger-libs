@@ -138,5 +138,18 @@ namespace Mono.Debugger.Soft
 			if (vm != m.VirtualMachine)
 				throw new VMMismatchException ();
 		}
+
+		//Used by EnC
+		public void UpdateReqId (int id)
+		{
+			this.id = id;
+			enabled = true;
+		}
+
+		public int GetId ()
+		{
+			return id;
+		}
+
 	}
 }
