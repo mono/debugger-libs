@@ -874,6 +874,9 @@ namespace Mono.Debugger.Soft
 				case EventType.Crash:
 					l.Add (new CrashEvent (vm, req_id, thread_id, ei.Dump, ei.Hash));
 					break;
+				case EventType.MethodUpdate:
+					l.Add (new MethodUpdateEvent (vm, req_id, thread_id, id));
+					break;
 				}
 			}
 			
