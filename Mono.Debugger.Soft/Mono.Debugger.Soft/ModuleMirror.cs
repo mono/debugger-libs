@@ -42,6 +42,8 @@ namespace Mono.Debugger.Soft
 			get {
 				if (guid == Guid.Empty) {
 					ReadInfo ();
+					if (string.IsNullOrEmpty(info.Guid))
+						return Guid.Empty;
 					guid = new Guid (info.Guid);
 				}
 				return guid;
