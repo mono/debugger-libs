@@ -1743,7 +1743,7 @@ namespace Mono.Debugging.Soft
 			var atm = attrType as TypeMirror;
 			var tm = type as TypeMirror;
 
-			while (tm != null) {
+			while (tm != null && atm != null) {
 				if (tm.GetCustomAttributes (atm, false).Any ())
 					return tm;
 
