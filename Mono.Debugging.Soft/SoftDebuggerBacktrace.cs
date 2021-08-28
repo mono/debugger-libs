@@ -175,7 +175,8 @@ namespace Mono.Debugging.Soft
 			if (session.VirtualMachine.Version.AtLeast (2, 21)) {
 				var ctx = GetEvaluationContext (frameIndex, session.EvaluationOptions);
 				var hiddenAttr = session.Adaptor.GetType (ctx, "System.Diagnostics.DebuggerHiddenAttribute") as MDB.TypeMirror;
-				hidden = method.GetCustomAttributes (hiddenAttr, true).Any ();
+				if (hiddenAttr != null)
+					hidden = method.GetCustomAttributes (hiddenAttr, true).Any ();
 			}
 			if (hidden) {
 				external = true;
@@ -184,7 +185,8 @@ namespace Mono.Debugging.Soft
 				if (!external && session.Options.ProjectAssembliesOnly && session.VirtualMachine.Version.AtLeast (2, 21)) {
 					var ctx = GetEvaluationContext (frameIndex, session.EvaluationOptions);
 					var nonUserCodeAttr = session.Adaptor.GetType (ctx, "System.Diagnostics.DebuggerNonUserCodeAttribute") as MDB.TypeMirror;
-					external = method.GetCustomAttributes (nonUserCodeAttr, true).Any ();
+					if (nonUserCodeAttr != null)
+						external = method.GetCustomAttributes (nonUserCodeAttr, true).Any ();
 				}
 			}
 
