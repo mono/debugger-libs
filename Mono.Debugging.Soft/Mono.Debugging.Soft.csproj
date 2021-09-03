@@ -28,7 +28,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+    <PackageReference Include="Mono.Unix" Version="7.0.0-final.1.21369.2" />
   </ItemGroup>
 
   <ItemGroup>
