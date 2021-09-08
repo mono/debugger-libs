@@ -122,19 +122,17 @@ namespace Mono.Debugger.Soft
 				socket.Close ();
 			};
 
-			LaunchCallback c = new LaunchCallback (LaunchInternal);
-			return c.BeginInvoke (p, info, socket, callback, c);
+			var listenTask = LaunchInternalAsync (p, info, socket);
+			listenTask.ContinueWith (t => callback (listenTask));
+			return listenTask;
 		}
 
 		public static VirtualMachine EndLaunch (IAsyncResult asyncResult) {
 			if (asyncResult == null)
 				throw new ArgumentNullException ("asyncResult");
 
-			if (!asyncResult.IsCompleted)
-				asyncResult.AsyncWaitHandle.WaitOne ();
-
-			LaunchCallback cb = (LaunchCallback)asyncResult.AsyncState;
-			return cb.EndInvoke (asyncResult);
+			var listenTask = (Task<VirtualMachine>)asyncResult;
+			return listenTask.Result;
 		}
 
 		public static VirtualMachine Launch (ProcessStartInfo info)
