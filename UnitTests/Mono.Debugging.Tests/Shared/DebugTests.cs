@@ -125,7 +125,7 @@ namespace Mono.Debugging.Tests
 		#endregion
 
 
-		[TestFixtureSetUp]
+		[OneTimeSetUp]
 		public virtual void SetUp ()
 		{
 			SetUpPartial ();
@@ -133,7 +133,7 @@ namespace Mono.Debugging.Tests
 
 		partial void SetUpPartial ();
 
-		[TestFixtureTearDown]
+		[OneTimeTearDown]
 		public virtual void TearDown ()
 		{
 			TearDownPartial ();

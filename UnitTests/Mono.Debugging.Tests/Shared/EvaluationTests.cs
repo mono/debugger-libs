@@ -41,7 +41,7 @@ namespace Mono.Debugging.Tests
 			AllowTargetInvokes = allowTargetInvokes;
 		}
 
-		[TestFixtureSetUp]
+		[OneTimeSetUp]
 		public override void SetUp ()
 		{
 			base.SetUp ();
