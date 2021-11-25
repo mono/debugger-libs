@@ -341,10 +341,10 @@ namespace Mono.Debugger.Soft
 			((ManualResetEvent)r.AsyncWaitHandle).Set ();
 
 			if (r.Callback != null)
-				r.Callback.BeginInvoke (r, null, null);
+				Task.Run (() => r.Callback.Invoke (r));
 		}
 
-	    internal static InvokeResult EndInvokeMethodInternalWithResult (IAsyncResult asyncResult) {
+		internal static InvokeResult EndInvokeMethodInternalWithResult (IAsyncResult asyncResult) {
 			if (asyncResult == null)
 				throw new ArgumentNullException ("asyncResult");
 
@@ -473,7 +473,7 @@ namespace Mono.Debugger.Soft
 				r2.Exception = exc;
 			}
 
-			r.Callback.BeginInvoke (r2, null, null);
+			Task.Run (() => r.Callback.Invoke (r2));
 		}
 	}
 }
