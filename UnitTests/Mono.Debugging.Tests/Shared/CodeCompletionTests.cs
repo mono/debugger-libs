@@ -35,7 +35,7 @@ namespace Mono.Debugging.Tests
 		{
 		}
 
-		[TestFixtureSetUp]
+		[OneTimeSetUp]
 		public override void SetUp ()
 		{
 			base.SetUp ();
