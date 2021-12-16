@@ -39,13 +39,13 @@ namespace Mono.Debugging.Tests
 	{
 		TestDebuggerSession session;
 
-		[TestFixtureSetUp]
+		[OneTimeSetUp]
 		public virtual void SetUp ()
 		{
 			session = new TestDebuggerSession ();
 		}
 
-		[TestFixtureTearDown]
+		[OneTimeTearDown]
 		public virtual void TearDown ()
 		{
 			session.Dispose ();

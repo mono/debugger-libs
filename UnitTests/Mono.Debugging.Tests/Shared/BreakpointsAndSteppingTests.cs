@@ -41,7 +41,7 @@ namespace Mono.Debugging.Tests
 		{
 		}
 
-		[TestFixtureSetUp]
+		[OneTimeSetUp]
 		public override void SetUp ()
 		{
 			base.SetUp ();
@@ -1238,7 +1238,7 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
-		[Ignore]
+		[Ignore("")]
 		public void Bug53371()
 		{
 			InitializeTest();
@@ -1275,7 +1275,7 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
-		[Ignore]
+		[Ignore("")]
 		public void BugDomainBreakpointNotBound ()
 		{
 			IgnoreVsDebugger ("AppDomains are not supported in .NET Core");

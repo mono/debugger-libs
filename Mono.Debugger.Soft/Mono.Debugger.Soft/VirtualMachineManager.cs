@@ -4,8 +4,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+#if !NETCOREAPP
 using System.Runtime.Remoting.Messaging;
+#endif
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Mono.Debugger.Soft
 {
@@ -45,9 +48,14 @@ namespace Mono.Debugger.Soft
 		}
 			
 		public static VirtualMachine LaunchInternal (ITargetProcess p, ProcessStartInfo info, Socket socket) {
+			return LaunchInternalAsync (p, info, socket).Result;
+		}
+
+		public static async Task<VirtualMachine> LaunchInternalAsync (ITargetProcess p, ProcessStartInfo info, Socket socket)
+		{
 			Socket accepted = null;
 			try {
-				accepted = socket.Accept ();
+				accepted = await socket.AcceptAsync ().ConfigureAwait(false);
 			} catch (Exception) {
 				throw;
 			}
@@ -58,7 +66,7 @@ namespace Mono.Debugger.Soft
 
 			if (info.RedirectStandardOutput)
 				vm.StandardOutput = p.StandardOutput;
-			
+
 			if (info.RedirectStandardError)
 				vm.StandardError = p.StandardError;
 
@@ -114,20 +122,17 @@ namespace Mono.Debugger.Soft
 				socket.Close ();
 			};
 
-			LaunchCallback c = new LaunchCallback (LaunchInternal);
-			return c.BeginInvoke (p, info, socket, callback, socket);
+			var listenTask = LaunchInternalAsync (p, info, socket);
+			listenTask.ContinueWith (t => callback (listenTask));
+			return listenTask;
 		}
 
 		public static VirtualMachine EndLaunch (IAsyncResult asyncResult) {
 			if (asyncResult == null)
 				throw new ArgumentNullException ("asyncResult");
 
-			if (!asyncResult.IsCompleted)
-				asyncResult.AsyncWaitHandle.WaitOne ();
-
-			AsyncResult result = (AsyncResult) asyncResult;
-			LaunchCallback cb = (LaunchCallback) result.AsyncDelegate;
-			return cb.EndInvoke (asyncResult);
+			var listenTask = (Task<VirtualMachine>)asyncResult;
+			return listenTask.Result;
 		}
 
 		public static VirtualMachine Launch (ProcessStartInfo info)
@@ -153,29 +158,35 @@ namespace Mono.Debugger.Soft
 			return Launch (pi, options);
 		}
 			
-		public static VirtualMachine ListenInternal (Socket dbg_sock, Socket con_sock) {
+		public static VirtualMachine ListenInternal (Socket dbg_sock, Socket con_sock)
+		{
+			return ListenInternalAsync (dbg_sock, con_sock).Result;
+		}
+
+		static async Task<VirtualMachine> ListenInternalAsync (Socket dbg_sock, Socket con_sock)
+		{
 			Socket con_acc = null;
 			Socket dbg_acc = null;
 
 			if (con_sock != null) {
 				try {
-					con_acc = con_sock.Accept ();
+					con_acc = await con_sock.AcceptAsync ().ConfigureAwait (false);
 				} catch (Exception) {
 					try {
 						dbg_sock.Close ();
-					} catch {}
+					} catch { }
 					throw;
 				}
 			}
-						
+
 			try {
-				dbg_acc = dbg_sock.Accept ();
+				dbg_acc = await dbg_sock.AcceptAsync ().ConfigureAwait (false);
 			} catch (Exception) {
 				if (con_sock != null) {
 					try {
 						con_sock.Close ();
 						con_acc.Close ();
-					} catch {}
+					} catch { }
 				}
 				throw;
 			}
@@ -191,8 +202,8 @@ namespace Mono.Debugger.Soft
 			dbg_sock.Close ();
 
 			Connection transport = new TcpConnection (dbg_acc);
-			StreamReader console = con_acc != null? new StreamReader (new NetworkStream (con_acc)) : null;
-			
+			StreamReader console = con_acc != null ? new StreamReader (new NetworkStream (con_acc)) : null;
+
 			return Connect (transport, console, null);
 		}
 
@@ -225,21 +236,18 @@ namespace Mono.Debugger.Soft
 				con_sock.Listen (1000);
 				con_port = ((IPEndPoint) con_sock.LocalEndPoint).Port;
 			}
-			
-			ListenCallback c = new ListenCallback (ListenInternal);
-			return c.BeginInvoke (dbg_sock, con_sock, callback, con_sock ?? dbg_sock);
+
+			var listenTask = ListenInternalAsync (dbg_sock, con_sock);
+			listenTask.ContinueWith (t => callback (listenTask));
+			return listenTask;
 		}
 
 		public static VirtualMachine EndListen (IAsyncResult asyncResult) {
 			if (asyncResult == null)
 				throw new ArgumentNullException ("asyncResult");
 
-			if (!asyncResult.IsCompleted)
-				asyncResult.AsyncWaitHandle.WaitOne ();
-
-			AsyncResult result = (AsyncResult) asyncResult;
-			ListenCallback cb = (ListenCallback) result.AsyncDelegate;
-			return cb.EndInvoke (asyncResult);
+			var listenTask = (Task<VirtualMachine>)asyncResult;
+			return listenTask.Result;
 		}
 
 		public static VirtualMachine Listen (IPEndPoint dbg_ep)
@@ -266,32 +274,38 @@ namespace Mono.Debugger.Soft
 			return EndConnect (BeginConnect (endpoint, consoleEndpoint, null));
 		}
 
-		public static VirtualMachine ConnectInternal (Socket dbg_sock, Socket con_sock, IPEndPoint dbg_ep, IPEndPoint con_ep) {
+		public static VirtualMachine ConnectInternal (Socket dbg_sock, Socket con_sock, IPEndPoint dbg_ep, IPEndPoint con_ep)
+		{
+			return ConnectInternalAsync (dbg_sock, con_sock, dbg_ep, con_ep).Result;
+		}
+
+		public static async Task<VirtualMachine> ConnectInternalAsync (Socket dbg_sock, Socket con_sock, IPEndPoint dbg_ep, IPEndPoint con_ep)
+		{
 			if (con_sock != null) {
 				try {
-					con_sock.Connect (con_ep);
+					await con_sock.ConnectAsync(con_ep).ConfigureAwait (false);
 				} catch (Exception) {
 					try {
 						dbg_sock.Close ();
-					} catch {}
+					} catch { }
 					throw;
 				}
 			}
-						
+
 			try {
-				dbg_sock.Connect (dbg_ep);
+				await dbg_sock.ConnectAsync(dbg_ep).ConfigureAwait(false);
 			} catch (Exception) {
 				if (con_sock != null) {
 					try {
 						con_sock.Close ();
-					} catch {}
+					} catch { }
 				}
 				throw;
 			}
-			
+
 			Connection transport = new TcpConnection (dbg_sock);
-			StreamReader console = con_sock != null? new StreamReader (new NetworkStream (con_sock)) : null;
-			
+			StreamReader console = con_sock != null ? new StreamReader (new NetworkStream (con_sock)) : null;
+
 			return Connect (transport, console, null);
 		}
 
@@ -308,21 +322,18 @@ namespace Mono.Debugger.Soft
 			if (con_ep != null) {
 				con_sock = new Socket (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 			}
-			
-			ConnectCallback c = new ConnectCallback (ConnectInternal);
-			return c.BeginInvoke (dbg_sock, con_sock, dbg_ep, con_ep, callback, con_sock ?? dbg_sock);
+
+			var connectTask = ConnectInternalAsync (dbg_sock, con_sock, dbg_ep, con_ep);
+			connectTask.ContinueWith (t => callback (connectTask));
+			return connectTask;
 		}
 
 		public static VirtualMachine EndConnect (IAsyncResult asyncResult) {
 			if (asyncResult == null)
 				throw new ArgumentNullException ("asyncResult");
 
-			if (!asyncResult.IsCompleted)
-				asyncResult.AsyncWaitHandle.WaitOne ();
-
-			AsyncResult result = (AsyncResult) asyncResult;
-			ConnectCallback cb = (ConnectCallback) result.AsyncDelegate;
-			return cb.EndInvoke (asyncResult);
+			var connectTask = (Task<VirtualMachine>)asyncResult;
+			return connectTask.Result;
 		}
 
 		public static void CancelConnection (IAsyncResult asyncResult)
