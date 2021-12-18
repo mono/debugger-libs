@@ -135,7 +135,16 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public string GetLocationSignature ()
 		{
-			return $"{Path.GetFileNameWithoutExtension (this.FullModuleName)}!{this.SourceLocation.MethodName}:{this.Address}";
+			string methodName = this.SourceLocation.MethodName;
+			if (methodName != null && !methodName.Contains("!")) {
+				methodName = $"{Path.GetFileName (this.FullModuleName)}!{methodName}";
+			}
+
+			if (this.Address != 0) {
+				methodName = $"{methodName}:{Address}";
+			}
+
+			return methodName;
 		}
 
 		public string GetFullStackFrameText ()
