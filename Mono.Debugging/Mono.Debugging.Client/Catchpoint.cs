@@ -85,6 +85,17 @@ namespace Mono.Debugging.Client
 			set { includeSubclasses = value; }
 		}
 
+		/// <summary>
+		/// When an exception first happens, we are given the frame of the exception.
+		/// However by the time the user chooses "Ignore this location" in the exception dialog,
+		/// the current frame might be a different frame (the one with source code),
+		/// and not necessarily the bottom frame of the stack.
+		/// Make sure we remember the original frame where the exception happened
+		/// so that when it happens next time, we use the same frame signature to compare
+		/// against.
+		/// </summary>
+		public string CurrentLocationSignature { get; set; }
+
 		public HashSet<string> Ignored { get; private set; } = new HashSet<string> (StringComparer.Ordinal);
 
 		public bool ShouldIgnore(string type, string locationSignature)
