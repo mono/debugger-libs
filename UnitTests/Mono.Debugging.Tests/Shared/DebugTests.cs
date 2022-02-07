@@ -257,11 +257,17 @@ namespace Mono.Debugging.Tests
 
 		public Breakpoint AddBreakpoint (string breakpointMarker, int offset = 0, string statement = null, ITextFile file = null)
 		{
+			var bp = CreateBreakpoint (breakpointMarker, offset, statement, file);
+			Session.Breakpoints.Add (bp);
+			return bp;
+		}
+
+		public Breakpoint CreateBreakpoint (string breakpointMarker, int offset = 0, string statement = null, ITextFile file = null)
+		{
 			file = file ?? SourceFile;
 			int col, line;
 			GetLineAndColumn (breakpointMarker, offset, statement, out line, out col, file);
 			var bp = new Breakpoint (file.Name, line, col);
-			Session.Breakpoints.Add (bp);
 			return bp;
 		}
 
