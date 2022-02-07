@@ -998,8 +998,9 @@ namespace Mono.Debugging.Tests
 
 			InitializeTest ();
 			AddBreakpoint ("3e2e4759-f6d9-4839-98e6-4fa96b227458");
-			bp = AddBreakpoint ("eef5bea2-aaa6-4718-b26f-b35be6a6a13e");
+			bp = CreateBreakpoint ("eef5bea2-aaa6-4718-b26f-b35be6a6a13e");
 			bp.ConditionExpression = "i==2";
+			Session.Breakpoints.Add (bp);
 			StartTest ("ForLoop10");
 			CheckPosition ("eef5bea2-aaa6-4718-b26f-b35be6a6a13e");
 			val = Eval ("i");
@@ -1009,16 +1010,18 @@ namespace Mono.Debugging.Tests
 			IgnoreCorDebugger ("TODO: Conditional breakpoints with compare against string or enum is not working on CorDebugger");
 
 			InitializeTest ();
-			bp = AddBreakpoint ("033dd01d-6cb4-4e1a-b445-de6d7fa0d2a7");
+			bp = CreateBreakpoint ("033dd01d-6cb4-4e1a-b445-de6d7fa0d2a7");
 			bp.ConditionExpression = "str == \"bbb\"";
+			Session.Breakpoints.Add (bp);
 			StartTest ("ConditionalBreakpointString");
 			CheckPosition ("033dd01d-6cb4-4e1a-b445-de6d7fa0d2a7");
 			val = Eval ("str");
 			Assert.AreEqual ("\"bbb\"", val.Value);
 
 			InitializeTest ();
-			bp = AddBreakpoint ("ecf764bf-9182-48d6-adb0-0ba36e2653a7");
+			bp = CreateBreakpoint ("ecf764bf-9182-48d6-adb0-0ba36e2653a7");
 			bp.ConditionExpression = "en == BooleanEnum.False";
+			Session.Breakpoints.Add (bp);
 			StartTest ("ConitionalBreakpointEnum");
 			CheckPosition ("ecf764bf-9182-48d6-adb0-0ba36e2653a7");
 			val = Eval ("en");
