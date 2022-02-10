@@ -127,20 +127,24 @@ namespace Mono.Debugging.Client
 			Add (bp);
 		}
 		
-		public bool Add (BreakEvent bp)
+		public bool Add (BreakEvent be)
 		{
-			if (bp == null)
-				throw new ArgumentNullException (nameof (bp));
+			if (be == null)
+				throw new ArgumentNullException (nameof (be));
 
 			if (IsReadOnly)
 				return false;
 
-			lock (breakpointLock) {
-				SetBreakpoints (breakpoints.Add (bp));
-				bp.Store = this;
+			if (be is Breakpoint bp) {
+				bp.SetFileName (Path.GetFullPath(bp.FileName)); // TODO what happens if there is no filepath?
 			}
 
-			OnBreakEventAdded (bp);
+			lock (breakpointLock) {
+				SetBreakpoints (breakpoints.Add (be));
+				be.Store = this;
+			}
+
+			OnBreakEventAdded (be);
 
 			return true;
 		}
@@ -176,7 +180,8 @@ namespace Mono.Debugging.Client
 
 			var breakpointsToRemove = new List<BreakEvent> ();
 			foreach (var b in InternalGetBreakpoints ()) {
-				if (b is Breakpoint bp && FileNameEquals (bp.FileName, filename) &&
+				if (b is Breakpoint bp && PathComparer.Compare (bp.FileName, filename) == 0
+					&&
 					(bp.OriginalLine == line || bp.Line == line) &&
 					(bp.OriginalColumn == column || bp.Column == column)) {
 					breakpointsToRemove.Add (bp);
@@ -321,7 +326,7 @@ namespace Mono.Debugging.Client
 			}
 			
 			foreach (var bp in InternalGetBreakpoints ().OfType<Breakpoint> ()) {
-				if (!(bp is RunToCursorBreakpoint) && FileNameEquals (bp.FileName, filename))
+				if (!(bp is RunToCursorBreakpoint) && PathComparer.Compare(bp.FileName, filename) == 0)
 					list.Add (bp);
 			}
 			
@@ -342,7 +347,7 @@ namespace Mono.Debugging.Client
 			}
 			
 			foreach (var bp in InternalGetBreakpoints ().OfType<Breakpoint> ()) {
-				if (!(bp is RunToCursorBreakpoint) && FileNameEquals (bp.FileName, filename) && (bp.OriginalLine == line || bp.Line == line))
+				if (!(bp is RunToCursorBreakpoint) && PathComparer.Compare(bp.FileName, filename) == 0 && (bp.OriginalLine == line || bp.Line == line))
 					list.Add (bp);
 			}
 			
@@ -507,7 +512,7 @@ namespace Mono.Debugging.Client
 
 			return PathComparer.Compare (rfile1, rfile2) == 0;
 		}
-		
+
 		internal bool EnableBreakEvent (BreakEvent be, bool enabled)
 		{
 			if (IsReadOnly)
@@ -530,7 +535,20 @@ namespace Mono.Debugging.Client
 			}
 			OnChanged ();
 		}
-		
+
+		void OnBreakEventsAdded (List<BreakEvent> bes)
+		{
+			foreach (BreakEvent be in bes) {
+				BreakEventAdded?.Invoke (this, new BreakEventArgs (be));
+				if (be is Breakpoint bp) {
+					BreakpointAdded?.Invoke (this, new BreakpointEventArgs (bp));
+				} else if (be is Catchpoint ce) {
+					CatchpointAdded?.Invoke (this, new CatchpointEventArgs (ce));
+				}
+			}
+			OnChanged ();
+		}
+
 		void OnBreakEventRemoved (BreakEvent be)
 		{
 			BreakEventRemoved?.Invoke (this, new BreakEventArgs (be));
@@ -541,12 +559,26 @@ namespace Mono.Debugging.Client
 			}
 			OnChanged ();
 		}
-		
+
+		void OnBreakEventsRemoved (List<BreakEvent> bes)
+		{
+			foreach (BreakEvent be in bes) {
+				BreakEventRemoved?.Invoke (this, new BreakEventArgs (be));
+				if (be is Breakpoint bp) {
+					BreakpointRemoved?.Invoke (this, new BreakpointEventArgs (bp));
+				} else if (be is Catchpoint ce) {
+					CatchpointRemoved?.Invoke (this, new CatchpointEventArgs (ce));
+				}
+			}
+
+			OnChanged ();
+		}
+
 		void OnChanged ()
 		{
 			Changed?.Invoke (this, EventArgs.Empty);
 		}
-		
+
 		internal void NotifyStatusChanged (BreakEvent be)
 		{
 			try {
@@ -626,6 +658,12 @@ namespace Mono.Debugging.Client
 		ImmutableArray<BreakEvent> SetBreakpoints (ImmutableArray<BreakEvent> newBreakpoints)
 		{
 			System.Diagnostics.Debug.Assert (System.Threading.Monitor.IsEntered (breakpointLock), "SetBreakpoints must be called during a lock");
+
+			foreach(BreakEvent be in newBreakpoints) {
+				if (be is Breakpoint bp) {
+					bp.SetFileName (Path.GetFullPath (bp.FileName));
+				}
+			}
 
 			var oldEvents = breakpoints;
 			breakpoints = newBreakpoints;
