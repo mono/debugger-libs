@@ -506,14 +506,16 @@ namespace Mono.Debugging.Client
 			return PathComparer.Compare (file1, file2) == 0;
 		}
 
-		internal bool EnableBreakEvent (BreakEvent be, bool enabled)
+		internal bool EnableBreakEvent (BreakEvent be, bool previouslyEnabled, bool enabled)
 		{
 			if (IsReadOnly)
 				return false;
 
-			OnChanged ();
-			BreakEventEnableStatusChanged?.Invoke (this, new BreakEventArgs (be));
-			NotifyStatusChanged (be);
+			if (previouslyEnabled != enabled) {
+				OnChanged ();
+				BreakEventEnableStatusChanged?.Invoke (this, new BreakEventArgs (be));
+				NotifyStatusChanged (be);
+			}
 
 			return true;
 		}
