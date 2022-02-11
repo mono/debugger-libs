@@ -136,7 +136,7 @@ namespace Mono.Debugging.Client
 				return false;
 
 			if (be is Breakpoint bp) {
-				bp.SetFileName (Path.GetFullPath(bp.FileName)); // TODO what happens if there is no filepath?
+				bp.SetFileName (ResolveFullPath(bp.FileName));
 			}
 
 			lock (breakpointLock) {
@@ -625,9 +625,9 @@ namespace Mono.Debugging.Client
 		{
 			System.Diagnostics.Debug.Assert (System.Threading.Monitor.IsEntered (breakpointLock), "SetBreakpoints must be called during a lock");
 
-			foreach(BreakEvent be in newBreakpoints) {
+			foreach (BreakEvent be in newBreakpoints) {
 				if (be is Breakpoint bp) {
-					bp.SetFileName (Path.GetFullPath (bp.FileName));
+					bp.SetFileName (ResolveFullPath(bp.FileName));
 				}
 			}
 
