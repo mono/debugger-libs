@@ -255,11 +255,15 @@ namespace Mono.Debugging.Client
 					oldEvents = SetBreakpoints (breakpoints.RemoveRange (breakEvents));
 				}
 
+				List<BreakEvent> breakEventsRemoved = new List<> ();
+
 				foreach (var bp in breakEvents) {
 					if (oldEvents.Contains(bp)) {
-						OnBreakEventRemoved (bp);
+						breakEventsRemoved.Add (bp);
 					}
 				}
+
+				OnBreakEventsRemoved (breakEventsRemoved);
 			}
 		}
 
@@ -461,9 +465,7 @@ namespace Mono.Debugging.Client
 			}
 
 			// preserve behaviour by sending an event for each breakpoint that was loaded
-			foreach (var bp in loadedBreakpoints) {
-				OnBreakEventAdded (bp);
-			}
+			OnBreakEventsAdded (loadedBreakpoints);
 		}
 
 		[DllImport ("libc")]
