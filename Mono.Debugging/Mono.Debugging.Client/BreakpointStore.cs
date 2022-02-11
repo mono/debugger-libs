@@ -180,8 +180,7 @@ namespace Mono.Debugging.Client
 
 			var breakpointsToRemove = new List<BreakEvent> ();
 			foreach (var b in InternalGetBreakpoints ()) {
-				if (b is Breakpoint bp && FileNameEquals(bp.FileName, filename)
-					&&
+				if (b is Breakpoint bp && FileNameEquals(bp.FileName, filename) &&
 					(bp.OriginalLine == line || bp.Line == line) &&
 					(bp.OriginalColumn == column || bp.Column == column)) {
 					breakpointsToRemove.Add (bp);
@@ -530,7 +529,6 @@ namespace Mono.Debugging.Client
 			OnChanged ();
 		}
 
-
 		void OnBreakEventRemoved (BreakEvent be)
 		{
 			BreakEventRemoved?.Invoke (this, new BreakEventArgs (be));
@@ -541,7 +539,6 @@ namespace Mono.Debugging.Client
 			}
 			OnChanged ();
 		}
-
 
 		void OnChanged ()
 		{
