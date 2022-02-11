@@ -180,7 +180,7 @@ namespace Mono.Debugging.Client
 
 			var breakpointsToRemove = new List<BreakEvent> ();
 			foreach (var b in InternalGetBreakpoints ()) {
-				if (b is Breakpoint bp && PathComparer.Compare (bp.FileName, filename) == 0
+				if (b is Breakpoint bp && FileNameEquals(bp.FileName, filename)
 					&&
 					(bp.OriginalLine == line || bp.Line == line) &&
 					(bp.OriginalColumn == column || bp.Column == column)) {
@@ -326,7 +326,7 @@ namespace Mono.Debugging.Client
 			}
 			
 			foreach (var bp in InternalGetBreakpoints ().OfType<Breakpoint> ()) {
-				if (!(bp is RunToCursorBreakpoint) && PathComparer.Compare(bp.FileName, filename) == 0)
+				if (!(bp is RunToCursorBreakpoint) && FileNameEquals(bp.FileName, filename))
 					list.Add (bp);
 			}
 			
@@ -347,7 +347,7 @@ namespace Mono.Debugging.Client
 			}
 			
 			foreach (var bp in InternalGetBreakpoints ().OfType<Breakpoint> ()) {
-				if (!(bp is RunToCursorBreakpoint) && PathComparer.Compare(bp.FileName, filename) == 0 && (bp.OriginalLine == line || bp.Line == line))
+				if (!(bp is RunToCursorBreakpoint) && FileNameEquals(bp.FileName, filename) && (bp.OriginalLine == line || bp.Line == line))
 					list.Add (bp);
 			}
 			
@@ -504,13 +504,7 @@ namespace Mono.Debugging.Client
 			if (file2 == null)
 				return false;
 
-			if (PathComparer.Compare (file1, file2) == 0)
-				return true;
-
-			var rfile1 = ResolveFullPath (file1);
-			var rfile2 = ResolveFullPath (file2);
-
-			return PathComparer.Compare (rfile1, rfile2) == 0;
+			return PathComparer.Compare (file1, file2) == 0;
 		}
 
 		internal bool EnableBreakEvent (BreakEvent be, bool enabled)
