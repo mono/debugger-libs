@@ -1315,7 +1315,7 @@ namespace Mono.Debugging.Tests
 			store.FileRenamed ("fileName1.cs", "fileName2.cs");
 			var bps = store.GetBreakpoints ();
 			Assert.AreEqual (1, bps.Count);
-			Assert.AreEqual (Environment.CurrentDirectory + "fileName2.cs", bps [0].FileName);
+			Assert.AreEqual (Environment.CurrentDirectory + "/fileName2.cs", bps [0].FileName);
 		}
 	}
 }
