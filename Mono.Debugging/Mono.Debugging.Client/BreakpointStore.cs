@@ -529,6 +529,20 @@ namespace Mono.Debugging.Client
 			OnChanged ();
 		}
 
+		void OnBreakEventsAdded (List<BreakEvent> bes)
+		{
+			foreach (BreakEvent be in bes) {
+				BreakEventAdded?.Invoke (this, new BreakEventArgs (be));
+				if (be is Breakpoint bp) {
+					BreakpointAdded?.Invoke (this, new BreakpointEventArgs (bp));
+				} else if (be is Catchpoint ce) {
+					CatchpointAdded?.Invoke (this, new CatchpointEventArgs (ce));
+				}
+			}
+
+			OnChanged ();
+		}
+
 		void OnBreakEventRemoved (BreakEvent be)
 		{
 			BreakEventRemoved?.Invoke (this, new BreakEventArgs (be));
@@ -537,6 +551,20 @@ namespace Mono.Debugging.Client
 			} else if (be is Catchpoint ce) {
 				CatchpointRemoved?.Invoke (this, new CatchpointEventArgs (ce));
 			}
+			OnChanged ();
+		}
+
+		void OnBreakEventsRemoved (List<BreakEvent> bes)
+		{
+			foreach (BreakEvent be in bes) {
+				BreakEventRemoved?.Invoke (this, new BreakEventArgs (be));
+				if (be is Breakpoint bp) {
+					BreakpointRemoved?.Invoke (this, new BreakpointEventArgs (bp));
+				} else if (be is Catchpoint ce) {
+					CatchpointRemoved?.Invoke (this, new CatchpointEventArgs (ce));
+				}
+			}
+
 			OnChanged ();
 		}
 
