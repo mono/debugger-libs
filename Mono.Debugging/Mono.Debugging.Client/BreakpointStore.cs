@@ -255,7 +255,7 @@ namespace Mono.Debugging.Client
 					oldEvents = SetBreakpoints (breakpoints.RemoveRange (breakEvents));
 				}
 
-				List<BreakEvent> breakEventsRemoved = new List<> ();
+				List<BreakEvent> breakEventsRemoved = new List<BreakEvent> ();
 
 				foreach (var bp in breakEvents) {
 					if (oldEvents.Contains(bp)) {
