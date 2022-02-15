@@ -255,11 +255,15 @@ namespace Mono.Debugging.Client
 					oldEvents = SetBreakpoints (breakpoints.RemoveRange (breakEvents));
 				}
 
+				List<BreakEvent> breakEventsRemoved = new List<BreakEvent> ();
+
 				foreach (var bp in breakEvents) {
 					if (oldEvents.Contains(bp)) {
-						OnBreakEventRemoved (bp);
+						breakEventsRemoved.Add (bp);
 					}
 				}
+
+				OnBreakEventsRemoved (breakEventsRemoved);
 			}
 		}
 
@@ -461,9 +465,7 @@ namespace Mono.Debugging.Client
 			}
 
 			// preserve behaviour by sending an event for each breakpoint that was loaded
-			foreach (var bp in loadedBreakpoints) {
-				OnBreakEventAdded (bp);
-			}
+			OnBreakEventsAdded (loadedBreakpoints);
 		}
 
 		[DllImport ("libc")]
@@ -506,14 +508,16 @@ namespace Mono.Debugging.Client
 			return PathComparer.Compare (file1, file2) == 0;
 		}
 
-		internal bool EnableBreakEvent (BreakEvent be, bool enabled)
+		internal bool EnableBreakEvent (BreakEvent be, bool previouslyEnabled, bool enabled)
 		{
 			if (IsReadOnly)
 				return false;
 
-			OnChanged ();
-			BreakEventEnableStatusChanged?.Invoke (this, new BreakEventArgs (be));
-			NotifyStatusChanged (be);
+			if (previouslyEnabled != enabled) {
+				OnChanged ();
+				BreakEventEnableStatusChanged?.Invoke (this, new BreakEventArgs (be));
+				NotifyStatusChanged (be);
+			}
 
 			return true;
 		}
@@ -529,6 +533,20 @@ namespace Mono.Debugging.Client
 			OnChanged ();
 		}
 
+		void OnBreakEventsAdded (List<BreakEvent> bes)
+		{
+			foreach (BreakEvent be in bes) {
+				BreakEventAdded?.Invoke (this, new BreakEventArgs (be));
+				if (be is Breakpoint bp) {
+					BreakpointAdded?.Invoke (this, new BreakpointEventArgs (bp));
+				} else if (be is Catchpoint ce) {
+					CatchpointAdded?.Invoke (this, new CatchpointEventArgs (ce));
+				}
+			}
+
+			OnChanged ();
+		}
+
 		void OnBreakEventRemoved (BreakEvent be)
 		{
 			BreakEventRemoved?.Invoke (this, new BreakEventArgs (be));
@@ -537,6 +555,20 @@ namespace Mono.Debugging.Client
 			} else if (be is Catchpoint ce) {
 				CatchpointRemoved?.Invoke (this, new CatchpointEventArgs (ce));
 			}
+			OnChanged ();
+		}
+
+		void OnBreakEventsRemoved (List<BreakEvent> bes)
+		{
+			foreach (BreakEvent be in bes) {
+				BreakEventRemoved?.Invoke (this, new BreakEventArgs (be));
+				if (be is Breakpoint bp) {
+					BreakpointRemoved?.Invoke (this, new BreakpointEventArgs (bp));
+				} else if (be is Catchpoint ce) {
+					CatchpointRemoved?.Invoke (this, new CatchpointEventArgs (ce));
+				}
+			}
+
 			OnChanged ();
 		}
 

@@ -137,9 +137,10 @@ namespace Mono.Debugging.Client
 			set {
 				if (store != null && store.IsReadOnly)
 					return;
+				bool previous = enabled;
 				enabled = value;
 				if (store != null)
-					store.EnableBreakEvent (this, value);
+					store.EnableBreakEvent (this, previous, value);
 			}
 		}
 
