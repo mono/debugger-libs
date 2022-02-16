@@ -135,7 +135,7 @@ namespace Mono.Debugging.Client
 			if (IsReadOnly)
 				return false;
 
-			if (be is Breakpoint bp) {
+			if (be is Breakpoint bp && !string.IsNullOrEmpty (bp.FileName)) {
 				bp.SetFileName (ResolveFullPath(bp.FileName));
 			}
 
@@ -658,7 +658,7 @@ namespace Mono.Debugging.Client
 			System.Diagnostics.Debug.Assert (System.Threading.Monitor.IsEntered (breakpointLock), "SetBreakpoints must be called during a lock");
 
 			foreach (BreakEvent be in newBreakpoints) {
-				if (be is Breakpoint bp) {
+				if (be is Breakpoint bp && !string.IsNullOrEmpty(bp.FileName)) {
 					bp.SetFileName (ResolveFullPath(bp.FileName));
 				}
 			}
