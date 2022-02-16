@@ -1317,5 +1317,23 @@ namespace Mono.Debugging.Tests
 			Assert.AreEqual (1, bps.Count);
 			Assert.AreEqual (Path.Combine(Environment.CurrentDirectory, "fileName2.cs"), bps [0].FileName);
 		}
+
+		[Test]
+		public void NullFileName ()
+		{
+			var store = new BreakpointStore ();
+			store.Add (new Breakpoint (null, 10));
+			var bps = store.GetBreakpoints ();
+			Assert.AreEqual (1, bps.Count);
+		}
+
+		[Test]
+		public void EmptyFileName ()
+		{
+			var store = new BreakpointStore ();
+			store.Add (new Breakpoint ("", 10));
+			var bps = store.GetBreakpoints ();
+			Assert.AreEqual (1, bps.Count);
+		}
 	}
 }
