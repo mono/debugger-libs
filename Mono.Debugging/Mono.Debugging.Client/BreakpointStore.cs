@@ -471,8 +471,17 @@ namespace Mono.Debugging.Client
 		[DllImport ("libc")]
 		static extern IntPtr realpath (string path, IntPtr buffer);
 
+		/// <summary>
+		/// Resolves the full path of the given file
+		/// </summary>
+		/// <param name="path"></param>
+		/// <returns>The full path if a file is given, or returns the parameter if it is null or empty</returns>
 		static string ResolveFullPath (string path)
 		{
+			// If there is no path given, return the same path back
+			if (string.IsNullOrEmpty (path))
+				return path;
+
 			if (IsWindows)
 				return Path.GetFullPath (path);
 
