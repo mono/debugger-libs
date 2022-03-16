@@ -1758,7 +1758,15 @@ namespace Mono.Debugger.Soft
 						/* Run the callback on a tp thread to avoid blocking the receive thread */
 						PacketReader r = new PacketReader (this, p);
 						ThreadPool.QueueUserWorkItem (s => {
-							cb (r);
+							// Catch all exceptions to revert to
+							// BeginInvoke behavior
+							try
+							{
+								cb (r);
+							}
+							catch
+							{
+							}
 						});
 					};
 					reply_cb_counts [id] = count;
