@@ -255,7 +255,8 @@ namespace Mono.Debugging.Soft
 				if (sx.ErrorCode == 10061) //connection refused
 					return true;
 			}
-			return false;
+			//retry if the receive 0 bytes and threw an exception in the handshake
+			return true;
 		}
 		
 		protected void StartConnecting (SoftDebuggerStartInfo dsi)
