@@ -255,7 +255,7 @@ namespace Mono.Debugging.Soft
 				if (sx.ErrorCode == 10061) //connection refused
 					return true;
 			}
-			//retry if the receive 0 bytes and threw an exception in the handshake
+			//retry if it receives 0 bytes and threw an exception in the handshake
 			return true;
 		}
 		
