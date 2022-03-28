@@ -156,7 +156,7 @@ namespace Mono.Debugging.Soft
 				} catch (Exception ex) {
 					attemptNumber++;
 					if (!ShouldRetryConnection (ex, attemptNumber)
-						|| !startArgs.ConnectionProvider.ShouldRetryConnection (ex)
+						|| startArgs?.ConnectionProvider?.ShouldRetryConnection (ex) == false
 						|| attemptNumber == maxAttempts
 						|| HasExited) {
 						OnConnectionError (ex);
