@@ -365,12 +365,10 @@ namespace Mono.Debugging.Client
 					ThreadPool.QueueUserWorkItem (delegate {
 						while (true) {
 							if (actionsQueue.TryDequeue (out var actionToExecute)) {
-								lock (slock) {
-									try {
-										actionToExecute ();
-									} catch (Exception ex) {
-										HandleException (ex);
-									}
+								try {
+									actionToExecute ();
+								} catch (Exception ex) {
+									HandleException (ex);
 								}
 							} else {
 								threadExecuting = false;
@@ -380,9 +378,7 @@ namespace Mono.Debugging.Client
 					});
 				}
 			} else {
-				lock (slock) {
-					action ();
-				}
+				action ();
 			}
 		}
 		
