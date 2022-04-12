@@ -1,4 +1,4 @@
-// DebuggerSession.cs
+﻿// DebuggerSession.cs
 //
 // Author:
 //   Ankit Jain <jankit@novell.com>
@@ -32,6 +32,7 @@ using System.Collections.Generic;
 
 using Mono.Debugging.Backend;
 using Mono.Debugging.Evaluation;
+using System.Collections.Concurrent;
 
 namespace Mono.Debugging.Client
 {
@@ -352,27 +353,18 @@ namespace Mono.Debugging.Client
 			}
 		}
 
-		readonly Queue<Action> actionsQueue = new Queue<Action>();
+		readonly ConcurrentQueue<Action> actionsQueue = new ConcurrentQueue<Action>();
 		bool threadExecuting;
 
 		void Dispatch (Action action)
 		{
 			if (UseOperationThread) {
-				lock (actionsQueue) {
-					actionsQueue.Enqueue (action);
-					if (!threadExecuting) {
-						threadExecuting = true;
-						ThreadPool.QueueUserWorkItem (delegate {
-							while (true) {
-								Action actionToExecute = null;
-								lock (actionsQueue) {
-									if (actionsQueue.Count > 0) {
-										actionToExecute = actionsQueue.Dequeue ();
-									} else {
-										threadExecuting = false;
-										return;
-									}
-								}
+				actionsQueue.Enqueue (action);
+				if (!threadExecuting) {
+					threadExecuting = true;
+					ThreadPool.QueueUserWorkItem (delegate {
+						while (true) {
+							if (actionsQueue.TryDequeue (out var actionToExecute)) {
 								lock (slock) {
 									try {
 										actionToExecute ();
@@ -380,9 +372,12 @@ namespace Mono.Debugging.Client
 										HandleException (ex);
 									}
 								}
+							} else {
+								threadExecuting = false;
+								return;
 							}
-						});
-					}
+						}
+					});
 				}
 			} else {
 				lock (slock) {
