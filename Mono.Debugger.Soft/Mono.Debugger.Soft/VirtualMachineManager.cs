@@ -338,7 +338,7 @@ namespace Mono.Debugger.Soft
 
 		public static void CancelConnection (IAsyncResult asyncResult)
 		{
-			((Socket)asyncResult.AsyncState).Close ();
+			((Socket)asyncResult.AsyncState)?.Close ();
 		}
 		
 		public static VirtualMachine Connect (Connection transport, StreamReader standardOutput, StreamReader standardError)
