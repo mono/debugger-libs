@@ -338,7 +338,9 @@ namespace Mono.Debugger.Soft
 
 		public static void CancelConnection (IAsyncResult asyncResult)
 		{
-			((Socket)asyncResult.AsyncState).Close ();
+			//AsyncState could be null if the debugger incoming connection doesn't happen, so there's no socket between debugger and debuggee
+			//This could occur if the debugger session started but the connection to the app failed at some point
+			((Socket)asyncResult.AsyncState)?.Close ();
 		}
 		
 		public static VirtualMachine Connect (Connection transport, StreamReader standardOutput, StreamReader standardError)

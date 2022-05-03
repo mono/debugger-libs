@@ -386,11 +386,15 @@ namespace Mono.Debugging.Soft
 		{
 			HideConnectionDialog ();
 			if (connection != null) {
-				if (startArgs != null && startArgs.ConnectionProvider != null) {
-					startArgs.ConnectionProvider.CancelConnect (connection);
-					startArgs = null;
-				} else {
-					VirtualMachineManager.CancelConnection (connection);
+				try {
+					if (startArgs != null && startArgs.ConnectionProvider != null) {
+						startArgs.ConnectionProvider.CancelConnect(connection);
+						startArgs = null;
+					} else {
+						VirtualMachineManager.CancelConnection(connection);
+					}
+				} catch(Exception e) {
+					DebuggerLoggingService.LogError("Unhandled error canceling the debugger connection", e);
 				}
 				connection = null;
 			}
