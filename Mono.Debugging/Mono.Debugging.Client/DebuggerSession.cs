@@ -135,6 +135,7 @@ namespace Mono.Debugging.Client
 		/// Raised when an assembly is loaded
 		/// </summary>
 		public event EventHandler<AssemblyEventArgs> AssemblyLoaded;
+		public event EventHandler<List<Assembly>> AssembliesLoaded;
 
 		/// <summary>
 		/// Raised when a subprocess is started
@@ -1304,7 +1305,13 @@ namespace Mono.Debugging.Client
 		{
 			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assemblyLocation));
 		}
-		
+
+		internal protected void OnAssembliesLoaded(List<Assembly> list)
+		{
+			AssembliesLoaded?.Invoke (this, list);
+		}
+
+
 		internal protected void SetBusyState (BusyStateEventArgs args)
 		{
 			BusyStateChanged?.Invoke (this, args);
