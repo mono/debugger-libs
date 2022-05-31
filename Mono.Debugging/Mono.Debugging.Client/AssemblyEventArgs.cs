@@ -25,17 +25,23 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
 	public class AssemblyEventArgs : EventArgs
 	{
-		public AssemblyEventArgs (string location)
+		public AssemblyEventArgs (string location, List<Assembly> assemblies)
 		{
 			Location = location;
+			Assemblies = assemblies;
 		}
 
 		public string Location {
+			get; private set;
+		}
+
+		public List<Assembly> Assemblies {
 			get; private set;
 		}
 	}

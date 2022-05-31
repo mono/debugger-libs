@@ -48,6 +48,7 @@ using Mono.Debugging.Client;
 using Mono.Debugging.Evaluation;
 
 using StackFrame = Mono.Debugger.Soft.StackFrame;
+using Assembly = Mono.Debugging.Client.Assembly;
 
 namespace Mono.Debugging.Soft
 {
@@ -2245,7 +2246,7 @@ namespace Mono.Debugging.Soft
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
 
-			OnAssemblyLoaded(asm.Location);
+			OnAssemblyLoaded(asm.Location, new List<Assembly>());
 
 			RegisterAssembly(asm);
 			bool isExternal;
