@@ -49,6 +49,7 @@ using Mono.Debugging.Evaluation;
 
 using StackFrame = Mono.Debugger.Soft.StackFrame;
 using Assembly = Mono.Debugging.Client.Assembly;
+
 namespace Mono.Debugging.Soft
 {
 	public class SoftDebuggerSession : DebuggerSession
