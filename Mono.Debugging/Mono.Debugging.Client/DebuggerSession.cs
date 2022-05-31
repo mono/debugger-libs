@@ -49,6 +49,8 @@ namespace Mono.Debugging.Client
 	{
 		readonly Dictionary<BreakEvent, BreakEventInfo> breakpoints = new Dictionary<BreakEvent, BreakEventInfo> ();
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
+		public List<Assembly> assemblies = new List<Assembly> ();
+
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
 		readonly object breakpointStoreLock = new object ();
@@ -140,6 +142,8 @@ namespace Mono.Debugging.Client
 		/// Raised when a subprocess is started
 		/// </summary>
 		public event EventHandler<SubprocessStartedEventArgs> SubprocessStarted;
+
+		public event EventHandler<List<Assembly>> AssembliesUpdated;
 
 		protected DebuggerSession ()
 		{
@@ -1304,8 +1308,14 @@ namespace Mono.Debugging.Client
 		{
 			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assemblyLocation));
 		}
-		
-		internal protected void SetBusyState (BusyStateEventArgs args)
+
+		internal protected void OnAssemblyAdded (Assembly assembly)
+		{
+			assemblies.Add (assembly);
+			AssembliesUpdated?.Invoke (this, assemblies);
+		}
+
+
 		{
 			BusyStateChanged?.Invoke (this, args);
 		}
