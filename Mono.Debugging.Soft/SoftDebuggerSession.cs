@@ -2245,7 +2245,20 @@ namespace Mono.Debugging.Soft
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
 
-			OnAssemblyLoaded(asm.Location);
+			// todo: fil these in
+			//var assembly = new Assembly (
+			//	asm.GetName().Name,
+			//	moduleEvent.Module.Path,
+			//	moduleEvent.Module.IsOptimized == true,
+			//	moduleEvent.Module.SymbolStatus,
+			//	moduleEvent.Module.SymbolFilePath,
+			//	moduleEvent.Module.VsLoadOrder,
+			//	moduleEvent.Module.DateTimeStamp,
+			//	moduleEvent.Module.VsLoadAddress,
+			//	"process name",
+			//	moduleEvent.Module.VsAppDomain);
+
+			OnAssemblyLoaded (new Assembly(asm.Location));
 
 			RegisterAssembly(asm);
 			bool isExternal;

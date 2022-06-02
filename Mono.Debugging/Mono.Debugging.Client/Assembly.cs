@@ -31,21 +31,21 @@ namespace Mono.Debugging.Client
 		string name;
 		string path;
 		bool optimized;
-		string status;
-		string filepath;
+		string symbolStatus;
+		string symbolFile;
 		int order;
 		string timestamp;
 		string address;
 		string process;
 		string appdomain;
-		// assemblies.Add(new Assembly(newModule.Name, newModule.Path, newModule.IsOptimized==true, newModule.SymbolStatus, newModule.SymbolFilePath, newModule.VsLoadOrder, newModule.DateTimeStamp, newModule.VsLoadAddress, "process name", newModule.VsAppDomain ));
-		public Assembly (string name, string path, bool optimized, string status, string filepath, int? order, string timestamp, string address, string process, string appdomain)
+
+		public Assembly (string name, string path, bool optimized, string symbolStatus, string symbolFile, int? order, string timestamp, string address, string process, string appdomain)
 		{
 			Name = name;
 			Path = path;
 			Optimized = optimized;
-			SymbolStatus = status;
-			SymbolFile = filepath;
+			SymbolStatus = symbolStatus;
+			SymbolFile = symbolFile;
 			if (order == null) {
 				Order = -1;
 			} else {
@@ -56,6 +56,10 @@ namespace Mono.Debugging.Client
 			Address = address;
 			Process = process;
 			AppDomain = appdomain;
+		}
+		public Assembly (string path)
+		{
+			Path = path;
 		}
 		public string Name {
 			get { return name; }
@@ -71,12 +75,12 @@ namespace Mono.Debugging.Client
 		}
 
 		public string SymbolStatus {
-			get { return status; }
-			protected set { status = value; }
+			get { return symbolStatus; }
+			protected set { symbolStatus = value; }
 		}
 		public string SymbolFile {
-			get { return filepath; }
-			protected set { filepath = value; }
+			get { return symbolFile; }
+			protected set { symbolFile = value; }
 		}
 		public int Order {
 			get { return order; }

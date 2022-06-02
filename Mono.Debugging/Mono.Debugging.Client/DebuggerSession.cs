@@ -138,11 +138,6 @@ namespace Mono.Debugging.Client
 		public event EventHandler<AssemblyEventArgs> AssemblyLoaded;
 
 		/// <summary>
-		/// Raised when an assembly is loaded and assemblies list is updated
-		/// </summary>
-		public event EventHandler<List<Assembly>> AssembliesUpdated;
-
-		/// <summary>
 		/// Raised when a subprocess is started
 		/// </summary>
 		public event EventHandler<SubprocessStartedEventArgs> SubprocessStarted;
@@ -1306,16 +1301,13 @@ namespace Mono.Debugging.Client
 			}
 		}
 
-		internal protected void OnAssemblyLoaded (string assemblyLocation)
+		internal protected void OnAssemblyLoaded (Assembly assembly)
 		{
-			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assemblyLocation));
-		}
+			lock (assemblies) {
+				assemblies.Add (assembly);
+			}
 
-
-		internal protected void OnAssemblyAdded (Assembly assembly)
-		{
-			assemblies.Add (assembly);
-			AssembliesUpdated?.Invoke (this, assemblies);
+			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assembly.Path));
 		}
 
 		internal protected void SetBusyState (BusyStateEventArgs args)
