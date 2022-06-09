@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 
 namespace Mono.Debugging.Client
@@ -7,6 +7,7 @@ namespace Mono.Debugging.Client
 	public class SourceLink
 	{
 		public string Uri { get; }
+
 		public string RelativeFilePath { get; }
 
 		public SourceLink (string uri, string relativeFilePath)
@@ -17,7 +18,8 @@ namespace Mono.Debugging.Client
 
 		public string GetDownloadLocation (string cachePath)
 		{
-			return Path.Combine (cachePath, new Uri (Uri).GetComponents (UriComponents.Path, UriFormat.SafeUnescaped));
+			var uri = new Uri (Uri);
+			return Path.Combine (cachePath, uri.Host + uri.PathAndQuery);
 		}
 	}
 }

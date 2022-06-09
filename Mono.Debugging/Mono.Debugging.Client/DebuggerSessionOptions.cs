@@ -1,4 +1,4 @@
-// 
+﻿// 
 // DebuggerSessionOptions.cs
 //  
 // Author:
@@ -25,6 +25,8 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Mono.Debugging.Client
 {
@@ -44,5 +46,28 @@ namespace Mono.Debugging.Client
 		public bool ProjectAssembliesOnly { get; set; }
 		public AutomaticSourceDownload AutomaticSourceLinkDownload { get; set; }
 		public bool DebugSubprocesses { get; set; }
+		public ImmutableArray<SymbolSource> SymbolSearchPaths { get; set; } = ImmutableArray<SymbolSource>.Empty;
+		public bool SearchMicrosoftSymbolServer { get; set; }
+		public bool SearchNuGetSymbolServer { get; set; }
+	}
+
+	[Serializable]
+	public class SymbolSource
+	{
+		public SymbolSource ()
+		{
+			// For deserialization
+		}
+
+		public SymbolSource (string path, string name, bool isEnabled)
+		{
+			Path = path;
+			Name = name;
+			IsEnabled = isEnabled;
+		}
+
+		public string Name { get; set; }
+		public string Path { get; set; }
+		public bool IsEnabled { get; set; }
 	}
 }
