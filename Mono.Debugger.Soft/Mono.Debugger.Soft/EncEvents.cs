@@ -9,7 +9,6 @@ namespace Mono.Debugger.Soft
 		{
 			this.id = id;
 			method = vm.GetMethod (id);
-			method.ClearCachedLocalsDebugInfo ();
 		}
 
 		public MethodMirror GetMethod()

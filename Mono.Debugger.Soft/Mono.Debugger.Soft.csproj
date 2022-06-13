@@ -27,6 +27,7 @@
   <ItemGroup>
     <PackageReference Include="Mono.Cecil" Version="$(NuGetVersionCecil)" PrivateAssets="all" />
     <PackageReference Include="System.Runtime" Version="4.3.1" />
+    <PackageReference Include="System.Reflection.Metadata" Version="5.0" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -16,7 +17,7 @@ namespace Mono.Debugger.Soft
 	 */
 	public class TypeMirror : Mirror, IInvokable
 	{
-		MethodMirror[] methods;
+		List<MethodMirror> methods;
 		AssemblyMirror ass;
 		ModuleMirror module;
 		FieldInfoMirror[] fields;
@@ -416,21 +417,24 @@ namespace Mono.Debugger.Soft
 		public MethodMirror[] GetMethods () {
 			if (methods == null) {
 				long[] ids = vm.conn.Type_GetMethods (id);
-				MethodMirror[] m = new MethodMirror [ids.Length];
+				methods = new List<MethodMirror>();
 				for (int i = 0; i < ids.Length; ++i) {
-					m [i] = vm.GetMethod (ids [i]);
+					methods.Add(vm.GetMethod (ids [i]));
 				}
-				methods = m;
 			}
-			return methods;
+			return methods.ToArray();
+		}
+		public void FindOrAddMethod(MethodMirror method)
+		{
+			if (!Array.Exists(GetMethods (), (m => m.GetId() == method.GetId()))) {
+				//is EnC
+				methods.Add (method);
+			}
 		}
 
 		// FIXME: Sync this with Type
 		public MethodMirror GetMethod (string name) {
-			foreach (var m in GetMethods ())
-				if (m.Name == name)
-					return m;
-			return null;
+			return methods.FirstOrDefault (m => m.Name == name);
 		}
 
 		public FieldInfoMirror[] GetFields () {
@@ -448,6 +452,12 @@ namespace Mono.Debugger.Soft
 
 			fields = res;
 			return fields;
+		}
+
+		public void ClearCachedDebugInfo ()
+		{
+			fields = null;
+			properties = null;
 		}
 
 		public FieldInfoMirror GetField (string name) {
@@ -898,6 +908,15 @@ namespace Mono.Debugger.Soft
 			return res;
 		}
 
+		public void ApplySourceChanges (SourceUpdate sourceUpdate)
+		{
+			var methods = GetMethods ();
+			foreach (var method in methods)
+			{
+				method.ApplySourceChanges (sourceUpdate);
+			}
+		}
+
 		// Return whenever the type initializer of this type has ran
 		// Since protocol version 2.23
 		public bool IsInitialized {
@@ -909,4 +928,25 @@ namespace Mono.Debugger.Soft
 			}
 		}
     }
+
+	public class SourceUpdate
+	{
+
+		public List<Tuple<int, int>> LineUpdates { get; }
+		public string FileName { get; }
+
+		public SourceUpdate (string fileName)
+		{
+			this.FileName = fileName;
+			LineUpdates = new List<Tuple<int, int>> ();
+		}
+
+		internal int FindLineDiff (int lineNumber)
+		{
+			var line = LineUpdates.FirstOrDefault (item => item.Item1 + 1 == lineNumber);
+			if (line != null)
+				return line.Item2 - line.Item1;
+			return 0;
+		}
+	}
 }

@@ -52,6 +52,8 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public BreakEventStatus Status { get; private set; }
 
+		public Breakpoint Breakpoint { get; set; }
+
 		/// <summary>
 		/// Gets a description of the status
 		/// </summary>

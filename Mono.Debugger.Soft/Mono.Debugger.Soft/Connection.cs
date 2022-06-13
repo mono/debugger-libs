@@ -514,7 +514,8 @@ namespace Mono.Debugger.Soft
 			GET_TYPES = 12,
 			INVOKE_METHODS = 13,
 			START_BUFFERING = 14,
-			STOP_BUFFERING = 15
+			STOP_BUFFERING = 15,
+			GET_ENC_CAPABILITIES = 20
 		}
 
 		enum CmdEvent {
@@ -1959,6 +1960,12 @@ namespace Mono.Debugger.Soft
 			} else {
 				return r.ReadValue ();
 			}
+		}
+
+		internal string VM_EnCCapabilities ()
+		{
+			PacketReader r = SendReceive (CommandSet.VM, (int)CmdVM.GET_ENC_CAPABILITIES, new PacketWriter ());
+			return r.ReadString ();
 		}
 
 		internal delegate void InvokeMethodCallback (ValueImpl v, ValueImpl exc, ValueImpl out_this, ValueImpl[] out_args, ErrorCode error, object state);
