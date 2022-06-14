@@ -424,7 +424,7 @@ namespace Mono.Debugger.Soft
 			}
 			return methods.ToArray();
 		}
-		public void FindOrAddMethod(MethodMirror method)
+		public void AddMethodIfNotExist (MethodMirror method)
 		{
 			if (!Array.Exists(GetMethods (), (m => m.GetId() == method.GetId()))) {
 				//is EnC

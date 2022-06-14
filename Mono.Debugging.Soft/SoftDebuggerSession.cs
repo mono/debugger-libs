@@ -2421,7 +2421,7 @@ namespace Mono.Debugging.Soft
 			foreach (var method in methods) //add new methods to type
 			{
 				method.GetMethod ().ClearCachedLocalsDebugInfo ();
-				method.GetMethod ().DeclaringType.FindOrAddMethod (method.GetMethod ());
+				method.GetMethod ().DeclaringType.AddMethodIfNotExist (method.GetMethod ());
 			}
 			foreach (var breakpoint in breakpoints) {
 				Breakpoint bp = ((Breakpoint)breakpoint.Value.BreakEvent);
