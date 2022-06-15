@@ -434,7 +434,10 @@ namespace Mono.Debugger.Soft
 
 		// FIXME: Sync this with Type
 		public MethodMirror GetMethod (string name) {
-			return methods.FirstOrDefault (m => m.Name == name);
+			foreach (var m in GetMethods ())
+				if (m.Name == name)
+					return m;
+			return null;
 		}
 
 		public FieldInfoMirror[] GetFields () {
