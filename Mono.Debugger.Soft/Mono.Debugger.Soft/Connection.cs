@@ -515,7 +515,7 @@ namespace Mono.Debugger.Soft
 			INVOKE_METHODS = 13,
 			START_BUFFERING = 14,
 			STOP_BUFFERING = 15,
-			GET_ENC_CAPABILITIES = 20
+			GET_ENC_CAPABILITIES = 21
 		}
 
 		enum CmdEvent {
