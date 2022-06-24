@@ -4,6 +4,9 @@ using Mono.Debugger;
 using System.Collections.Generic;
 using System.IO;
 
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+
 #if ENABLE_CECIL
 using Mono.Cecil;
 #endif
@@ -28,7 +31,7 @@ namespace Mono.Debugger.Soft
 		Dictionary<uint, long> tokenMethodCache = new Dictionary<uint, long> ();
 
 #if ENABLE_CECIL
-		AssemblyDefinition meta;
+		Mono.Cecil.AssemblyDefinition meta;
 #endif
 
 		internal AssemblyMirror (VirtualMachine vm, long id) : base (vm, id) {
@@ -130,7 +133,7 @@ namespace Mono.Debugger.Soft
 		 * An optional Cecil assembly which could be used to access metadata instead
 		 * of reading it from the debuggee.
 		 */
-		public AssemblyDefinition Metadata {
+		public Mono.Cecil.AssemblyDefinition Metadata {
 			get {
 				if (meta != null)
 					return meta;
@@ -147,12 +150,12 @@ namespace Mono.Debugger.Soft
 		
 		// Read assembly metadata from the debuggee
 		// Since protocol version 2.47
-		public AssemblyDefinition GetMetadata () {
+		public Mono.Cecil.AssemblyDefinition GetMetadata () {
 			if (IsDynamic)
 				throw new NotSupportedException ();
 				
 			using (var ms = new MemoryStream (GetMetadataBlob ()))
-				return meta = AssemblyDefinition.ReadAssembly (ms);
+				return meta = Mono.Cecil.AssemblyDefinition.ReadAssembly (ms);
 		}
 #endif
 
@@ -235,6 +238,41 @@ namespace Mono.Debugger.Soft
 
 				has_debug_info = vm.conn.Assembly_HasDebugInfo (id);
 				return has_debug_info.Value;
+			}
+		}
+
+		public void ApplyChanges_DebugInformation (byte[] metadataDelta, byte[] pdbDelta)
+		{
+			var asmStream = new MemoryStream (metadataDelta);
+			MetadataReader asmMetadataReaderParm = MetadataReaderProvider.FromMetadataStream (asmStream).GetMetadataReader ();
+			var pdbStream = new MemoryStream (pdbDelta);
+			MetadataReader pdbMetadataReaderParm = MetadataReaderProvider.FromPortablePdbStream (pdbStream).GetMetadataReader ();
+
+			TypeInfo typeInfo = null;
+			int methodIdxAsm = 1;
+			foreach (var entry in asmMetadataReaderParm.GetEditAndContinueLogEntries ()) {
+				if (entry.Operation == EditAndContinueOperation.AddField) {
+					var typeHandle = (TypeDefinitionHandle)entry.Handle;
+					try
+					{
+						GetType ((uint)MetadataTokens.GetToken (asmMetadataReaderParm, typeHandle)).ClearCachedDebugInfo ();
+					}
+					catch (Exception) {
+						//type does not exist yet
+					}
+				}
+			}
+
+			foreach (var entry in pdbMetadataReaderParm.GetEditAndContinueMapEntries ()) {
+				if (entry.Kind == HandleKind.MethodDebugInformation) {
+					try {
+						var methodToken = (pdbMetadataReaderParm.GetRowNumber (entry) << 24) | (6);
+						this.GetMethod ((uint)methodToken).SetUpdatedByEnC ();
+					}
+					catch (Exception) {
+						//method does not exist yet
+					}
+				}
 			}
 		}
 	}

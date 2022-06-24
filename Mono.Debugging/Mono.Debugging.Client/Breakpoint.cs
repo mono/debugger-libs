@@ -117,7 +117,9 @@ namespace Mono.Debugging.Client
 			ResetAdjustedColumn ();
 			column = newColumn;
 		}
-		
+
+		public bool UpdatedByEnC { get; set; }
+
 		public void SetLine (int newLine)
 		{
 			ResetAdjustedLine ();
