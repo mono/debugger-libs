@@ -417,7 +417,7 @@ namespace Mono.Debugger.Soft
 		public MethodMirror[] GetMethods () {
 			if (methods == null) {
 				long[] ids = vm.conn.Type_GetMethods (id);
-				methods = new List<MethodMirror>();
+				methods = new List<MethodMirror>(ids.Length);
 				for (int i = 0; i < ids.Length; ++i) {
 					methods.Add(vm.GetMethod (ids [i]));
 				}
@@ -934,8 +934,7 @@ namespace Mono.Debugger.Soft
 
 	public class SourceUpdate
 	{
-
-		public List<Tuple<int, int>> LineUpdates { get; }
+		public List<Tuple<int, int>> LineUpdates { get; } //Tuple<oldLine, newLine>
 		public string FileName { get; }
 
 		public SourceUpdate (string fileName)
