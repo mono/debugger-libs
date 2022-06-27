@@ -28,78 +28,58 @@ namespace Mono.Debugging.Client
 {
 	public class Assembly
 	{
-		string name;
-		string path;
-		bool optimized;
-		string status;
-		string filepath;
-		int order;
-		string timestamp;
-		string address;
-		string process;
-		string appdomain;
-		// assemblies.Add(new Assembly(newModule.Name, newModule.Path, newModule.IsOptimized==true, newModule.SymbolStatus, newModule.SymbolFilePath, newModule.VsLoadOrder, newModule.DateTimeStamp, newModule.VsLoadAddress, "process name", newModule.VsAppDomain ));
-		public Assembly (string name, string path, bool optimized, string status, string filepath, int? order, string timestamp, string address, string process, string appdomain)
+		public Assembly (string name, string path, bool optimized, bool userCode, string symbolStatus, string symbolFile, int? order, string version, string timestamp, string address, string process, string appdomain, long processId)
 		{
 			Name = name;
 			Path = path;
 			Optimized = optimized;
-			SymbolStatus = status;
-			SymbolFile = filepath;
-			if(order == null) {
+			SymbolStatus = symbolStatus;
+			SymbolFile = symbolFile;
+			if (order == null) {
 				Order = -1;
 			} else {
 				Order = (int)order;
 			}
-			
+
 			TimeStamp = timestamp;
 			Address = address;
 			Process = process;
 			AppDomain = appdomain;
+			Version = version;
+			UserCode = userCode;
+			ProcessId = processId;
+
 		}
-		public string Name {
-			get { return name; }
-			protected set { name = value; }
-		}
-		public string Path {
-			get { return path; }
-			protected set { path = value; }
-		}
-		public bool Optimized {
-			get { return optimized; }
-			protected set { optimized = value; }
+		public Assembly (string path)
+		{
+			Path = path;
 		}
 
-		public string SymbolStatus {
-			get { return status; }
-			protected set { status = value; }
-		}
-		public string SymbolFile {
-			get { return filepath; }
-			protected set { filepath = value; }
-		}
-		public int Order {
-			get { return order; }
-			protected set { order = value; }
-		}
-		public string TimeStamp {
-			get { return timestamp; }
-			protected set { timestamp = value; }
-		}
+		public string Name { get; private set; }
 
-		public string Address {
-			get { return address; }
-			protected set { address = value; }
-		}
-		public string Process {
-			get { return process; }
-			protected set { process = value; }
-		}
+		public string Path { get; private set; }
 
-		public string AppDomain {
-			get { return appdomain; }
-			protected set { appdomain = value; }
-		}
+		public bool Optimized { get; private set; }
+
+		public bool UserCode { get; private set; }
+
+		public string SymbolStatus { get; private set; }
+
+		public string SymbolFile { get; private set; }
+
+		public int Order { get; private set; }
+
+		public String Version { get; private set; }
+
+		public string TimeStamp { get; private set; }
+
+		public string Address { get; private set; }
+
+		public string Process { get; private set; }
+
+		public string AppDomain { get; private set; }
+
+		public long ProcessId { get; private set; }
 	}
 }
 
