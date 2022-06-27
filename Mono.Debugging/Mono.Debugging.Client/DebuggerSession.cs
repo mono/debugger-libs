@@ -32,6 +32,7 @@ using System.Collections.Generic;
 
 using Mono.Debugging.Backend;
 using Mono.Debugging.Evaluation;
+using System.Linq;
 
 namespace Mono.Debugging.Client
 {
@@ -49,6 +50,7 @@ namespace Mono.Debugging.Client
 	{
 		readonly Dictionary<BreakEvent, BreakEventInfo> breakpoints = new Dictionary<BreakEvent, BreakEventInfo> ();
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
+		private readonly List<Assembly> assemblies = new List<Assembly> ();
 		readonly InternalDebuggerSession frontend;
 		readonly object slock = new object ();
 		readonly object breakpointStoreLock = new object ();
@@ -135,7 +137,6 @@ namespace Mono.Debugging.Client
 		/// Raised when an assembly is loaded
 		/// </summary>
 		public event EventHandler<AssemblyEventArgs> AssemblyLoaded;
-		public event EventHandler<List<Assembly>> AssembliesLoaded;
 
 		/// <summary>
 		/// Raised when a subprocess is started
@@ -299,6 +300,19 @@ namespace Mono.Debugging.Client
 
 		public UsageCounter ThreadsPadUsageCounter {
 			get; private set;
+		}
+
+		public Assembly[] GetAssemblies() {
+			lock (assemblies) {
+				return assemblies.ToArray ();
+			}
+		}
+
+		public Assembly[] GetAssemblies(long processId)
+		{
+			lock (assemblies) {	
+				return assemblies.Where (a => a.ProcessId == processId).ToArray ();
+			}
 		}
 
 		/// <summary>
@@ -1301,16 +1315,14 @@ namespace Mono.Debugging.Client
 			}
 		}
 
-		internal protected void OnAssemblyLoaded (string assemblyLocation)
+		internal protected void OnAssemblyLoaded (Assembly assembly)
 		{
-			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assemblyLocation));
-		}
+			lock (assemblies) {
+				assemblies.Add (assembly);
+			}
 
-		internal protected void OnAssembliesLoaded(List<Assembly> list)
-		{
-			AssembliesLoaded?.Invoke (this, list);
+			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assembly));
 		}
-
 
 		internal protected void SetBusyState (BusyStateEventArgs args)
 		{
