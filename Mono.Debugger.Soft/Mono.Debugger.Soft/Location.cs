@@ -48,7 +48,10 @@ namespace Mono.Debugger.Soft
 			get {
 				return line_number;
 			}
-	    }
+			set {
+				this.line_number = value;
+			}
+		}
 
 		// Since protocol version 2.19, 0 in earlier protocol versions
 		public int ColumnNumber {

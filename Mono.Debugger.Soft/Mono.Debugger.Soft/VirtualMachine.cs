@@ -793,7 +793,14 @@ namespace Mono.Debugger.Soft
 			if (!conn.Version.AtLeast (major, minor))
 				throw new NotSupportedException ("This request is not supported by the protocol version implemented by the debuggee.");
 		}
-    }
+
+		public string GetEnCCapabilities ()
+		{
+			if (conn.Version.AtLeast (2, 61))
+				return conn.VM_EnCCapabilities ();
+			return "Baseline";
+		}
+	}
 
 	class EventHandler : MarshalByRefObject, IEventHandler
 	{		

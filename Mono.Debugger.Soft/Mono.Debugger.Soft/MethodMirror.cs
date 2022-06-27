@@ -25,6 +25,7 @@ namespace Mono.Debugger.Soft
 		MethodBodyMirror body;
 		MethodMirror gmd;
 		TypeMirror[] type_args;
+		bool updatedByEnC;
 
 #if ENABLE_CECIL
 		C.MethodDefinition meta;
@@ -254,9 +255,12 @@ namespace Mono.Debugger.Soft
 
 		public void ClearCachedLocalsDebugInfo ()
 		{
-			locals = null;
-			debug_info = null;
-			locations = null;
+			if (updatedByEnC) {
+				locals = null;
+				debug_info = null;
+				locations = null;
+			}
+			updatedByEnC = false;
 		}
 
 		public LocalScope [] GetScopes () {
@@ -460,6 +464,32 @@ namespace Mono.Debugger.Soft
 			var interp = new ILInterpreter (this);
 
 			return interp.Evaluate (this_val, args);
+		}
+
+		internal void ApplySourceChanges (SourceUpdate sourceUpdate)
+		{
+			if (updatedByEnC)
+				return;
+			var lineDiff = 0;
+			if (Locations.Count > 0) {
+				lineDiff = sourceUpdate.FindLineDiff (locations[0].LineNumber);
+			}
+			if (lineDiff != 0)
+			{
+				foreach (var location in locations)
+				{
+					location.LineNumber += lineDiff;
+				}
+				for (int i = 0; i < debug_info.end_line_numbers.Count(); i++) {
+					debug_info.end_line_numbers[i] += lineDiff;
+					debug_info.line_numbers[i] += lineDiff;
+				}
+			}
+		}
+
+		internal void SetUpdatedByEnC ()
+		{
+			updatedByEnC = true;
 		}
 	}
 }
