@@ -34,6 +34,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Collections.Immutable;
+using System.Collections.Concurrent;
 
 namespace Mono.Debugging.Client
 {
@@ -513,7 +514,8 @@ namespace Mono.Debugging.Client
 						Marshal.FreeHGlobal(buffer);
 					return;
 				}
-				s_bufferStack.Push(buffer);
+				if (buffer != IntPtr.Zero)
+					s_bufferStack.Push(buffer);
 			}
 		}
 
