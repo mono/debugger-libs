@@ -495,7 +495,7 @@ namespace Mono.Debugging.Client
 				}
 			}
 
-			static ConcurrentStack<IntPtr> s_bufferStack = new();
+			static ConcurrentStack<IntPtr> s_bufferStack = new ConcurrentStack<IntPtr>();
 
 			static IntPtr GetBuffer()
 			{
