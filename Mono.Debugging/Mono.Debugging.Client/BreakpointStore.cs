@@ -77,7 +77,7 @@ namespace Mono.Debugging.Client
 			}
 			return false;
 		}
-		
+
 		public int Count {
 			get {
 				return InternalGetBreakpoints().Length;
@@ -101,7 +101,7 @@ namespace Mono.Debugging.Client
 		{
 			return Add (filename, line, 1, true);
 		}
-		
+
 		public Breakpoint Add (string filename, int line, int column, bool activate)
 		{
 			if (filename == null)
@@ -126,7 +126,7 @@ namespace Mono.Debugging.Client
 		{
 			Add (bp);
 		}
-		
+
 		public bool Add (BreakEvent be)
 		{
 			if (be == null)
@@ -148,7 +148,7 @@ namespace Mono.Debugging.Client
 
 			return true;
 		}
-		
+
 		public Catchpoint AddCatchpoint (string exceptionName)
 		{
 			return AddCatchpoint (exceptionName, true);
@@ -167,7 +167,7 @@ namespace Mono.Debugging.Client
 
 			return cp;
 		}
-		
+
 		public bool Remove (string filename, int line, int column)
 		{
 			if (filename == null)
@@ -191,7 +191,7 @@ namespace Mono.Debugging.Client
 
 			return true;
 		}
-		
+
 		public bool RemoveCatchpoint (string exceptionName)
 		{
 			if (exceptionName == null)
@@ -221,7 +221,7 @@ namespace Mono.Debugging.Client
 
 			RemoveRange (breakpointsToRemove);
 		}
-		
+
 		public bool Remove (BreakEvent bp)
 		{
 			if (bp == null)
@@ -280,7 +280,7 @@ namespace Mono.Debugging.Client
 
 			if (IsReadOnly)
 				return null;
-			
+
 			var col = GetBreakpointsAtFileLine (filename, line);
 			if (col.Count > 0) {
 				// Remove only the most-recently-added breakpoint on the specified line
@@ -307,12 +307,12 @@ namespace Mono.Debugging.Client
 
 			return list.AsReadOnly ();
 		}
-		
+
 		public ReadOnlyCollection<Catchpoint> GetCatchpoints ()
 		{
 			return InternalGetBreakpoints ().OfType<Catchpoint> ().ToList ().AsReadOnly ();
 		}
-		
+
 		public ReadOnlyCollection<Breakpoint> GetBreakpointsAtFile (string filename)
 		{
 			if (filename == null)
@@ -327,33 +327,33 @@ namespace Mono.Debugging.Client
 			} catch {
 				return list.AsReadOnly ();
 			}
-			
+
 			foreach (var bp in InternalGetBreakpoints ().OfType<Breakpoint> ()) {
 				if (!(bp is RunToCursorBreakpoint) && FileNameEquals(bp.FileName, filename))
 					list.Add (bp);
 			}
-			
+
 			return list.AsReadOnly ();
 		}
-		
+
 		public ReadOnlyCollection<Breakpoint> GetBreakpointsAtFileLine (string filename, int line)
 		{
 			if (filename == null)
 				throw new ArgumentNullException (nameof (filename));
 
 			var list = new List<Breakpoint> ();
-			
+
 			try {
 				filename = Path.GetFullPath (filename);
 			} catch {
 				return list.AsReadOnly ();
 			}
-			
+
 			foreach (var bp in InternalGetBreakpoints ().OfType<Breakpoint> ()) {
 				if (!(bp is RunToCursorBreakpoint) && FileNameEquals(bp.FileName, filename) && (bp.OriginalLine == line || bp.Line == line))
 					list.Add (bp);
 			}
-			
+
 			return list.AsReadOnly ();
 		}
 
@@ -399,16 +399,16 @@ namespace Mono.Debugging.Client
 		{
 			InternalGetBreakpoints ().CopyTo (array, arrayIndex);
 		}
-		
+
 		public void UpdateBreakpointLine (Breakpoint bp, int newLine)
 		{
 			if (IsReadOnly)
 				return;
-			
+
 			bp.SetLine (newLine);
 			NotifyBreakEventChanged (bp);
 		}
-		
+
 		internal void AdjustBreakpointLine (Breakpoint bp, int newLine, int newColumn)
 		{
 			if (IsReadOnly)
@@ -418,19 +418,19 @@ namespace Mono.Debugging.Client
 			bp.SetAdjustedLine (newLine);
 			NotifyBreakEventChanged (bp);
 		}
-		
+
 		internal void ResetBreakpoints ()
 		{
 			if (IsReadOnly)
 				return;
-			
+
 			foreach (var bp in InternalGetBreakpoints ()) {
 				if (bp.Reset ()) {
 					NotifyBreakEventChanged (bp);
 				}
 			}
 		}
-		
+
 		public XmlElement Save (string baseDir = null)
 		{
 			XmlDocument doc = new XmlDocument ();
@@ -443,7 +443,7 @@ namespace Mono.Debugging.Client
 			}
 			return elem;
 		}
-		
+
 		public void Load (XmlElement rootElem, string baseDir = null)
 		{
 			Clear ();
@@ -468,8 +468,54 @@ namespace Mono.Debugging.Client
 			OnBreakEventsAdded (loadedBreakpoints);
 		}
 
-		[DllImport ("libc")]
-		static extern IntPtr realpath (string path, IntPtr buffer);
+
+		sealed class LinkResolver
+		{
+			const int PATHMAX = 4096 + 1;
+			const int MAX_BUFFERS = 42;
+
+			[DllImport("libc")]
+			static extern IntPtr realpath(string path, IntPtr buffer);
+
+			public static string ResolveLinks(string path)
+			{
+				// If there is no path given, return the same path back
+				if (string.IsNullOrEmpty (path))
+					return path;
+				var buffer = GetBuffer();
+				try
+				{
+					var result = realpath(path, buffer);
+					return result == IntPtr.Zero ? Path.GetFullPath(path) : Marshal.PtrToStringAuto(buffer);
+				}
+				finally
+				{
+					Release(buffer);
+				}
+			}
+
+			static ConcurrentStack<IntPtr> s_bufferStack = new();
+
+			static IntPtr GetBuffer()
+			{
+				if (!s_bufferStack.TryPop(out var result))
+				{
+					result = Marshal.AllocHGlobal(PATHMAX);
+				}
+				return result;
+			}
+
+			static void Release(IntPtr buffer)
+			{
+				if (s_bufferStack.Count >= MAX_BUFFERS)
+				{
+					if (buffer != IntPtr.Zero)
+						Marshal.FreeHGlobal(buffer);
+					return;
+				}
+				s_bufferStack.Push(buffer);
+			}
+		}
 
 		/// <summary>
 		/// Resolves the full path of the given file
@@ -478,32 +524,7 @@ namespace Mono.Debugging.Client
 		/// <returns>The full path if a file is given, or returns the parameter if it is null or empty</returns>
 		static string ResolveFullPath (string path)
 		{
-			// If there is no path given, return the same path back
-			if (string.IsNullOrEmpty (path))
-				return path;
-
-			if (IsWindows)
-				return Path.GetFullPath (path);
-
-			const int PATHMAX = 4096 + 1;
-			IntPtr buffer = IntPtr.Zero;
-
-			try {
-				buffer = Marshal.AllocHGlobal (PATHMAX);
-				var result = realpath (path, buffer);
-				var realPath = result == IntPtr.Zero ? "" : Marshal.PtrToStringAuto (buffer);
-
-				if (string.IsNullOrEmpty (realPath) && !File.Exists (path)) {
-					// if the file does not exist then `realpath` will return empty string
-					// default to what we would do if calling this on windows
-					realPath = Path.GetFullPath (path);
-				}
-
-				return realPath;
-			} finally {
-				if (buffer != IntPtr.Zero)
-					Marshal.FreeHGlobal (buffer);
-			}
+			return LinkResolver.ResolveLinks(path);
 		}
 
 		public static bool FileNameEquals (string file1, string file2)
@@ -530,7 +551,7 @@ namespace Mono.Debugging.Client
 
 			return true;
 		}
-		
+
 		void OnBreakEventAdded (BreakEvent be)
 		{
 			BreakEventAdded?.Invoke (this, new BreakEventArgs (be));
@@ -599,7 +620,7 @@ namespace Mono.Debugging.Client
 				// Ignore
 			}
 		}
-		
+
 		internal void NotifyBreakEventChanged (BreakEvent be)
 		{
 			try {
@@ -614,7 +635,7 @@ namespace Mono.Debugging.Client
 				// Ignore
 			}
 		}
-		
+
 		internal void NotifyBreakEventUpdated (BreakEvent be)
 		{
 
@@ -629,7 +650,7 @@ namespace Mono.Debugging.Client
 				// Ignore
 			}
 		}
-		
+
 		public event EventHandler<BreakpointEventArgs> BreakpointAdded;
 		public event EventHandler<BreakpointEventArgs> BreakpointRemoved;
 		public event EventHandler<BreakpointEventArgs> BreakpointStatusChanged;
@@ -647,7 +668,7 @@ namespace Mono.Debugging.Client
 		public event EventHandler<BreakEventArgs> BreakEventUpdated;
 		public event EventHandler Changed;
 		public event EventHandler<ReadOnlyCheckEventArgs> CheckingReadOnly;
-		
+
 		internal event EventHandler<BreakEventArgs> BreakEventEnableStatusChanged;
 
 		public void FileRenamed (string oldPath, string newPath)
@@ -688,7 +709,7 @@ namespace Mono.Debugging.Client
 	public class ReadOnlyCheckEventArgs: EventArgs
 	{
 		internal bool IsReadOnly;
-		
+
 		public void SetReadOnly (bool isReadOnly)
 		{
 			IsReadOnly = IsReadOnly || isReadOnly;
