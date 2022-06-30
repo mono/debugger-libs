@@ -469,55 +469,8 @@ namespace Mono.Debugging.Client
 			OnBreakEventsAdded (loadedBreakpoints);
 		}
 
-
-		sealed class LinkResolver
-		{
-			const int PATHMAX = 4096 + 1;
-			const int MAX_BUFFERS = 42;
-
-			[DllImport("libc")]
-			static extern IntPtr realpath(string path, IntPtr buffer);
-
-			public static string ResolveLinks(string path)
-			{
-				// If there is no path given, return the same path back
-				if (string.IsNullOrEmpty (path))
-					return path;
-				var buffer = GetBuffer();
-				try
-				{
-					var result = realpath(path, buffer);
-					return result == IntPtr.Zero ? Path.GetFullPath(path) : Marshal.PtrToStringAuto(buffer);
-				}
-				finally
-				{
-					Release(buffer);
-				}
-			}
-
-			static ConcurrentStack<IntPtr> s_bufferStack = new ConcurrentStack<IntPtr>();
-
-			static IntPtr GetBuffer()
-			{
-				if (!s_bufferStack.TryPop(out var result))
-				{
-					result = Marshal.AllocHGlobal(PATHMAX);
-				}
-				return result;
-			}
-
-			static void Release(IntPtr buffer)
-			{
-				if (s_bufferStack.Count >= MAX_BUFFERS)
-				{
-					if (buffer != IntPtr.Zero)
-						Marshal.FreeHGlobal(buffer);
-					return;
-				}
-				if (buffer != IntPtr.Zero)
-					s_bufferStack.Push(buffer);
-			}
-		}
+		[DllImport("libc")]
+		static extern string realpath(string path, IntPtr buffer);
 
 		/// <summary>
 		/// Resolves the full path of the given file
@@ -526,7 +479,13 @@ namespace Mono.Debugging.Client
 		/// <returns>The full path if a file is given, or returns the parameter if it is null or empty</returns>
 		static string ResolveFullPath (string path)
 		{
-			return LinkResolver.ResolveLinks(path);
+			// If there is no path given, return the same path back
+			if (string.IsNullOrEmpty(path))
+					return path;
+			var result = realpath(path, IntPtr.Zero);
+			if (result == null)
+					return Path.GetFullPath(path);
+			return result;
 		}
 
 		public static bool FileNameEquals (string file1, string file2)
