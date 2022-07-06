@@ -48,7 +48,8 @@ using Mono.Debugging.Client;
 using Mono.Debugging.Evaluation;
 
 using StackFrame = Mono.Debugger.Soft.StackFrame;
-
+using Assembly = Mono.Debugging.Client.Assembly;
+using System.Collections.Immutable;
 namespace Mono.Debugging.Soft
 {
 	public class SoftDebuggerSession : DebuggerSession
@@ -76,6 +77,7 @@ namespace Mono.Debugging.Soft
 		bool loggedSymlinkedRuntimesBug;
 		SoftDebuggerStartArgs startArgs;
 		List<string> userAssemblyNames;
+		List<SourceUpdate> sourceUpdates;
 		ThreadInfo[] current_threads;
 		string remoteProcessName;
 		long currentAddress = -1;
@@ -99,6 +101,7 @@ namespace Mono.Debugging.Soft
 			Adaptor = CreateSoftDebuggerAdaptor ();
 			Adaptor.BusyStateChanged += (sender, e) => SetBusyState (e);
 			Adaptor.DebuggerSession = this;
+			sourceUpdates = new List<SourceUpdate> ();
 		}
 
 		protected virtual SoftDebuggerAdaptor CreateSoftDebuggerAdaptor ()
@@ -1193,12 +1196,12 @@ namespace Mono.Debugging.Soft
 					found = true;
 					breakInfo.SetStatus (BreakEventStatus.Bound, null);
 				}
-
 				lock (pending_bes) {
 					pending_bes.Add (breakInfo);
 				}
 
 				if (!found) {
+					breakInfo.Breakpoint = breakpoint;
 					if (insideLoadedRange)
 						breakInfo.SetStatus (BreakEventStatus.Invalid, null);
 					else
@@ -2244,8 +2247,27 @@ namespace Mono.Debugging.Soft
 			var asm = events [0].Assembly;
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
+			
+			var symbolStatus = asm.GetMetadata ().MainModule.HasSymbols ? "Symbol loaded" : "Skipped loading symbols";
+			
+			var assembly = new Assembly (
+				asm.GetMetadata ().MainModule.Name,
+				asm.Location,
+				true,
+				asm.GetMetadata ().MainModule.HasSymbols,
+				symbolStatus,
+				"",
+				-1,
+				asm.GetName ().Version.Major.ToString(),
+				// TODO: module time stamp
+				"",
+				asm.GetAssemblyObject ().Address.ToString(),
+				string.Format("[{0}]{1}", asm.VirtualMachine.TargetProcess.Id, asm.VirtualMachine.TargetProcess.ProcessName),
+				asm.Domain.FriendlyName,
+				asm.VirtualMachine.TargetProcess.Id
+				) ;
 
-			OnAssemblyLoaded(asm.Location);
+			OnAssemblyLoaded (assembly);
 
 			RegisterAssembly(asm);
 			bool isExternal;
@@ -2415,15 +2437,33 @@ namespace Mono.Debugging.Soft
 
 		void HandleMethodUpdateEvents(MethodUpdateEvent[] methods)
 		{
-			foreach (var method in methods)
+			foreach (var method in methods) //add new methods to type
 			{
-				foreach (var bp in breakpoints) {
-					if (bp.Value.Location.Method.GetId() == method.GetMethod().GetId())
-					{
-						bool dummy = false;
-						var l = FindLocationByMethod (bp.Value.Location.Method, bp.Value.Location.SourceFile, bp.Value.Location.LineNumber, bp.Value.Location.ColumnNumber, ref dummy);
-						bp.Value.Location = l;
-						UpdateBreakpoint ((Breakpoint)bp.Value.BreakEvent, bp.Value);
+				method.GetMethod ().ClearCachedLocalsDebugInfo ();
+				method.GetMethod ().DeclaringType.AddMethodIfNotExist (method.GetMethod ());
+			}
+			foreach (var breakpoint in breakpoints) {
+				Breakpoint bp = ((Breakpoint)breakpoint.Value.BreakEvent);
+				if (bp.UpdatedByEnC) {
+					bool dummy = false;
+					var l = FindLocationByMethod (breakpoint.Value.Location.Method, bp.FileName, bp.Line, bp.Column, ref dummy);
+					if (l != null) {
+						breakpoint.Value.Location = l;
+						UpdateBreakpoint (bp, breakpoint.Value);
+						bp.UpdatedByEnC = false;
+					}
+				}
+			}
+			foreach (var bp in pending_bes) {
+				if (bp.Status != BreakEventStatus.Bound) {
+					foreach (var location in FindLocationsByFile (bp.Breakpoint.FileName, bp.Breakpoint.Line, bp.Breakpoint.Column, out _, out bool insideLoadedRange)) {
+						OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
+																bp.Breakpoint.FileName, bp.Breakpoint.Line, bp.Breakpoint.Column,
+																GetPrettyMethodName (location.Method), location.ILOffset));
+
+						bp.Location = location;
+						InsertBreakpoint (bp.Breakpoint, bp);
+						bp.SetStatus (BreakEventStatus.Bound, null);
 					}
 				}
 			}
@@ -3342,6 +3382,14 @@ namespace Mono.Debugging.Soft
 			return lines.ToArray ();
 		}
 
+		public void AddSourceUpdate (string fileName)
+		{
+			sourceUpdates.Add (new SourceUpdate(fileName));
+		}
+		public void AddLineUpdate (int oldLine, int newLine)
+		{
+			sourceUpdates.Last().LineUpdates.Add (new Tuple<int, int>(oldLine, newLine));
+		}
 		public void ApplyChanges (ModuleMirror module, byte[] metadataDelta, byte[] ilDelta, byte[] pdbDelta = null)
 		{
 			var rootDomain = VirtualMachine.RootDomain;
@@ -3353,7 +3401,22 @@ namespace Mono.Debugging.Soft
 			else
 				pdbArray = rootDomain.CreateByteArray (pdbDelta);
 
+			module.Assembly.ApplyChanges_DebugInformation (metadataDelta, pdbDelta);
 			module.ApplyChanges (metadataArray, ilArray, pdbArray);
+			foreach (var sourceUpdate in sourceUpdates)
+			{
+				var types = VirtualMachine.GetTypesForSourceFile (sourceUpdate.FileName, false);
+				foreach (var type in types)
+				{
+					type.ApplySourceChanges (sourceUpdate);
+				}
+			}
+			sourceUpdates.Clear ();
+		}
+
+		public string GetEnCCapabilities()
+		{
+			return vm.GetEnCCapabilities ();
 		}
 		static string EscapeString (string text)
 		{
