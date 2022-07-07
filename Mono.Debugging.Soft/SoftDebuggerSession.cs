@@ -2251,7 +2251,8 @@ namespace Mono.Debugging.Soft
 
 			var symbolStatus = asm.GetMetadata ().MainModule.HasSymbols ? "Symbol loaded" : "Skipped loading symbols";
 
-			var assembly = new Assembly (
+			try {
+				var assembly = new Assembly (
 				asm.GetMetadata ().MainModule.Name,
 				asm.Location,
 				true,
@@ -2268,7 +2269,11 @@ namespace Mono.Debugging.Soft
 				asm.VirtualMachine.TargetProcess.Id
 				);
 
-			OnAssemblyLoaded (assembly.Address);
+				OnAssemblyLoaded (assembly.Address);
+			} catch (Exception e) {
+				//TODO log exception
+			}
+
 
 			RegisterAssembly (asm);
 			bool isExternal;
