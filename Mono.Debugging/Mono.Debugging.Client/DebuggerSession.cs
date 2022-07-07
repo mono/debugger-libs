@@ -32,7 +32,6 @@ using System.Collections.Generic;
 
 using Mono.Debugging.Backend;
 using Mono.Debugging.Evaluation;
-using System.Linq;
 
 namespace Mono.Debugging.Client
 {
@@ -51,7 +50,6 @@ namespace Mono.Debugging.Client
 		readonly Dictionary<BreakEvent, BreakEventInfo> breakpoints = new Dictionary<BreakEvent, BreakEventInfo> ();
 		readonly Dictionary<string, string> resolvedExpressionCache = new Dictionary<string, string> ();
 		readonly InternalDebuggerSession frontend;
-		private readonly List<Assembly> assemblies = new List<Assembly> ();
 		readonly object slock = new object ();
 		readonly object breakpointStoreLock = new object ();
 		BreakpointStore breakpointStore;
@@ -300,26 +298,6 @@ namespace Mono.Debugging.Client
 
 		public UsageCounter ThreadsPadUsageCounter {
 			get; private set;
-		}
-
-		/// <summary>
-		/// Gets assemblies from the debugger session.
-		/// </summary>
-		public Assembly[] GetAssemblies ()
-		{
-			lock (assemblies) {
-				return assemblies.ToArray ();
-			}
-		}
-
-		/// <summary>
-		/// Gets assemblies from the debugger session but filter by the specific process ID .
-		/// </summary>
-		internal Assembly[] GetAssemblies (long processId)
-		{
-			lock (assemblies) {
-				return assemblies.Where (a => a.ProcessId == processId).ToArray ();
-			}
 		}
 
 		/// <summary>
@@ -1324,25 +1302,10 @@ namespace Mono.Debugging.Client
 
 		internal protected void OnAssemblyLoaded (string assemblyLocation)
 		{
-			var assembly = new Assembly (assemblyLocation);
-			lock (assemblies) {
-				assemblies.Add (assembly);
-			}
-
-			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assembly));
+			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assemblyLocation));
 		}
-
-		internal protected void OnAssemblyLoaded (Assembly assembly)
-		{
-			lock (assemblies) {
-				assemblies.Add(assembly);
-			}
-
-			AssemblyLoaded?.Invoke (this, new AssemblyEventArgs (assembly));
-		}
-
-
-internal protected void SetBusyState (BusyStateEventArgs args)
+		
+		internal protected void SetBusyState (BusyStateEventArgs args)
 		{
 			BusyStateChanged?.Invoke (this, args);
 		}
