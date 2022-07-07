@@ -2252,20 +2252,20 @@ namespace Mono.Debugging.Soft
 			var symbolStatus = asm.GetMetadata ().MainModule.HasSymbols ? "Symbol loaded" : "Skipped loading symbols";
 
 			var assembly = new Assembly (
-				asm.GetMetadata ().MainModule.Name,
-				asm.Location,
+				asm?.GetMetadata()?.MainModule?.Name,
+				asm?.Location,
 				true,
-				asm.GetMetadata ().MainModule.HasSymbols,
+				asm?.GetMetadata ()?.MainModule?.HasSymbols==true,
 				symbolStatus,
 				"",
 				-1,
-				asm.GetName ().Version.Major.ToString (),
+				asm?.GetName ()?.Version?.Major.ToString (),
 				// TODO: module time stamp
 				"",
-				asm.GetAssemblyObject ().Address.ToString (),
-				string.Format ("[{0}]{1}", asm.VirtualMachine.TargetProcess.Id, asm.VirtualMachine.TargetProcess.ProcessName),
-				asm.Domain.FriendlyName,
-				asm.VirtualMachine.TargetProcess.Id
+				asm?.GetAssemblyObject ()?.Address.ToString (),
+				string.Format ("[{0}]{1}", asm?.VirtualMachine?.TargetProcess?.Id, asm?.VirtualMachine?.TargetProcess?.ProcessName),
+				asm?.Domain?.FriendlyName,
+				asm?.VirtualMachine?.TargetProcess?.Id
 				);
 
 			OnAssemblyLoaded (assembly);
