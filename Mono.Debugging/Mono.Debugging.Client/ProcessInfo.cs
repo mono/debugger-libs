@@ -78,5 +78,13 @@ namespace Mono.Debugging.Client
 		{
 			return session.GetThreads (id);
 		}
-	}
+
+		/// <summary>
+		/// Gets assemblies from the debugger session that matches the process ID.
+		/// </summary>
+		public Assembly[] GetAssemblies ()
+		{
+			return session.GetAssemblies(id);
+		}
+}
 }

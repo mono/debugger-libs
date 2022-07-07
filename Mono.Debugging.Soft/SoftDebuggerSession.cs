@@ -49,6 +49,7 @@ using Mono.Debugging.Evaluation;
 
 using StackFrame = Mono.Debugger.Soft.StackFrame;
 using System.Collections.Immutable;
+using Assembly = Mono.Debugging.Client.Assembly;
 
 namespace Mono.Debugging.Soft
 {
@@ -2244,17 +2245,36 @@ namespace Mono.Debugging.Soft
 
 		void HandleAssemblyLoadEvents (AssemblyLoadEvent[] events)
 		{
-			var asm = events [0].Assembly;
+			var asm = events[0].Assembly;
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
 
-			OnAssemblyLoaded(asm.Location);
+			var symbolStatus = asm.GetMetadata ().MainModule.HasSymbols ? "Symbol loaded" : "Skipped loading symbols";
 
-			RegisterAssembly(asm);
+			var assembly = new Assembly (
+				asm.GetMetadata ().MainModule.Name,
+				asm.Location,
+				true,
+				asm.GetMetadata ().MainModule.HasSymbols,
+				symbolStatus,
+				"",
+				-1,
+				asm.GetName ().Version.Major.ToString (),
+				// TODO: module time stamp
+				"",
+				asm.GetAssemblyObject ().Address.ToString (),
+				string.Format ("[{0}]{1}", asm.VirtualMachine.TargetProcess.Id, asm.VirtualMachine.TargetProcess.ProcessName),
+				asm.Domain.FriendlyName,
+				asm.VirtualMachine.TargetProcess.Id
+				);
+
+			OnAssemblyLoaded (assembly);
+
+			RegisterAssembly (asm);
 			bool isExternal;
 			isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
 
-			if (outputOptions.ModuleLoaded) { 
+			if (outputOptions.ModuleLoaded) {
 				string flagExt = isExternal ? " [External]" : "";
 				OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
 			}
