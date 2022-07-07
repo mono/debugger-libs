@@ -33,9 +33,19 @@ namespace Mono.Debugging.Client
 		public AssemblyEventArgs (string location)
 		{
 			Location = location;
+			Assembly = null;
+		}
+
+		public AssemblyEventArgs (Assembly assembly)
+		{
+			Location = assembly.Path;
+			Assembly = assembly;
 		}
 
 		public string Location {
+			get; private set;
+		}
+		public Assembly Assembly {
 			get; private set;
 		}
 	}
