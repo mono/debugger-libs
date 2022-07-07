@@ -2268,7 +2268,7 @@ namespace Mono.Debugging.Soft
 				asm.VirtualMachine.TargetProcess.Id
 				);
 
-			OnAssemblyLoaded (assembly);
+			OnAssemblyLoaded (assembly.Address);
 
 			RegisterAssembly (asm);
 			bool isExternal;
