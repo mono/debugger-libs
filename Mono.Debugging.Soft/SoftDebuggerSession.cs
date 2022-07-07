@@ -2249,27 +2249,29 @@ namespace Mono.Debugging.Soft
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
 
-			var symbolStatus = asm.GetMetadata ().MainModule.HasSymbols ? "Symbol loaded" : "Skipped loading symbols";
-
 			try {
+				var metaData = asm?.GetMetadata ();
+				var symbolStatus = metaData?.MainModule.HasSymbols==true ? "Symbol loaded" : "Skipped loading symbols";
+				var symbolVersion = asm?.GetName ()?.Version?.Major.ToString () ?? "Version";
 				var assembly = new Assembly (
-				asm.GetMetadata ().MainModule.Name,
-				asm.Location,
-				true,
-				asm.GetMetadata ().MainModule.HasSymbols,
-				symbolStatus,
-				"",
-				-1,
-				asm.GetName ().Version.Major.ToString (),
-				// TODO: module time stamp
-				"",
-				asm.GetAssemblyObject ().Address.ToString (),
-				string.Format ("[{0}]{1}", asm.VirtualMachine.TargetProcess.Id, asm.VirtualMachine.TargetProcess.ProcessName),
-				asm.Domain.FriendlyName,
-				asm.VirtualMachine.TargetProcess.Id
+					metaData?.MainModule?.Name ?? "Name",
+					asm?.Location ?? "Location",
+					true,
+					metaData?.MainModule.HasSymbols == true,
+					symbolStatus,
+					"",
+					-1,
+					asm?.GetName ()?.Version?.Major.ToString () ?? "Version",
+					// TODO: module time stamp
+					"",
+					asm?.GetAssemblyObject ().Address.ToString ()??"Address",
+					string.Format ("[{0}]{1}", asm?.VirtualMachine?.TargetProcess?.Id, asm?.VirtualMachine?.TargetProcess?.ProcessName) ??"ID",
+					asm?.Domain.FriendlyName??"Domain Name",
+					asm?.VirtualMachine.TargetProcess.Id ?? -1
 				);
 
 				OnAssemblyLoaded (assembly.Address);
+
 			} catch (Exception e) {
 				//TODO log exception
 			}
