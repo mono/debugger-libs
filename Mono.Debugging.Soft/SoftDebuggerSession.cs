@@ -49,6 +49,7 @@ using Mono.Debugging.Evaluation;
 
 using StackFrame = Mono.Debugger.Soft.StackFrame;
 using System.Collections.Immutable;
+using Assembly = Mono.Debugging.Client.Assembly;
 
 namespace Mono.Debugging.Soft
 {
@@ -2248,9 +2249,8 @@ namespace Mono.Debugging.Soft
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
 
-			OnAssemblyLoaded(asm.Location);
-
-			RegisterAssembly(asm);
+			HandleAssemblyLoaded (asm);
+			RegisterAssembly (asm);
 			bool isExternal;
 			isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
 
@@ -2258,6 +2258,43 @@ namespace Mono.Debugging.Soft
 				string flagExt = isExternal ? " [External]" : "";
 				OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
 			}
+		}
+
+		private void HandleAssemblyLoaded (AssemblyMirror asm)
+		{
+			var symbolStatus = string.Empty;
+			var assemblyName = string.Empty;
+			var hasSymbol = false;
+			var name = asm.GetName ();
+			var assemblyObject = asm.GetAssemblyObject ();
+			if (!asm.IsDynamic) {
+				var metaData = asm.GetMetadata ();
+				symbolStatus = metaData.MainModule.HasSymbols == true ? "Symbol loaded" : "Skipped loading symbols";
+				assemblyName = metaData.MainModule.Name;
+				hasSymbol = metaData.MainModule.HasSymbols;
+			} else {
+				symbolStatus = "Skipped loading symbol (dynamic)";
+				assemblyName = "Dynamic assembly";
+				hasSymbol = false;
+			}
+			var assembly = new Assembly (
+					assemblyName,
+					asm.Location,
+					true,
+					hasSymbol,
+					symbolStatus,
+					"",
+					-1,
+					name.Version.Major.ToString (),
+					// TODO: module time stamp
+					"",
+					assemblyObject.Address.ToString (),
+					string.Format ("[{0}]{1}", asm.VirtualMachine.TargetProcess.Id, asm.VirtualMachine.TargetProcess.ProcessName),
+					asm.Domain.FriendlyName,
+					asm.VirtualMachine.TargetProcess.Id
+			);
+
+			OnAssemblyLoaded (assembly);
 		}
 
 		void RegisterAssembly (AssemblyMirror asm)
