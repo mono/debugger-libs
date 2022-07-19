@@ -28,7 +28,7 @@ namespace Mono.Debugging.Client
 {
 	public class Assembly
 	{
-		public Assembly (string name, string path, bool optimized, bool userCode, string symbolStatus, string symbolFile, int? order, string version, string timestamp, string address, string process, string appdomain, long? processId)
+		public Assembly (string name, string path, bool optimized, bool userCode, string symbolStatus, string symbolFile, int? order, string version, string timestamp, string address, string process, string appdomain, long? processId, bool hasSymbol = false, bool isDynamic = false)
 		{
 			Name = name;
 			Path = path;
@@ -43,7 +43,8 @@ namespace Mono.Debugging.Client
 			Version = version;
 			UserCode = userCode;
 			ProcessId = processId;
-
+			IsDynamic = isDynamic;
+			HasSymbol = hasSymbol;
 		}
 		public Assembly (string path)
 		{
@@ -75,5 +76,9 @@ namespace Mono.Debugging.Client
 		public string AppDomain { get; private set; }
 
 		public long? ProcessId { get; private set; } = -1;
+
+		public bool HasSymbol { get; private set; }
+
+		public bool IsDynamic { get; private set; }
 	}
 }

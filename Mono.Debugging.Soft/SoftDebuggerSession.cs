@@ -2262,19 +2262,17 @@ namespace Mono.Debugging.Soft
 
 		private void HandleAssemblyLoaded (AssemblyMirror asm)
 		{
-			var symbolStatus = string.Empty;
-			var assemblyName = string.Empty;
-			var hasSymbol = false;
 			var name = asm.GetName ();
 			var assemblyObject = asm.GetAssemblyObject ();
-			if (!asm.IsDynamic) {
+			bool isDynamic = asm.IsDynamic;
+			string assemblyName;
+			bool hasSymbol;
+			if (!isDynamic) {
 				var metaData = asm.GetMetadata ();
-				symbolStatus = metaData.MainModule.HasSymbols == true ? "Symbol loaded" : "Skipped loading symbols";
 				assemblyName = metaData.MainModule.Name;
 				hasSymbol = metaData.MainModule.HasSymbols;
 			} else {
-				symbolStatus = "Skipped loading symbol (dynamic)";
-				assemblyName = "Dynamic assembly";
+				assemblyName = string.Empty;
 				hasSymbol = false;
 			}
 			var assembly = new Assembly (
@@ -2282,16 +2280,18 @@ namespace Mono.Debugging.Soft
 					asm.Location,
 					true,
 					hasSymbol,
-					symbolStatus,
-					"",
+					string.Empty,
+					string.Empty,
 					-1,
 					name.Version.Major.ToString (),
 					// TODO: module time stamp
-					"",
+					string.Empty,
 					assemblyObject.Address.ToString (),
 					string.Format ("[{0}]{1}", asm.VirtualMachine.TargetProcess.Id, asm.VirtualMachine.TargetProcess.ProcessName),
 					asm.Domain.FriendlyName,
-					asm.VirtualMachine.TargetProcess.Id
+					asm.VirtualMachine.TargetProcess.Id,
+					hasSymbol,
+					isDynamic
 			);
 
 			OnAssemblyLoaded (assembly);
