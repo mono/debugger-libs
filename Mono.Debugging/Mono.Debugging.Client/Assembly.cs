@@ -44,7 +44,7 @@ namespace Mono.Debugging.Client
 			UserCode = userCode;
 			ProcessId = processId;
 			IsDynamic = isDynamic;
-			HasSymbol = hasSymbol;
+			HasSymbols = hasSymbol;
 		}
 		public Assembly (string path)
 		{
@@ -77,7 +77,7 @@ namespace Mono.Debugging.Client
 
 		public long? ProcessId { get; private set; } = -1;
 
-		public bool HasSymbol { get; private set; }
+		public bool HasSymbols { get; private set; }
 
 		public bool IsDynamic { get; private set; }
 	}
