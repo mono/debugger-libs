@@ -409,20 +409,22 @@ namespace Mono.Debugging.Client
 				throw new ArgumentNullException (nameof (startInfo));
 			if (options == null)
 				throw new ArgumentNullException (nameof (options));
-
-			Dispatch (delegate {
-				try {
-					this.options = options;
-					OnRunning ();
-					OnRun (startInfo);
-				} catch (Exception ex) {
-					// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
-					var exceptionHandled = HandleException (ex);
-					ForceExit ();
-					if (!exceptionHandled)
-						throw;
-				}
-			});
+			
+			lock (slock) {
+				this.options = options;
+				OnRunning ();
+				Dispatch (delegate {
+					try {
+						OnRun (startInfo);
+					} catch (Exception ex) {
+						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
+						var exceptionHandled = HandleException (ex);
+						ForceExit ();
+						if (!exceptionHandled)
+							throw;
+					}
+				});
+			}
 		}
 		
 		/// <summary>
@@ -443,21 +445,23 @@ namespace Mono.Debugging.Client
 				throw new ArgumentNullException (nameof (proc));
 			if (options == null)
 				throw new ArgumentNullException (nameof (options));
-
-			Dispatch (delegate {
-				try {
-					this.options = options;
-					OnRunning ();
-					OnAttachToProcess (proc);
-					attached = true;
-				} catch (Exception ex) {
-					// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
-					var exceptionHandled = HandleException (ex);
-					ForceExit ();
-					if (!exceptionHandled)
-						throw;
-				}
-			});
+			
+			lock (slock) {
+				this.options = options;
+				OnRunning ();
+				Dispatch (delegate {
+					try {
+						OnAttachToProcess (proc);
+						attached = true;
+					} catch (Exception ex) {
+						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
+						var exceptionHandled = HandleException (ex);
+						ForceExit ();
+						if (!exceptionHandled)
+							throw;
+					}
+				});
+			}
 		}
 		
 		/// <summary>
@@ -465,16 +469,20 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public void Detach ()
 		{
-			Dispatch (delegate {
-				try {
-					OnDetach ();
-				} catch (Exception ex) {
-					if (!HandleException (ex))
-						throw;
-				} finally {
-					IsConnected = false;
-				}
-			});
+			lock (slock) {
+				Dispatch (delegate {
+					try {
+						OnDetach ();
+					}
+					catch (Exception ex) {
+						if (!HandleException (ex))
+							throw;
+					}
+					finally {
+						IsConnected = false;
+					}
+				});
+			}
 		}
 		
 		/// <summary>
@@ -521,17 +529,19 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public void NextLine ()
 		{
-			Dispatch (delegate {
+			lock (slock) {
 				OnRunning ();
-				StartStepTimer (StepOverStats);
-				try {
-					OnNextLine ();
-				} catch (Exception ex) {
-					ForceStop ();
-					if (!HandleException (ex))
-						throw;
-				}
-			});
+				Dispatch (delegate {
+					StartStepTimer (StepOverStats);
+					try {
+						OnNextLine ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
+					}
+				});
+			}
 		}
 
 		/// <summary>
@@ -539,17 +549,19 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public void StepLine ()
 		{
-			Dispatch (delegate {
+			lock (slock) {
 				OnRunning ();
-				StartStepTimer (StepInStats);
-				try {
-					OnStepLine ();
-				} catch (Exception ex) {
-					ForceStop ();
-					if (!HandleException (ex))
-						throw;
-				}
-			});
+				Dispatch (delegate {
+					StartStepTimer (StepInStats);
+					try {
+						OnStepLine ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
+					}
+				});
+			}
 		}
 		
 		/// <summary>
@@ -557,17 +569,19 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public void NextInstruction ()
 		{
-			Dispatch (delegate {
+			lock (slock) {
 				OnRunning ();
-				StartStepTimer (NextInstructionStats);
-				try {
-					OnNextInstruction ();
-				} catch (Exception ex) {
-					ForceStop ();
-					if (!HandleException (ex))
-						throw;
-				}
-			});
+				Dispatch (delegate {
+					StartStepTimer (NextInstructionStats);
+					try {
+						OnNextInstruction ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
+					}
+				});
+			}
 		}
 
 		/// <summary>
@@ -575,17 +589,19 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public void StepInstruction ()
 		{
-			Dispatch (delegate {
+			lock (slock) {
 				OnRunning ();
-				StartStepTimer (StepInstructionStats);
-				try {
-					OnStepInstruction ();
-				} catch (Exception ex) {
-					ForceStop ();
-					if (!HandleException (ex))
-						throw;
-				}
-			});
+				Dispatch (delegate {
+					StartStepTimer (StepInstructionStats);
+					try {
+						OnStepInstruction ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
+					}
+				});
+			}
 		}
 		
 		/// <summary>
@@ -593,19 +609,21 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public void Finish ()
 		{
-			Dispatch (delegate {
+			lock (slock) {
 				OnRunning ();
-				StartStepTimer (StepOutStats);
-				try {
-					OnFinish ();
-				} catch (Exception ex) {
-					// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
-					var exceptionHandled = HandleException (ex);
-					ForceExit ();
-					if (!exceptionHandled)
-						throw;
-				}
-			});
+				Dispatch (delegate {
+					StartStepTimer (StepOutStats);
+					try {
+						OnFinish ();
+					} catch (Exception ex) {
+						// should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
+						var exceptionHandled = HandleException (ex);
+						ForceExit ();
+						if (!exceptionHandled)
+							throw;
+					}
+				});
+			}
 		}
 
 		/// <summary>
@@ -846,16 +864,18 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public void Continue ()
 		{
-			Dispatch (delegate {
+			lock (slock) {
 				OnRunning ();
-				try {
-					OnContinue ();
-				} catch (Exception ex) {
-					ForceStop ();
-					if (!HandleException (ex))
-						throw;
-				}
-			});
+				Dispatch (delegate {
+					try {
+						OnContinue ();
+					} catch (Exception ex) {
+						ForceStop ();
+						if (!HandleException (ex))
+							throw;
+					}
+				});
+			}
 		}
 		
 		/// <summary>
