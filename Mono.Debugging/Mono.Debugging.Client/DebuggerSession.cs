@@ -410,9 +410,10 @@ namespace Mono.Debugging.Client
 			if (options == null)
 				throw new ArgumentNullException (nameof (options));
 
+			Interlocked.Exchange (ref this.options, options);
+
 			Dispatch (delegate {
 				try {
-					this.options = options;
 					OnRunning ();
 					OnRun (startInfo);
 				} catch (Exception ex) {
@@ -444,9 +445,10 @@ namespace Mono.Debugging.Client
 			if (options == null)
 				throw new ArgumentNullException (nameof (options));
 
+			Interlocked.Exchange (ref this.options, options);
+
 			Dispatch (delegate {
 				try {
-					this.options = options;
 					OnRunning ();
 					OnAttachToProcess (proc);
 					attached = true;
