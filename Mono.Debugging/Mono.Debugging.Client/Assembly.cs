@@ -28,6 +28,39 @@ namespace Mono.Debugging.Client
 {
 	public class Assembly
 	{
+		/// <summary>
+		/// Represent the assembly loaded during the debugging session. This dataclass will be used in the modules pad view for display. 
+		/// </summary>
+		/// <param name="name"></param>
+		/// String represent the name of the assembly.
+		/// <param name="path"></param>
+		/// String represent the local path of the assembly is loaded from.
+		/// <param name="optimized"></param>
+		/// Boolean shows if the assembly has been optimized, true if the assembly is optimized.
+		/// <param name="userCode"></param>
+		/// Boolean show if the assembly is considered 'user code' by a debugger that supports 'Just My Code'.True if it's considered.
+		/// <param name="symbolStatus"></param>
+		/// String represent the Description on if symbols were found for the assembly (ex: 'Symbols Loaded', 'Symbols not found', etc.
+		/// <param name="symbolFile"></param>
+		/// String represent the Logical full path to the symbol file. The exact definition is implementation defined.
+		/// <param name="order"></param>
+		/// Integer indicating the order in which the assembly was loaded.
+		/// <param name="version"></param>
+		/// String represent the version of assembly.
+		/// <param name="timestamp"></param>
+		/// String represent the time when the assembly was built in the units of UNIX timestamp formatted as a 64-bit unsigned decimal number in a string.
+		/// <param name="address"></param>
+		/// String resent the Address where the assembly was loaded as a 64-bit unsigned decimal number.
+		/// <param name="process"></param>
+		/// String represent the process name and process ID the assembly is loaded. 
+		/// <param name="appdomain"></param>
+		/// String indicates the name of the AppDomain where the assembly is loaded.
+		/// <param name="processId"></param>
+		/// Long represent the process ID the assembly is loaded. 
+		/// <param name="hasSymbol"></param
+		/// Bool value indicate if the assembly has symbol file. Mainly use for mono project.
+		/// <param name="isDynamic"></param>
+		/// Bool value indicate if the assembly is a dynamic. Mainly use for mono project. 
 		public Assembly (string name, string path, bool optimized, bool userCode, string symbolStatus, string symbolFile, int? order, string version, string timestamp, string address, string process, string appdomain, long? processId, bool hasSymbol = false, bool isDynamic = false)
 		{
 			Name = name;
