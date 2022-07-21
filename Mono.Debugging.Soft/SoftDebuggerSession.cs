@@ -49,6 +49,7 @@ using Mono.Debugging.Evaluation;
 
 using StackFrame = Mono.Debugger.Soft.StackFrame;
 using System.Collections.Immutable;
+using Assembly = Mono.Debugging.Client.Assembly;
 
 namespace Mono.Debugging.Soft
 {
@@ -2248,9 +2249,8 @@ namespace Mono.Debugging.Soft
 			if (events.Length > 1 && events.Any (a => a.Assembly != asm))
 				throw new InvalidOperationException ("Simultaneous AssemblyLoadEvent for multiple assemblies");
 
-			OnAssemblyLoaded(asm.Location);
-
-			RegisterAssembly(asm);
+			HandleAssemblyLoaded (asm);
+			RegisterAssembly (asm);
 			bool isExternal;
 			isExternal = !UpdateAssemblyFilters (asm) && userAssemblyNames != null;
 
@@ -2258,6 +2258,43 @@ namespace Mono.Debugging.Soft
 				string flagExt = isExternal ? " [External]" : "";
 				OnDebuggerOutput (false, string.Format ("Loaded assembly: {0}{1}\n", asm.Location, flagExt));
 			}
+		}
+
+		private void HandleAssemblyLoaded (AssemblyMirror asm)
+		{
+			var name = asm.GetName ();
+			var assemblyObject = asm.GetAssemblyObject ();
+			bool isDynamic = asm.IsDynamic;
+			string assemblyName;
+			bool hasSymbol;
+			if (!isDynamic) {
+				var metaData = asm.GetMetadata ();
+				assemblyName = metaData.MainModule.Name;
+				hasSymbol = metaData.MainModule.HasSymbols;
+			} else {
+				assemblyName = string.Empty;
+				hasSymbol = false;
+			}
+			var assembly = new Assembly (
+					assemblyName,
+					asm.Location,
+					true,
+					hasSymbol,
+					string.Empty,
+					string.Empty,
+					-1,
+					name.Version.Major.ToString (),
+					// TODO: module time stamp
+					string.Empty,
+					assemblyObject.Address.ToString (),
+					string.Format ("[{0}]{1}", asm.VirtualMachine.TargetProcess.Id, asm.VirtualMachine.TargetProcess.ProcessName),
+					asm.Domain.FriendlyName,
+					asm.VirtualMachine.TargetProcess.Id,
+					hasSymbol,
+					isDynamic
+			);
+
+			OnAssemblyLoaded (assembly);
 		}
 
 		void RegisterAssembly (AssemblyMirror asm)
