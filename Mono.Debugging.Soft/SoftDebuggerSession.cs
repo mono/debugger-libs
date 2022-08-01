@@ -2268,28 +2268,28 @@ namespace Mono.Debugging.Soft
 			string assemblyName;
 			bool hasSymbol;
 			if (!isDynamic) {
-				var metaData = asm.GetMetadata ();
-				assemblyName = metaData.MainModule.Name;
-				hasSymbol = metaData.MainModule.HasSymbols;
+				var metaData = asm?.GetMetadata() ?? null;
+				assemblyName = metaData?.MainModule?.Name ?? string.Empty;
+				hasSymbol = metaData?.MainModule?.HasSymbols ?? false;
 			} else {
 				assemblyName = string.Empty;
 				hasSymbol = false;
 			}
 			var assembly = new Assembly (
 					assemblyName,
-					asm.Location,
+					asm?.Location ?? string.Empty,
 					true,
 					hasSymbol,
 					string.Empty,
 					string.Empty,
 					-1,
-					name.Version.Major.ToString (),
+					name?.Version?.Major.ToString () ?? string.Empty,
 					// TODO: module time stamp
 					string.Empty,
-					assemblyObject.Address.ToString (),
-					string.Format ("[{0}]{1}", asm.VirtualMachine.TargetProcess.Id, asm.VirtualMachine.TargetProcess.ProcessName),
-					asm.Domain.FriendlyName,
-					asm.VirtualMachine.TargetProcess.Id,
+					assemblyObject?.Address.ToString () ?? string.Empty,
+					string.Format ("[{0}]{1}", asm?.VirtualMachine?.TargetProcess?.Id ?? -1, asm?.VirtualMachine?.TargetProcess?.ProcessName ?? string.Empty),
+					asm?.Domain?.FriendlyName ?? string.Empty,
+					asm?.VirtualMachine?.TargetProcess?.Id ?? -1,
 					hasSymbol,
 					isDynamic
 			);
