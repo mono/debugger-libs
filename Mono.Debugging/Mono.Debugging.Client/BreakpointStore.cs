@@ -481,10 +481,17 @@ namespace Mono.Debugging.Client
 		{
 			// If there is no path given, return the same path back
 			if (string.IsNullOrEmpty(path))
-					return path;
-			var result = realpath(path, IntPtr.Zero);
-			if (result == null)
-					return Path.GetFullPath(path);
+				return path;
+
+			string result = null;
+			try
+			{
+				result = realpath(path, IntPtr.Zero);
+			}
+			catch
+			{
+				result = Path.GetFullPath(path);
+			}
 			return result;
 		}
 
