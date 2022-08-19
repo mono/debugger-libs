@@ -491,8 +491,8 @@ namespace Mono.Debugging.Client
 			catch
 			{
 				result = Path.GetFullPath(path);
-            }
-            return result;
+			}
+			return result;
 		}
 
 		public static bool FileNameEquals (string file1, string file2)
