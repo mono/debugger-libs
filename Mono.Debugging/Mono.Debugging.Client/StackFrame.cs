@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Mono.Debugging.Backend;
+using Mono.Debugging.Evaluation;
 
 namespace Mono.Debugging.Client
 {
@@ -339,9 +340,9 @@ namespace Mono.Debugging.Client
 			return value;
 		}
 		
-		public string ResolveExpression (string exp)
+		public string ResolveExpression (EvaluationContext ctx, string expression)
 		{
-			return session.ResolveExpression (exp, location);
+			return session.ResolveExpression (ctx, expression, location);
 		}
 		
 		public ObjectValue[] GetExpressionValues (string[] expressions, bool evaluateMethods)
@@ -364,9 +365,11 @@ namespace Mono.Debugging.Client
 			}
 
 			if (options.UseExternalTypeResolver) {
+				var ctx = sourceBacktrace.GetEvaluationContext (index, options);
+
 				var resolved = new string [expressions.Length];
 				for (int n = 0; n < expressions.Length; n++)
-					resolved[n] = ResolveExpression (expressions[n]);
+					resolved[n] = ResolveExpression (ctx, expressions[n]);
 
 				expressions = resolved;
 			}
@@ -390,8 +393,11 @@ namespace Mono.Debugging.Client
 				return ObjectValue.CreateUnknown (expression);
 			}
 
-			if (options.UseExternalTypeResolver)
-				expression = ResolveExpression (expression);
+			if (options.UseExternalTypeResolver) {
+				var ctx = sourceBacktrace.GetEvaluationContext (index, options);
+
+				expression = ResolveExpression (ctx, expression);
+			}
 
 			var values = sourceBacktrace.GetExpressionValues (index, new [] { expression }, options);
 			ObjectValue.ConnectCallbacks (this, values);
@@ -411,8 +417,11 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public ValidationResult ValidateExpression (string expression, EvaluationOptions options)
 		{
-			if (options.UseExternalTypeResolver)
-				expression = ResolveExpression (expression);
+			if (options.UseExternalTypeResolver) {
+				var ctx = sourceBacktrace.GetEvaluationContext (index, options);
+
+				expression = ResolveExpression (ctx, expression);
+			}
 
 			return sourceBacktrace.ValidateExpression (index, expression, options);
 		}

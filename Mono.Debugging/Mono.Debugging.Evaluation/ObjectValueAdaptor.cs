@@ -730,7 +730,7 @@ namespace Mono.Debugging.Evaluation
 			return best;
 		}
 
-		public virtual ValueReference GetParameter (EvaluationContext ctx, string name)
+		public ValueReference GetParameter (EvaluationContext ctx, string name)
 		{
 			return OnGetParameter (ctx, name);
 		}

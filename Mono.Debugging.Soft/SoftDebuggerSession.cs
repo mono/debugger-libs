@@ -2720,7 +2720,7 @@ namespace Mono.Debugging.Soft
 
 					// resolve types...
 					if (ctx.SourceCodeAvailable)
-						expression = ctx.Evaluator.Resolve (this, GetSourceLocation (frames[0]), expression);
+						expression = ctx.Evaluator.Resolve (this, ctx, GetSourceLocation (frames[0]), expression);
 				}
 
 				ValueReference val = ctx.Evaluator.Evaluate (ctx, expression);

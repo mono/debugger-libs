@@ -64,7 +64,7 @@ namespace Mono.Debugging.Win32
 			}
 		}
 
-		protected override EvaluationContext GetEvaluationContext (int frameIndex, EvaluationOptions options)
+		public override EvaluationContext GetEvaluationContext (int frameIndex, EvaluationOptions options)
 		{
 			var ctx = new CorEvaluationContext (session, this, frameIndex, options);
 			ctx.Thread = thread;
