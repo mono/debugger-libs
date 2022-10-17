@@ -483,10 +483,10 @@ namespace Mono.Debugging.Client
 			if (string.IsNullOrEmpty(path))
 				return path;
 
-			string result = null;
+			string result;
 			try
 			{
-				result = realpath(path, IntPtr.Zero);
+				result = realpath(path, IntPtr.Zero) ?? Path.GetFullPath(path);
 			}
 			catch
 			{
