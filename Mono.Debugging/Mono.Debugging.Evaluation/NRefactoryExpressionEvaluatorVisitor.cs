@@ -1226,35 +1226,7 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitArgument (ArgumentSyntax node)
 		{
-			//public void MethodWithTypeGenericArgsEval()
-			//{
-			//	var a = new A("Just A");
-			//	var wrappedA = new Wrapper<A>(new A("wrappedA"));
-			//	var genericClass = new GenericClass<A>(new A("Constructor arg A"));
-			//	//genericClass.BaseMethodWithClassTArg (wrappedA);
-			//	//genericClass.RetMethodWithClassTArg (a)
-			//	Console.WriteLine("Break for MethodWithTypeGenericArgsEval");/*ba6350e5-7149-4cc2-a4cf-8a54c635eb38*/
-			//}
-
-			//class GenericBaseClass<TBaseClassArg>
-			//               {
-			//                   public readonly TBaseClassArg myArg;
-
-			//                   public GenericBaseClass(TBaseClassArg arg)
-			//                   {
-			//                       myArg = arg;
-			//                   }
-
-			//                   public TBaseClassArg BaseMethodWithClassTArg(TBaseClassArg arg)
-			//                   {
-			//                       return arg;
-			//                   }
-			//               }
-
-			//var baseMethodEval = Eval("genericClass.BaseMethodWithClassTArg (wrappedA)");
-			//Assert.NotNull(baseMethodEval);
-			//Assert.AreEqual("{Wrapper(wrappedA)}", baseMethodEval.Value)
-			return base.VisitArgument (node);
+			return this.Visit(node.Expression);
 		}
 
 		public override ValueReference DefaultVisit (SyntaxNode node)
