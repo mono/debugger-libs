@@ -1205,7 +1205,11 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference DefaultVisit (SyntaxNode node)
 		{
-			throw NotSupported ();
+			if (node is LiteralExpressionSyntax syntax)
+			{
+				return LiteralValueReference.CreateObjectLiteral(ctx, expression, syntax.Token.Value);
+			}
+			throw NotSupported();
 		}
 		#endregion
 	}
