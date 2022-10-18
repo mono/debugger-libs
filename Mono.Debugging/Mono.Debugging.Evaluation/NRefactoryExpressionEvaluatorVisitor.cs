@@ -1050,10 +1050,30 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitPredefinedType (PredefinedTypeSyntax node)
 		{
-			if (expectedType != null)
-				return new NullValueReference (ctx, expectedType);
-
-			return new NullValueReference (ctx, ctx.Adapter.GetType (ctx, "System.Object"));
+			string longName = "";
+			switch (node.Keyword.Value) {
+            case "bool":    longName = "System.Boolean"; break;
+            case "byte":    longName = "System.Byte"; break;
+            case "sbyte":   longName = "System.SByte"; break;
+            case "char":    longName = "System.Char"; break;
+            case "decimal": longName = "System.Decimal"; break;
+            case "double":  longName = "System.Double"; break;
+            case "float":   longName = "System.Single"; break;
+            case "int":     longName = "System.Int32"; break;
+            case "uint":    longName = "System.UInt32"; break;
+            case "nint":    longName = "System.IntPtr"; break;
+            case "nuint":   longName = "System.UIntPtr"; break;
+            case "long":    longName = "System.Int64"; break;
+            case "ulong":   longName = "System.UInt64"; break;
+            case "short":   longName = "System.Int16"; break;
+            case "ushort":  longName = "System.UInt16"; break;
+            case "object":  longName = "System.Object"; break;
+            case "string":  longName = "System.String"; break;
+            case "dynamic": longName = "System.Object"; break;
+            default: throw new ArgumentException($"Unknown type {node.Keyword.Value}");
+			}
+			var type = ctx.Adapter.GetType(ctx, longName);
+			return new TypeValueReference (ctx, type);
 		}
 
 		public override ValueReference VisitThisExpression (ThisExpressionSyntax node)
@@ -1081,20 +1101,21 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateTargetObjectLiteral (ctx, name, result);
 		}
 
-		//public ValueReference VisitTypeReferenceExpression (TypeReferenceExpression typeReferenceExpression)
+		//public ValueReference VisitTypeReferenceExpression(TypeReferenceExpression typeReferenceExpression)
 		//{
-		//	var type = typeReferenceExpression.Type.Resolve (ctx);
+		//	var type = typeReferenceExpression.Type.Resolve(ctx);
 
-		//	if (type != null) {
-		//		ctx.Adapter.ForceLoadType (ctx, type);
+		//	if (type != null)
+		//	{
+		//		ctx.Adapter.ForceLoadType(ctx, type);
 
-		//		return new TypeValueReference (ctx, type);
+		//		return new TypeValueReference(ctx, type);
 		//	}
 
-		//	var name = ResolveTypeName (typeReferenceExpression.Type);
+		//	var name = ResolveTypeName(typeReferenceExpression.Type);
 
 		//	// Assume it is a namespace.
-		//	return new NamespaceValueReference (ctx, name);
+		//	return new NamespaceValueReference(ctx, name);
 		//}
 
 		public override ValueReference VisitPostfixUnaryExpression (PostfixUnaryExpressionSyntax node)
@@ -1201,6 +1222,39 @@ namespace Mono.Debugging.Evaluation
 			}
 
 			return LiteralValueReference.CreateObjectLiteral (ctx, expression, val);
+		}
+
+		public override ValueReference VisitArgument (ArgumentSyntax node)
+		{
+			//public void MethodWithTypeGenericArgsEval()
+			//{
+			//	var a = new A("Just A");
+			//	var wrappedA = new Wrapper<A>(new A("wrappedA"));
+			//	var genericClass = new GenericClass<A>(new A("Constructor arg A"));
+			//	//genericClass.BaseMethodWithClassTArg (wrappedA);
+			//	//genericClass.RetMethodWithClassTArg (a)
+			//	Console.WriteLine("Break for MethodWithTypeGenericArgsEval");/*ba6350e5-7149-4cc2-a4cf-8a54c635eb38*/
+			//}
+
+			//class GenericBaseClass<TBaseClassArg>
+			//               {
+			//                   public readonly TBaseClassArg myArg;
+
+			//                   public GenericBaseClass(TBaseClassArg arg)
+			//                   {
+			//                       myArg = arg;
+			//                   }
+
+			//                   public TBaseClassArg BaseMethodWithClassTArg(TBaseClassArg arg)
+			//                   {
+			//                       return arg;
+			//                   }
+			//               }
+
+			//var baseMethodEval = Eval("genericClass.BaseMethodWithClassTArg (wrappedA)");
+			//Assert.NotNull(baseMethodEval);
+			//Assert.AreEqual("{Wrapper(wrappedA)}", baseMethodEval.Value)
+			return base.VisitArgument (node);
 		}
 
 		public override ValueReference DefaultVisit (SyntaxNode node)
