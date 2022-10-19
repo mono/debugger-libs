@@ -850,7 +850,13 @@ namespace Mono.Debugging.Evaluation
 			}
 
 			typeArgs = null;
-			return invocationExpression.ToString ();
+			var fullName = invocationExpression.ToString();
+			var lastIndexOfDot = fullName.LastIndexOf(".");
+			if(lastIndexOfDot == -1) {
+				return fullName;
+            } else {
+				return fullName.Substring(lastIndexOfDot + 1);
+            }
 		}
 
 		public override ValueReference VisitInvocationExpression (InvocationExpressionSyntax node)
@@ -1050,29 +1056,7 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitPredefinedType (PredefinedTypeSyntax node)
 		{
-			string longName = "";
-			switch (node.Keyword.Value) {
-            case "bool":    longName = "System.Boolean"; break;
-            case "byte":    longName = "System.Byte"; break;
-            case "sbyte":   longName = "System.SByte"; break;
-            case "char":    longName = "System.Char"; break;
-            case "decimal": longName = "System.Decimal"; break;
-            case "double":  longName = "System.Double"; break;
-            case "float":   longName = "System.Single"; break;
-            case "int":     longName = "System.Int32"; break;
-            case "uint":    longName = "System.UInt32"; break;
-            case "nint":    longName = "System.IntPtr"; break;
-            case "nuint":   longName = "System.UIntPtr"; break;
-            case "long":    longName = "System.Int64"; break;
-            case "ulong":   longName = "System.UInt64"; break;
-            case "short":   longName = "System.Int16"; break;
-            case "ushort":  longName = "System.UInt16"; break;
-            case "object":  longName = "System.Object"; break;
-            case "string":  longName = "System.String"; break;
-            case "dynamic": longName = "System.Object"; break;
-            default: throw new ArgumentException($"Unknown type {node.Keyword.Value}");
-			}
-			var type = ctx.Adapter.GetType(ctx, longName);
+			var type = ctx.Adapter.GetType(ctx, node.Resolve());
 			return new TypeValueReference (ctx, type);
 		}
 
@@ -1228,7 +1212,27 @@ namespace Mono.Debugging.Evaluation
 		{
 			return this.Visit(node.Expression);
 		}
+		public override ValueReference VisitAliasQualifiedName(AliasQualifiedNameSyntax node)
+		{
+			return null;
+			return this.Visit(node.Alias);
+		}
 
+		public override ValueReference VisitNullableType (NullableTypeSyntax node)
+		{
+			//if(node.)
+			var value = this.Visit(node.ElementType);
+			var type1 = ctx.Adapter.GetValueType(ctx, value);
+
+			ValueReference nullable = ctx.Adapter.NullableGetValue(ctx, type1, value);
+			return nullable;
+			return this.Visit(node.ElementType);
+		}
+
+		public override ValueReference VisitQualifiedName (QualifiedNameSyntax node)
+		{
+			return base.VisitQualifiedName (node);
+		}
 		public override ValueReference DefaultVisit (SyntaxNode node)
 		{
 			if (node is LiteralExpressionSyntax syntax)
