@@ -852,11 +852,7 @@ namespace Mono.Debugging.Evaluation
 			typeArgs = null;
 			var fullName = invocationExpression.ToString();
 			var lastIndexOfDot = fullName.LastIndexOf(".");
-			if(lastIndexOfDot == -1) {
-				return fullName;
-            } else {
-				return fullName.Substring(lastIndexOfDot + 1);
-            }
+            return fullName.Substring(lastIndexOfDot + 1);
 		}
 
 		public override ValueReference VisitInvocationExpression (InvocationExpressionSyntax node)
@@ -1214,16 +1210,17 @@ namespace Mono.Debugging.Evaluation
 		}
 		public override ValueReference VisitAliasQualifiedName(AliasQualifiedNameSyntax node)
 		{
-			return null;
-			return this.Visit(node.Alias);
+			//return null;
+			return this.Visit(node.Name);
 		}
 
 		public override ValueReference VisitNullableType (NullableTypeSyntax node)
 		{
 			//if(node.)
 			var value = this.Visit(node.ElementType);
-			var type1 = ctx.Adapter.GetValueType(ctx, value);
 
+			var type1 = ctx.Adapter.GetType(ctx, NRefactoryExtensions.Resolve(node.ElementType.ToString()));
+			//ctx.Adapter.
 			ValueReference nullable = ctx.Adapter.NullableGetValue(ctx, type1, value);
 			return nullable;
 			return this.Visit(node.ElementType);
@@ -1231,7 +1228,7 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitQualifiedName (QualifiedNameSyntax node)
 		{
-			return base.VisitQualifiedName (node);
+			return Visit(node.Right);
 		}
 		public override ValueReference DefaultVisit (SyntaxNode node)
 		{

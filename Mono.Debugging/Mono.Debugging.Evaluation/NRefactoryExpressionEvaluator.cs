@@ -134,9 +134,6 @@ namespace Mono.Debugging.Evaluation
 
 			expression = ReplaceExceptionTag (expression, ctx.Options.CurrentExceptionTag);
 
-			// Required as a workaround for a bug in the parser (it won't parse simple expressions like numbers)
-			if (!expression.EndsWith (";", StringComparison.Ordinal))
-				expression += ";";
 			ParseOptions options = new CSharpParseOptions ();
 			var expr = SyntaxFactory.ParseExpression (expression, options: options);
 
