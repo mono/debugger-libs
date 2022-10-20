@@ -552,12 +552,20 @@ namespace Mono.Debugging.Evaluation
 			var type = Visit(node.Type.ElementType);
 			if (type == null)
 				throw ParseError ("Invalid type in array creation.");
-			var lengths = new int [node.Initializer.Expressions.Count];
-			for (int i = 0; i < lengths.Length; i++) {
-				lengths [i] = (int)Convert.ChangeType (Visit(node.Initializer.Expressions[i]).ObjectValue, typeof (int));
+			//var lengths = new int [node.Initializer.Expressions.Count];
+			//for (int i = 0; i < lengths.Length; i++) {
+			//	lengths [i] = (int)Convert.ChangeType (Visit(node.Initializer.Expressions[i]).ObjectValue, typeof (int));
+
+			var lengths = Array.Empty<int>();
+			if (node.Type is ArrayTypeSyntax ats) {
+				lengths = new int[ats.RankSpecifiers[0].Sizes.Count];
+				for (int i = 0; i < lengths.Length; i++) {
+					var arsi = ats.RankSpecifiers[0].Sizes[i];
+					lengths [i] = (int)Convert.ChangeType (Visit(arsi).ObjectValue, typeof (int));
+				}
 			}
 			var array = ctx.Adapter.CreateArray (ctx, type.Type, lengths);
-			if (node.Initializer.Expressions.Count > 0) {
+			if (node.Initializer?.Expressions.Count > 0) {
 				var arrayAdaptor = ctx.Adapter.CreateArrayAdaptor (ctx, array);
 				int index = 0;
 				foreach (var el in LinearElements(node.Initializer.Expressions)) {
@@ -566,14 +574,40 @@ namespace Mono.Debugging.Evaluation
 			}
 			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, array);
 		}
-
+		//public ValueReference VisitArrayCreateExpression(ArrayCreateExpression arrayCreateExpression)
+		//{
+		//	var type = arrayCreateExpression.Type.AcceptVisitor<ValueReference>(this) as TypeValueReference;
+		//	if (type == null)
+		//		throw ParseError("Invalid type in array creation.");
+		//	var lengths = new int[arrayCreateExpression.Arguments.Count];
+		//	for (int i = 0; i < lengths.Length; i++)
+		//	{
+		//		lengths[i] = (int)Convert.ChangeType(arrayCreateExpression.Arguments.ElementAt(i).AcceptVisitor<ValueReference>(this).ObjectValue, typeof(int));
+		//	}
+		//	var array = ctx.Adapter.CreateArray(ctx, type.Type, lengths);
+		//	if (arrayCreateExpression.Initializer.Elements.Any())
+		//	{
+		//		var arrayAdaptor = ctx.Adapter.CreateArrayAdaptor(ctx, array);
+		//		int index = 0;
+		//		foreach (var el in LinearElements(arrayCreateExpression.Initializer.Elements))
+		//		{
+		//			arrayAdaptor.SetElement(new int[] { index++ }, el.AcceptVisitor<ValueReference>(this).Value);
+		//		}
+		//	}
+		//	return LiteralValueReference.CreateTargetObjectLiteral(ctx, expression, array);
+		//}
 		IEnumerable<ExpressionSyntax> LinearElements (SeparatedSyntaxList<ExpressionSyntax> elements)
 		{
 			foreach (var el in elements) {
-				if (el is ArrayCreationExpressionSyntax arrCre)
+				if (el is ArrayCreationExpressionSyntax arrCre) { 
 					foreach (var el2 in LinearElements (arrCre.Initializer.Expressions)) {
 						yield return el2;
-					} else
+					}
+				} else if (el is InitializerExpressionSyntax ies) { 
+					foreach (var el2 in LinearElements (ies.Expressions)) {
+						yield return el2;
+					}
+				} else
 					yield return el;
 			}
 		}
@@ -1004,25 +1038,47 @@ namespace Mono.Debugging.Evaluation
 			throw NotSupported ();
 		}
 
-
 		public override ValueReference VisitMemberAccessExpression (MemberAccessExpressionSyntax node)
 		{
+			DebuggerLoggingService.LogMessage("{0} {1}", node.ToString(), node.Name.GetType());
 			if (node.Name is GenericNameSyntax gns)
 				return ResolveTypeValueReference (ctx, node);
 
-			var target = Visit (node.Expression);
-			var member = target.GetChild (node.Name.Identifier.ValueText, ctx.Options);
+			if (node.Name is IdentifierNameSyntax ins)
+			{
+				//var type = this.Visit(ins);
+				var name = ResolveTypeName(node);
+				var type = ctx.Adapter.GetType(ctx, name);
 
-			if (member == null) {
-				if (!(target is TypeValueReference)) {
-					if (ctx.Adapter.IsNull (ctx, target.Value))
-						throw new EvaluatorException ("{0} is null", target.Name);
-				}
+				if (type != null)
+					return new TypeValueReference(ctx, type);
 
-				throw ParseError ("Unknown member: {0}", node.Name.Identifier.ValueText);
+				if (node.Expression is MemberAccessExpressionSyntax)
+					return new NamespaceValueReference(ctx, name);
 			}
+			var target = Visit (node.Expression);
 
-			return member;
+			//if (target is TypeValueReference) {
+
+			//	var name = ResolveTypeName(node);
+			//	var type = ctx.Adapter.GetType(ctx, name);
+
+			//	if (type != null)
+			//		return new TypeValueReference(ctx, type);
+			//	// Assume it is a namespace
+			//	return new NamespaceValueReference(ctx, name);
+			//}
+			var member = target.GetChild(node.Name.Identifier.ValueText, ctx.Options);
+
+			if (member != null)
+				return member;
+
+			if (!(target is TypeValueReference)) {
+				if (ctx.Adapter.IsNull(ctx, target.Value))
+					throw new EvaluatorException("{0} is null", target.Name);
+			}
+			throw new EvaluatorException("{0} is null", target.Name);
+
 		}
 
 		public override ValueReference VisitLiteralExpression (LiteralExpressionSyntax node)
@@ -1069,8 +1125,8 @@ namespace Mono.Debugging.Evaluation
 		public override ValueReference VisitTypeOfExpression (TypeOfExpressionSyntax node)
 		{
 			var name = ResolveTypeName (node.Type);
-			var type = node.Type.Resolve (ctx);
 
+			var type = ctx.Adapter.GetType(ctx, name);
 			if (type == null)
 				throw ParseError ("Could not load type: {0}", name);
 
@@ -1216,20 +1272,78 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitNullableType (NullableTypeSyntax node)
 		{
-			//if(node.)
-			var value = this.Visit(node.ElementType);
+			if (node.ElementType is PredefinedTypeSyntax predefinedTypeSyntax)
+			{
+				var type = ctx.Adapter.GetType(ctx, GetNullableKind(predefinedTypeSyntax));
+				return new TypeValueReference(ctx, type);
+			}
+			return null; //TODO:
 
-			var type1 = ctx.Adapter.GetType(ctx, NRefactoryExtensions.Resolve(node.ElementType.ToString()));
-			//ctx.Adapter.
-			ValueReference nullable = ctx.Adapter.NullableGetValue(ctx, type1, value);
-			return nullable;
-			return this.Visit(node.ElementType);
+			////if(node.)
+			//var value = this.Visit(node.ElementType);
+			//string nullableKind;
+			//var type1 = ctx.Adapter.GetType(ctx, NRefactoryExtensions.Resolve(node.ElementType.ToString()));
+			////ctx.Adapter.
+			//ValueReference nullable = ctx.Adapter.NullableGetValue(ctx, type1, value);
+			//return nullable;
+			//return this.Visit(node.ElementType);
 		}
 
-		public override ValueReference VisitQualifiedName (QualifiedNameSyntax node)
+		private string GetNullableKind(PredefinedTypeSyntax type)
 		{
-			return Visit(node.Right);
+			switch (type.Keyword.Kind()) {
+			case SyntaxKind.BoolKeyword: return "System.Nullable<System.Boolean>";
+			case SyntaxKind.SByteKeyword: return "System.Nullable<System.SByte>";
+			case SyntaxKind.ByteKeyword: return "System.Nullable<System.Byte>";
+			case SyntaxKind.CharKeyword: return "System.Nullable<System.Char>";
+			case SyntaxKind.ShortKeyword: return "System.Nullable<System.Int16>";
+			case SyntaxKind.UShortKeyword: return "System.Nullable<System.UInt16>";
+			case SyntaxKind.IntKeyword: return "System.Nullable<System.Int32>";
+			case SyntaxKind.UIntKeyword: return "System.Nullable<System.UInt32>";
+			case SyntaxKind.LongKeyword: return "System.Nullable<System.Int64>";
+			case SyntaxKind.ULongKeyword: return "System.Nullable<System.UInt64>";
+			case SyntaxKind.FloatKeyword: return "System.Nullable<System.Single>";
+			case SyntaxKind.DoubleKeyword: return "System.Nullable<System.Double>";
+			case SyntaxKind.DecimalKeyword: return "System.Nullable<System.Decimal>";
+			default: return null;
+			}
 		}
+
+		public override ValueReference VisitGenericName (GenericNameSyntax node)
+		{
+			var type = node.Resolve(ctx);
+			return new TypeValueReference(ctx, type);
+
+			//node.
+			//object[] typeArgs;
+			//	if (node.Arity > 0) {
+			//		var args = new List<object> ();
+
+			//		foreach (var arg in node.TypeArgumentList.Arguments) {
+			//			var type = Visit(arg);
+			//			args.Add (type.Type);
+			//		}
+
+			//	typeArgs = args.ToArray ();
+			//} else {
+			//		typeArgs = null;
+			//	}
+			////var type = Visit(node.Type) as TypeValueReference;
+			////var args = new List<object>();
+
+			////foreach (var arg in node.ArgumentList.Arguments)
+			////{
+			////	var val = Visit(arg);
+			////	args.Add(val != null ? val.Value : null);
+			////}
+			//var val = ctx.Adapter.CreateValue( )
+			//return LiteralValueReference.CreateTargetObjectLiteral(ctx, expression, ctx.Adapter.CreateValue(ctx, type.Type, args.ToArray()));
+
+		}
+		//public override ValueReference VisitQualifiedName (QualifiedNameSyntax node)
+		//{
+		//	return Visit(node.Right);
+		//}
 		public override ValueReference DefaultVisit (SyntaxNode node)
 		{
 			if (node is LiteralExpressionSyntax syntax)
