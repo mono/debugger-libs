@@ -68,6 +68,10 @@ namespace Mono.Debugging.Evaluation
 			string name = type.ToString ();
 			if (name.StartsWith ("global::", StringComparison.Ordinal))
 				name = name.Substring ("global::".Length);
+
+			var indexOfSlash = name.IndexOf('<');
+			if (indexOfSlash > -1)
+				name = name.Substring(0, indexOfSlash);
 			return name;
 		}
 
@@ -1040,9 +1044,18 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitMemberAccessExpression (MemberAccessExpressionSyntax node)
 		{
-			DebuggerLoggingService.LogMessage("{0} {1}", node.ToString(), node.Name.GetType());
-			if (node.Name is GenericNameSyntax gns)
-				return ResolveTypeValueReference (ctx, node);
+			if (node.Name is GenericNameSyntax gns) {
+				object[] typeArgs = new object[gns.TypeArgumentList.Arguments.Count];
+
+				for (var i = 0; i < gns.TypeArgumentList.Arguments.Count; i++) {
+					var typeArg = Visit(gns.TypeArgumentList.Arguments[i]);
+					typeArgs[i] = typeArg.Type;
+				}
+				string typeName = $"{ResolveTypeName(node)}`{gns.TypeArgumentList.Arguments.Count}";
+
+				var type1 = ctx.Adapter.GetType(ctx, typeName, typeArgs);
+				return new TypeValueReference(ctx, type1);
+			}
 
 			if (node.Name is IdentifierNameSyntax ins)
 			{
@@ -1272,15 +1285,24 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitNullableType (NullableTypeSyntax node)
 		{
-			var genericTypeArgument = new[] { ctx.Adapter.GetType(ctx, NRefactoryExtensions.Resolve(node.ElementType.ToString())) };
+			var genericTypeArgument = new[] { Visit(node.ElementType).Type };
 			var type1 = ctx.Adapter.GetType(ctx, "System.Nullable`1", genericTypeArgument);
 			return new TypeValueReference(ctx, type1);
 		}
 
 		public override ValueReference VisitGenericName (GenericNameSyntax node)
 		{
-			var type = node.Resolve(ctx);
-			return new TypeValueReference(ctx, type);
+			object[] typeArgs = new object[node.TypeArgumentList.Arguments.Count];
+
+            for (var i = 0; i < node.TypeArgumentList.Arguments.Count; i++) {
+                var typeArg = Visit(node.TypeArgumentList.Arguments[i]);
+                typeArgs[i] = typeArg.Type;
+            }
+
+			string typeName = node.Identifier.ValueText;
+
+			var type1 = ctx.Adapter.GetType(ctx, typeName, typeArgs);
+			return new TypeValueReference(ctx, type1);
 
 			//node.
 			//object[] typeArgs;
@@ -1314,6 +1336,8 @@ namespace Mono.Debugging.Evaluation
 		//}
 		public override ValueReference DefaultVisit (SyntaxNode node)
 		{
+			if(node is GenericNameSyntax gns)
+				Console.WriteLine("o");
 			if (node is LiteralExpressionSyntax syntax)
 			{
 				return LiteralValueReference.CreateObjectLiteral(ctx, expression, syntax.Token.Value);
