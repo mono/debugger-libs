@@ -1272,21 +1272,9 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitNullableType (NullableTypeSyntax node)
 		{
-			if (node.ElementType is PredefinedTypeSyntax predefinedTypeSyntax)
-			{
-				var type = ctx.Adapter.GetType(ctx, GetNullableKind(predefinedTypeSyntax));
-				return new TypeValueReference(ctx, type);
-			}
-			return null; //TODO:
-
-			////if(node.)
-			//var value = this.Visit(node.ElementType);
-			//string nullableKind;
-			//var type1 = ctx.Adapter.GetType(ctx, NRefactoryExtensions.Resolve(node.ElementType.ToString()));
-			////ctx.Adapter.
-			//ValueReference nullable = ctx.Adapter.NullableGetValue(ctx, type1, value);
-			//return nullable;
-			//return this.Visit(node.ElementType);
+			var genericTypeArgument = new[] { ctx.Adapter.GetType(ctx, NRefactoryExtensions.Resolve(node.ElementType.ToString())) };
+			var type1 = ctx.Adapter.GetType(ctx, "System.Nullable`1", genericTypeArgument);
+			return new TypeValueReference(ctx, type1);
 		}
 
 		private string GetNullableKind(PredefinedTypeSyntax type)
