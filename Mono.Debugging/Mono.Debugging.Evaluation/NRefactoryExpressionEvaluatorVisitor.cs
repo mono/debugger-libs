@@ -1277,26 +1277,6 @@ namespace Mono.Debugging.Evaluation
 			return new TypeValueReference(ctx, type1);
 		}
 
-		private string GetNullableKind(PredefinedTypeSyntax type)
-		{
-			switch (type.Keyword.Kind()) {
-			case SyntaxKind.BoolKeyword: return "System.Nullable<System.Boolean>";
-			case SyntaxKind.SByteKeyword: return "System.Nullable<System.SByte>";
-			case SyntaxKind.ByteKeyword: return "System.Nullable<System.Byte>";
-			case SyntaxKind.CharKeyword: return "System.Nullable<System.Char>";
-			case SyntaxKind.ShortKeyword: return "System.Nullable<System.Int16>";
-			case SyntaxKind.UShortKeyword: return "System.Nullable<System.UInt16>";
-			case SyntaxKind.IntKeyword: return "System.Nullable<System.Int32>";
-			case SyntaxKind.UIntKeyword: return "System.Nullable<System.UInt32>";
-			case SyntaxKind.LongKeyword: return "System.Nullable<System.Int64>";
-			case SyntaxKind.ULongKeyword: return "System.Nullable<System.UInt64>";
-			case SyntaxKind.FloatKeyword: return "System.Nullable<System.Single>";
-			case SyntaxKind.DoubleKeyword: return "System.Nullable<System.Double>";
-			case SyntaxKind.DecimalKeyword: return "System.Nullable<System.Decimal>";
-			default: return null;
-			}
-		}
-
 		public override ValueReference VisitGenericName (GenericNameSyntax node)
 		{
 			var type = node.Resolve(ctx);
