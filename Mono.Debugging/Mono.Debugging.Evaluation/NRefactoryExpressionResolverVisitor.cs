@@ -107,7 +107,7 @@ namespace Mono.Debugging.Evaluation
 				if (memberType) {
 					type = type.Substring (type.LastIndexOf ('.') + 1);
 				} else {
-					type = "global::" + type;
+					//type = "global::" + type;
 				}
 
 				parentType = type + GenerateGenericArgs (genericArgs);
@@ -141,6 +141,15 @@ namespace Mono.Debugging.Evaluation
 		public override void VisitPredefinedType (PredefinedTypeSyntax node)
 		{
 			ReplaceType (node);
+		}
+
+		public override void VisitGenericName(GenericNameSyntax node)
+		{
+			var loc = node.Identifier.GetLocation();
+			int length = loc.SourceSpan.Length;
+			int offset = loc.SourceSpan.Start;
+
+			ReplaceType(node.Identifier.Text, node.TypeArgumentList.Arguments.Count, offset, length);
 		}
 	}
 }

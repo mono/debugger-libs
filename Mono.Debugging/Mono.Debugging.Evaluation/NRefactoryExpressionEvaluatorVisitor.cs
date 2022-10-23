@@ -1292,18 +1292,19 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitGenericName (GenericNameSyntax node)
 		{
-			object[] typeArgs = new object[node.TypeArgumentList.Arguments.Count];
+			object [] typeArgs = new object [node.TypeArgumentList.Arguments.Count];
 
 			for (var i = 0; i < node.TypeArgumentList.Arguments.Count; i++) {
-				var typeArg = Visit(node.TypeArgumentList.Arguments[i]);
-				typeArgs[i] = typeArg.Type;
+				var typeArg = Visit (node.TypeArgumentList.Arguments [i]);
+				typeArgs [i] = typeArg.Type;
 			}
 
-			string typeName =  node.Identifier.ValueText;
+			string typeName = node.Identifier.ValueText;
 
-			var d = ctx.Adapter.GetDisplayTypeName(typeName);
-			var type1 = ctx.Adapter.GetType(ctx, typeName, typeArgs);
-			return new TypeValueReference(ctx, type1);
+			typeName = MakeGenericTypeName (node, typeName);
+
+			var type1 = ctx.Adapter.GetType (ctx, typeName, typeArgs);
+			return new TypeValueReference (ctx, type1);
 
 			//node.
 			//object[] typeArgs;
@@ -1331,14 +1332,28 @@ namespace Mono.Debugging.Evaluation
 			//return LiteralValueReference.CreateTargetObjectLiteral(ctx, expression, ctx.Adapter.CreateValue(ctx, type.Type, args.ToArray()));
 
 		}
-		//public override ValueReference VisitQualifiedName (QualifiedNameSyntax node)
-		//{
-		//	return Visit(node.Right);
-		//}
+
+		private static string MakeGenericTypeName (GenericNameSyntax node, string typeName)
+		{
+			if (node.Parent is QualifiedNameSyntax qns && qns.Left is IdentifierNameSyntax ins)
+				return $"{ins.Identifier.Value}.{typeName}`{node.TypeArgumentList.Arguments.Count}";
+
+			if (node.Parent is QualifiedNameSyntax qns2 && qns2.Left is QualifiedNameSyntax left)
+				return $"{left}.{typeName}`{node.TypeArgumentList.Arguments.Count}";
+			return typeName;
+		}
+
+		public override ValueReference VisitQualifiedName(QualifiedNameSyntax node)
+		{
+			if(node.Right is GenericNameSyntax) {
+				return Visit(node.Right);
+			}
+			var type1 = ctx.Adapter.GetType(ctx, node.ToString());
+			return new TypeValueReference(ctx, type1);
+		}
+
 		public override ValueReference DefaultVisit (SyntaxNode node)
 		{
-			if(node is GenericNameSyntax gns)
-				Console.WriteLine("o");
 			if (node is LiteralExpressionSyntax syntax)
 			{
 				return LiteralValueReference.CreateObjectLiteral(ctx, expression, syntax.Token.Value);
