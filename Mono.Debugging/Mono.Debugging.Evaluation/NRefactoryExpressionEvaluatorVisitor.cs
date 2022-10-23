@@ -890,7 +890,7 @@ namespace Mono.Debugging.Evaluation
 			typeArgs = null;
 			var fullName = invocationExpression.ToString();
 			var lastIndexOfDot = fullName.LastIndexOf(".");
-            return fullName.Substring(lastIndexOfDot + 1);
+			return fullName.Substring(lastIndexOfDot + 1);
 		}
 
 		public override ValueReference VisitInvocationExpression (InvocationExpressionSyntax node)
@@ -925,7 +925,7 @@ namespace Mono.Debugging.Evaluation
 				if (field.Expression is BaseExpressionSyntax)
 					invokeBaseMethod = true;
 				methodName = ResolveMethodName (field, out typeArgs);
-			} else if (node.Expression is IdentifierNameSyntax method) {
+			} else if (node.Expression is SyntaxNode method && (method is IdentifierNameSyntax || method is GenericNameSyntax)) {
 				var vref = ctx.Adapter.GetThisReference (ctx);
 
 				methodName = ResolveMethodName (method, out typeArgs);
@@ -1294,13 +1294,14 @@ namespace Mono.Debugging.Evaluation
 		{
 			object[] typeArgs = new object[node.TypeArgumentList.Arguments.Count];
 
-            for (var i = 0; i < node.TypeArgumentList.Arguments.Count; i++) {
-                var typeArg = Visit(node.TypeArgumentList.Arguments[i]);
-                typeArgs[i] = typeArg.Type;
-            }
+			for (var i = 0; i < node.TypeArgumentList.Arguments.Count; i++) {
+				var typeArg = Visit(node.TypeArgumentList.Arguments[i]);
+				typeArgs[i] = typeArg.Type;
+			}
 
-			string typeName = node.Identifier.ValueText;
+			string typeName =  node.Identifier.ValueText;
 
+			var d = ctx.Adapter.GetDisplayTypeName(typeName);
 			var type1 = ctx.Adapter.GetType(ctx, typeName, typeArgs);
 			return new TypeValueReference(ctx, type1);
 
