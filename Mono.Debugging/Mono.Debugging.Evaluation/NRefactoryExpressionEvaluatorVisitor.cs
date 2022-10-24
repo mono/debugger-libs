@@ -438,105 +438,6 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateObjectLiteral (ctx, expression, res);
 		}
 
-		//static string ResolveType (EvaluationContext ctx, TypeReferenceExpression mre, List<object> args)
-		//{
-		//	var memberType = mre.Type as MemberType;
-
-		//	if (memberType != null) {
-		//		var name = memberType.MemberName;
-
-		//		if (memberType.TypeArguments.Count > 0) {
-		//			name += "`" + memberType.TypeArguments.Count;
-
-		//			foreach (var arg in memberType.TypeArguments) {
-		//				var resolved = arg.Resolve (ctx);
-
-		//				if (resolved == null)
-		//					return null;
-
-		//				args.Add (resolved);
-		//			}
-		//		}
-
-		//		return name;
-		//	}
-
-		//	return mre.ToString ();
-		//}
-
-		static string ResolveType (EvaluationContext ctx, MemberAccessExpressionSyntax mre, List<object> args)
-		{
-			string parent, name;
-
-			if (mre.Expression is MemberAccessExpressionSyntax mae) {
-				parent = ResolveType (ctx, mae, args);
-			} else /* TODO?
-			    if (mre.Expression is TypeReferenceExpression) {
-				parent = ResolveType (ctx, (TypeReferenceExpression) mre.Target, args);
-			} else */if (mre.Expression is IdentifierNameSyntax id) {
-				parent = id.Identifier.ValueText;
-			} else {
-				return null;
-			}
-
-			name = parent + "." + mre.Name.Identifier.ValueText;
-			/*
-			if (mre.TypeArguments.Count > 0) {
-				name += "`" + mre.TypeArguments.Count;
-
-				foreach (var arg in mre.TypeArguments) {
-					var resolved = arg.Resolve (ctx);
-
-					if (resolved == null)
-						return null;
-
-					args.Add (resolved);
-				}
-			}*/
-
-			return name;
-		}
-
-		static object ResolveType (EvaluationContext ctx, MemberAccessExpressionSyntax mre)
-		{
-			var args = new List<object> ();
-			var name = ResolveType (ctx, mre, args);
-
-			if (name == null)
-				return null;
-
-			if (args.Count > 0)
-				return ctx.Adapter.GetType (ctx, name, args.ToArray ());
-
-			return ctx.Adapter.GetType (ctx, name);
-		}
-
-		static ValueReference ResolveTypeValueReference (EvaluationContext ctx, MemberAccessExpressionSyntax mre)
-		{
-			object resolved = ResolveType (ctx, mre);
-
-			if (resolved != null) {
-				ctx.Adapter.ForceLoadType (ctx, resolved);
-
-				return new TypeValueReference (ctx, resolved);
-			}
-
-			throw ParseError ("Could not resolve type: {0}", mre);
-		}
-
-		//static ValueReference ResolveTypeValueReference (EvaluationContext ctx, AstType type)
-		//{
-		//	object resolved = type.Resolve (ctx);
-
-		//	if (resolved != null) {
-		//		ctx.Adapter.ForceLoadType (ctx, resolved);
-
-		//		return new TypeValueReference (ctx, resolved);
-		//	}
-
-		//	throw ParseError ("Could not resolve type: {0}", ResolveTypeName (type));
-		//}
-
 		static object[] UpdateDelayedTypes (object[] types, Tuple<int, object>[] updates, ref bool alreadyUpdated)
 		{
 			if (alreadyUpdated || types == null || updates == null || types.Length < updates.Length || updates.Length == 0)
@@ -556,9 +457,6 @@ namespace Mono.Debugging.Evaluation
 			var type = Visit(node.Type.ElementType);
 			if (type == null)
 				throw ParseError ("Invalid type in array creation.");
-			//var lengths = new int [node.Initializer.Expressions.Count];
-			//for (int i = 0; i < lengths.Length; i++) {
-			//	lengths [i] = (int)Convert.ChangeType (Visit(node.Initializer.Expressions[i]).ObjectValue, typeof (int));
 
 			var lengths = Array.Empty<int>();
 			if (node.Type is ArrayTypeSyntax ats) {
@@ -578,28 +476,7 @@ namespace Mono.Debugging.Evaluation
 			}
 			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, array);
 		}
-		//public ValueReference VisitArrayCreateExpression(ArrayCreateExpression arrayCreateExpression)
-		//{
-		//	var type = arrayCreateExpression.Type.AcceptVisitor<ValueReference>(this) as TypeValueReference;
-		//	if (type == null)
-		//		throw ParseError("Invalid type in array creation.");
-		//	var lengths = new int[arrayCreateExpression.Arguments.Count];
-		//	for (int i = 0; i < lengths.Length; i++)
-		//	{
-		//		lengths[i] = (int)Convert.ChangeType(arrayCreateExpression.Arguments.ElementAt(i).AcceptVisitor<ValueReference>(this).ObjectValue, typeof(int));
-		//	}
-		//	var array = ctx.Adapter.CreateArray(ctx, type.Type, lengths);
-		//	if (arrayCreateExpression.Initializer.Elements.Any())
-		//	{
-		//		var arrayAdaptor = ctx.Adapter.CreateArrayAdaptor(ctx, array);
-		//		int index = 0;
-		//		foreach (var el in LinearElements(arrayCreateExpression.Initializer.Elements))
-		//		{
-		//			arrayAdaptor.SetElement(new int[] { index++ }, el.AcceptVisitor<ValueReference>(this).Value);
-		//		}
-		//	}
-		//	return LiteralValueReference.CreateTargetObjectLiteral(ctx, expression, array);
-		//}
+
 		IEnumerable<ExpressionSyntax> LinearElements (SeparatedSyntaxList<ExpressionSyntax> elements)
 		{
 			foreach (var el in elements) {
@@ -1020,7 +897,17 @@ namespace Mono.Debugging.Evaluation
 		}
 
 
+		public override ValueReference VisitParenthesizedLambdaExpression (ParenthesizedLambdaExpressionSyntax node)
+		{
+			return VisitLambdaExpression(node);
+		}
+
 		public override ValueReference VisitSimpleLambdaExpression (SimpleLambdaExpressionSyntax node)
+		{
+			return VisitLambdaExpression (node);
+		}
+
+		ValueReference VisitLambdaExpression (LambdaExpressionSyntax node)
 		{
 			if (node.AsyncKeyword != default)
 				throw NotSupported ();
@@ -1029,13 +916,11 @@ namespace Mono.Debugging.Evaluation
 			while (parent != null && parent is ParenthesizedExpressionSyntax)
 				parent = parent.Parent;
 
-			if (parent is InvocationExpressionSyntax || parent is CastExpressionSyntax) {
-				var writer = new System.IO.StringWriter ();
-				var visitor = new LambdaBodyOutputVisitor (ctx, userVariables, writer);
+			if (parent is InvocationExpressionSyntax || parent is CastExpressionSyntax || parent is ArgumentSyntax) {
+				var visitor = new LambdaBodyOutputVisitor (ctx, userVariables);
 				visitor.Visit (node);
-				var body = writer.ToString ();
 				var values = visitor.GetLocalValues ();
-				object val = ctx.Adapter.CreateDelayedLambdaValue (ctx, body, values);
+				object val = ctx.Adapter.CreateDelayedLambdaValue (ctx, node.ToString (), values);
 				if (val != null)
 					return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, val);
 			}

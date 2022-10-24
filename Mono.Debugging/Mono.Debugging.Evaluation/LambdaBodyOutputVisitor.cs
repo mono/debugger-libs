@@ -25,21 +25,12 @@ namespace Mono.Debugging.Evaluation
 		List<string> definedIdentifier;
 		int gensymCount;
 
-		public LambdaBodyOutputVisitor (EvaluationContext ctx, Dictionary<string, ValueReference> userVariables, TextWriter writer)
+		public LambdaBodyOutputVisitor (EvaluationContext ctx, Dictionary<string, ValueReference> userVariables)
 		{
 			this.ctx = ctx;
 			this.userVariables = userVariables;
 			this.localValues = new Dictionary<string, Tuple<string, object>> ();
 			this.definedIdentifier = new List<string> ();
-		}
-
-		void WriteKeyword (string keyword)
-		{
-
-		}
-		void WriteIdentifier (string keyword)
-		{
-
 		}
 
 		public Tuple<string, object>[] GetLocalValues ()
@@ -51,11 +42,6 @@ namespace Mono.Debugging.Evaluation
 				n++;
 			}
 			return locals;
-		}
-
-		static Exception NotSupportedToConsistency ()
-		{
-			return new NotSupportedExpressionException ();
 		}
 
 		static Exception NotSupported ()
@@ -141,9 +127,11 @@ namespace Mono.Debugging.Evaluation
 
 			AssertPublicValueReference (vr);
 
-			var valu = vr != null ? vr.Value : null;
-			var pair = Tuple.Create (localName, valu);
-			localValues.Add (name, pair);
+			if (!(vr is NamespaceValueReference)) {
+				var valu = vr?.Value;
+				var pair = Tuple.Create(localName, valu);
+				localValues.Add(name, pair);
+			}
 			return localName;
 		}
 
@@ -179,7 +167,6 @@ namespace Mono.Debugging.Evaluation
 				var vr = Evaluate (node);
 				localbase = AddToLocals (basee, vr, true);
 			}
-			WriteKeyword (localbase);
 		}
 
 		public override void VisitIdentifierName (IdentifierNameSyntax node)
@@ -196,12 +183,10 @@ namespace Mono.Debugging.Evaluation
 					localIdentifier = AddToLocals (identifier, vr);
 				}
 			}
-			WriteIdentifier (node.Identifier.ValueText);
 		}
 
 		public override void VisitGenericName (GenericNameSyntax node)
 		{
-			WriteIdentifier (node.Identifier.ValueText);
 			foreach (var arg in node.TypeArgumentList.Arguments) {
 				Visit (arg);
 			}
@@ -250,17 +235,9 @@ namespace Mono.Debugging.Evaluation
 				}
 			}
 
-			if (accessor == null)
-				WriteIdentifier (methodName);
-			else
-				WriteKeyword (accessor + "." + methodName);
-			WriteIdentifier ("(");
 			for (int i = 0; i < node.ArgumentList.Arguments.Count; i++) {
-				if (i > 0)
-					WriteIdentifier (", ");
 				Visit (node.ArgumentList.Arguments[i]);
 			}
-			WriteIdentifier (")");
 		}
 
 		public override void VisitSimpleLambdaExpression (SimpleLambdaExpressionSyntax node)
@@ -280,21 +257,6 @@ namespace Mono.Debugging.Evaluation
 				var vr = Evaluate (node);
 				localthis = AddToLocals (thiss, vr, true);
 			}
-			WriteKeyword (localthis);
-		}
-
-		public override void VisitParameter (ParameterSyntax node)
-		{
-			if (node.Parent is SimpleNameSyntax)
-				base.VisitParameter (node);
-			else
-				throw NotSupportedToConsistency ();
-		}
-
-		public override void DefaultVisit (SyntaxNode node)
-		{
-			if(!(node is MemberAccessExpressionSyntax))
-				throw NotSupportedToConsistency();
 		}
 		#endregion
 	}
