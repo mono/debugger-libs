@@ -211,7 +211,7 @@ namespace Mono.Debugging.Evaluation
 		{
 			var invocationTarget = node.Expression;
 			if (!(invocationTarget is IdentifierNameSyntax method)) {
-				base.VisitInvocationExpression (node);
+				Visit(invocationTarget);
 				return;
 			}
 

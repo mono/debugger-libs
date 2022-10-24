@@ -1009,8 +1009,8 @@ namespace Mono.Debugging.Client
 		public virtual string ResolveExpression (string expression, SourceLocation location)
 		{
 			var key = expression + " " + location;
-
-			if (!resolvedExpressionCache.TryGetValue (key, out var resolved)) {
+			string resolved = null;
+			//if (!resolvedExpressionCache.TryGetValue (key, out var resolved)) {
 				try {
 					resolved = OnResolveExpression (expression, location);
 				} catch (Exception ex) {
@@ -1018,7 +1018,7 @@ namespace Mono.Debugging.Client
 						OnDebuggerOutput (true, "Error while resolving expression: " + ex.Message);
 				}
 				resolvedExpressionCache [key] = resolved;
-			}
+			//}
 
 			return resolved ?? expression;
 		}

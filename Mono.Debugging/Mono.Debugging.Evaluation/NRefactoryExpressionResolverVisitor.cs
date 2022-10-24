@@ -111,8 +111,16 @@ namespace Mono.Debugging.Evaluation
 				}
 
 				parentType = type + GenerateGenericArgs (genericArgs);
-				var replacement = new Replacement { Offset = offset, Length = length, NewText = type };
-				replacements.Add (replacement);
+
+				if (type != name) {
+					var lengthDelta = type.Length - name.Length;
+					var start = offset - lengthDelta;
+					if (start >= 0 && expression.Substring(offset - lengthDelta, type.Length) == type)
+						return;
+
+					var replacement = new Replacement { Offset = offset, Length = length, NewText = type };
+					replacements.Add(replacement);
+				}
 			}
 		}
 
@@ -126,9 +134,10 @@ namespace Mono.Debugging.Evaluation
 
 		public override void VisitIdentifierName (IdentifierNameSyntax node)
 		{
-			base.VisitIdentifierName (node);
-			int length = node.Span.Length;
-			int offset = node.Span.Start;
+			//base.VisitIdentifierName (node);
+			var loc = node.Identifier.GetLocation();
+			int length = loc.SourceSpan.Length;
+			int offset = loc.SourceSpan.Start;
 
 			ReplaceType (node.Identifier.ValueText, node.Arity, offset, length);
 		}
@@ -149,7 +158,7 @@ namespace Mono.Debugging.Evaluation
 			int length = loc.SourceSpan.Length;
 			int offset = loc.SourceSpan.Start;
 
-			ReplaceType(node.Identifier.Text, node.TypeArgumentList.Arguments.Count, offset, length);
+			ReplaceType(node.Identifier.ValueText, node.TypeArgumentList.Arguments.Count, offset, length);
 		}
 	}
 }

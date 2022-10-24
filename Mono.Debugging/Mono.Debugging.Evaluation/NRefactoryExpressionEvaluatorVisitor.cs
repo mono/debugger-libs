@@ -1021,7 +1021,7 @@ namespace Mono.Debugging.Evaluation
 
 		public override ValueReference VisitSimpleLambdaExpression (SimpleLambdaExpressionSyntax node)
 		{
-			if (node.AsyncKeyword != null)
+			if (node.AsyncKeyword != default)
 				throw NotSupported ();
 
 			var parent = node.Parent;
@@ -1301,39 +1301,14 @@ namespace Mono.Debugging.Evaluation
 
 			string typeName = node.Identifier.ValueText;
 
-			typeName = MakeGenericTypeName (node, typeName);
+			typeName = MakeGenericTypeName(node, typeName);// $"{typeName}`{node.TypeArgumentList.Arguments.Count}";
+
 
 			var type1 = ctx.Adapter.GetType (ctx, typeName, typeArgs);
 			return new TypeValueReference (ctx, type1);
-
-			//node.
-			//object[] typeArgs;
-			//	if (node.Arity > 0) {
-			//		var args = new List<object> ();
-
-			//		foreach (var arg in node.TypeArgumentList.Arguments) {
-			//			var type = Visit(arg);
-			//			args.Add (type.Type);
-			//		}
-
-			//	typeArgs = args.ToArray ();
-			//} else {
-			//		typeArgs = null;
-			//	}
-			////var type = Visit(node.Type) as TypeValueReference;
-			////var args = new List<object>();
-
-			////foreach (var arg in node.ArgumentList.Arguments)
-			////{
-			////	var val = Visit(arg);
-			////	args.Add(val != null ? val.Value : null);
-			////}
-			//var val = ctx.Adapter.CreateValue( )
-			//return LiteralValueReference.CreateTargetObjectLiteral(ctx, expression, ctx.Adapter.CreateValue(ctx, type.Type, args.ToArray()));
-
 		}
 
-		private static string MakeGenericTypeName (GenericNameSyntax node, string typeName)
+		static string MakeGenericTypeName(GenericNameSyntax node, string typeName)
 		{
 			if (node.Parent is QualifiedNameSyntax qns && qns.Left is IdentifierNameSyntax ins)
 				return $"{ins.Identifier.Value}.{typeName}`{node.TypeArgumentList.Arguments.Count}";
@@ -1341,7 +1316,7 @@ namespace Mono.Debugging.Evaluation
 			if (node.Parent is QualifiedNameSyntax qns2 && qns2.Left is QualifiedNameSyntax left)
 				return $"{left}.{typeName}`{node.TypeArgumentList.Arguments.Count}";
 			return typeName;
-		}
+ 		}
 
 		public override ValueReference VisitQualifiedName(QualifiedNameSyntax node)
 		{
@@ -1358,6 +1333,10 @@ namespace Mono.Debugging.Evaluation
 			{
 				return LiteralValueReference.CreateObjectLiteral(ctx, expression, syntax.Token.Value);
 			}
+			//if (node is RangeExpressionSyntax res)
+			//{
+                        
+   //                     }
 			throw NotSupported();
 		}
 		#endregion
