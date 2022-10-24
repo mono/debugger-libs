@@ -832,7 +832,8 @@ namespace Mono.Debugging.Evaluation
 				throw ParseError (message);
 			}
 
-			throw ParseError ("Unknown identifier: {0}", name);
+			// Assume a namespace
+			return new NamespaceValueReference(ctx, name);
 		}
 
 		public override ValueReference VisitElementAccessExpression (ElementAccessExpressionSyntax node)
@@ -1045,42 +1046,42 @@ namespace Mono.Debugging.Evaluation
 		public override ValueReference VisitMemberAccessExpression (MemberAccessExpressionSyntax node)
 		{
 			if (node.Name is GenericNameSyntax gns) {
-				object[] typeArgs = new object[gns.TypeArgumentList.Arguments.Count];
+				var expr = Visit (node.Expression);
 
-				for (var i = 0; i < gns.TypeArgumentList.Arguments.Count; i++) {
-					var typeArg = Visit(gns.TypeArgumentList.Arguments[i]);
-					typeArgs[i] = typeArg.Type;
+				if (expr is TypeValueReference tvr && node.Expression is GenericNameSyntax gnsOuter) {
+					// Thing<string>.Done<int> is
+					// Thing`1.Done`1 with type arguments System.String and System.Int32
+					// Thing`1 is node.Expression
+					// Done`1 is node.Name
+					var outer = MakeGenericTypeName (gnsOuter, gnsOuter.Identifier.ValueText);
+
+					var typeArgsOuter = GetGenericTypeArgs(gnsOuter);
+					var inner = MakeGenericTypeName(gns, gns.Identifier.ValueText);
+					var typeArgsInner = GetGenericTypeArgs(gns);
+
+					string nestedTypeName = $"{outer}.{inner}";
+					var nestedType = ctx.Adapter.GetType(ctx, nestedTypeName, typeArgsOuter.Concat(typeArgsInner).ToArray());
+					return new TypeValueReference(ctx, nestedType);
+
 				}
-				string typeName = $"{ResolveTypeName(node)}`{gns.TypeArgumentList.Arguments.Count}";
 
-				var type1 = ctx.Adapter.GetType(ctx, typeName, typeArgs);
-				return new TypeValueReference(ctx, type1);
+				var typeArgs = GetGenericTypeArgs (gns);
+				string typeName = $"{ResolveTypeName (node)}`{gns.TypeArgumentList.Arguments.Count}";
+
+				var type1 = ctx.Adapter.GetType (ctx, typeName, typeArgs);
+				return new TypeValueReference (ctx, type1);
 			}
 
-			if (node.Name is IdentifierNameSyntax ins)
+			if (node.Name is IdentifierNameSyntax)
 			{
-				//var type = this.Visit(ins);
 				var name = ResolveTypeName(node);
 				var type = ctx.Adapter.GetType(ctx, name);
 
 				if (type != null)
 					return new TypeValueReference(ctx, type);
-
-				if (node.Expression is MemberAccessExpressionSyntax)
-					return new NamespaceValueReference(ctx, name);
 			}
 			var target = Visit (node.Expression);
 
-			//if (target is TypeValueReference) {
-
-			//	var name = ResolveTypeName(node);
-			//	var type = ctx.Adapter.GetType(ctx, name);
-
-			//	if (type != null)
-			//		return new TypeValueReference(ctx, type);
-			//	// Assume it is a namespace
-			//	return new NamespaceValueReference(ctx, name);
-			//}
 			var member = target.GetChild(node.Name.Identifier.ValueText, ctx.Options);
 
 			if (member != null)
@@ -1092,6 +1093,18 @@ namespace Mono.Debugging.Evaluation
 			}
 			throw new EvaluatorException("{0} is null", target.Name);
 
+		}
+
+		object [] GetGenericTypeArgs (GenericNameSyntax gns)
+		{
+			object [] typeArgs = new object [gns.TypeArgumentList.Arguments.Count];
+
+			for (var i = 0; i < gns.TypeArgumentList.Arguments.Count; i++) {
+				var typeArg = Visit (gns.TypeArgumentList.Arguments [i]);
+				typeArgs [i] = typeArg.Type;
+			}
+
+			return typeArgs;
 		}
 
 		public override ValueReference VisitLiteralExpression (LiteralExpressionSyntax node)
@@ -1149,23 +1162,6 @@ namespace Mono.Debugging.Evaluation
 
 			return LiteralValueReference.CreateTargetObjectLiteral (ctx, name, result);
 		}
-
-		//public ValueReference VisitTypeReferenceExpression(TypeReferenceExpression typeReferenceExpression)
-		//{
-		//	var type = typeReferenceExpression.Type.Resolve(ctx);
-
-		//	if (type != null)
-		//	{
-		//		ctx.Adapter.ForceLoadType(ctx, type);
-
-		//		return new TypeValueReference(ctx, type);
-		//	}
-
-		//	var name = ResolveTypeName(typeReferenceExpression.Type);
-
-		//	// Assume it is a namespace.
-		//	return new NamespaceValueReference(ctx, name);
-		//}
 
 		public override ValueReference VisitPostfixUnaryExpression (PostfixUnaryExpressionSyntax node)
 		{
@@ -1315,7 +1311,8 @@ namespace Mono.Debugging.Evaluation
 
 			if (node.Parent is QualifiedNameSyntax qns2 && qns2.Left is QualifiedNameSyntax left)
 				return $"{left}.{typeName}`{node.TypeArgumentList.Arguments.Count}";
-			return typeName;
+			return $"{typeName}`{node.TypeArgumentList.Arguments.Count}";
+;
  		}
 
 		public override ValueReference VisitQualifiedName(QualifiedNameSyntax node)
@@ -1333,10 +1330,6 @@ namespace Mono.Debugging.Evaluation
 			{
 				return LiteralValueReference.CreateObjectLiteral(ctx, expression, syntax.Token.Value);
 			}
-			//if (node is RangeExpressionSyntax res)
-			//{
-                        
-   //                     }
 			throw NotSupported();
 		}
 		#endregion

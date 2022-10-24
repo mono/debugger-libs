@@ -293,7 +293,8 @@ namespace Mono.Debugging.Evaluation
 
 		public override void DefaultVisit (SyntaxNode node)
 		{
-			throw NotSupportedToConsistency ();
+			if(!(node is MemberAccessExpressionSyntax))
+				throw NotSupportedToConsistency();
 		}
 		#endregion
 	}
