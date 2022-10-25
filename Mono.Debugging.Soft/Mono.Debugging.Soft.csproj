@@ -19,8 +19,9 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <NuGetVersionRoslyn Condition="$(NuGetVersionRoslyn) == ''">2.10.0</NuGetVersionRoslyn>
+    <NuGetVersionRoslyn Condition="$(NuGetVersionRoslyn) == ''">4.5.0-1.22517.2</NuGetVersionRoslyn>
     <NuGetVersionCecil Condition="$(NuGetVersionCecil) == ''">0.10.1</NuGetVersionCecil>
+    <NuGetVersionSystemCollectionsImmutable Condition="$(NuGetVersionSystemCollectionsImmutable) = ''">6.0.0</NuGetVersionSystemCollectionsImmutable>
   </PropertyGroup>
 
   <ItemGroup>
