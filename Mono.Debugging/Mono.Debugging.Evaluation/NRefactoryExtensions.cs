@@ -149,32 +149,34 @@ namespace Mono.Debugging.Evaluation
 			default: return null;
 			}
 		}
-        public static string Resolve (string shortTypeName)
- 		{
-			string longName = "";
+
+		public static string Resolve(string shortTypeName)
+		{
+			string longName;
 			switch (shortTypeName) {
-            case "bool":    longName = "System.Boolean"; break;
-            case "byte":    longName = "System.Byte"; break;
-            case "sbyte":   longName = "System.SByte"; break;
-            case "char":    longName = "System.Char"; break;
-            case "decimal": longName = "System.Decimal"; break;
-            case "double":  longName = "System.Double"; break;
-            case "float":   longName = "System.Single"; break;
-            case "int":     longName = "System.Int32"; break;
-            case "uint":    longName = "System.UInt32"; break;
-            case "nint":    longName = "System.IntPtr"; break;
-            case "nuint":   longName = "System.UIntPtr"; break;
-            case "long":    longName = "System.Int64"; break;
-            case "ulong":   longName = "System.UInt64"; break;
-            case "short":   longName = "System.Int16"; break;
-            case "ushort":  longName = "System.UInt16"; break;
-            case "object":  longName = "System.Object"; break;
-            case "string":  longName = "System.String"; break;
-            case "dynamic": longName = "System.Object"; break;
-            default: throw new ArgumentException($"Unknown type {shortTypeName}");
+			case "bool": longName = "System.Boolean"; break;
+			case "byte": longName = "System.Byte"; break;
+			case "sbyte": longName = "System.SByte"; break;
+			case "char": longName = "System.Char"; break;
+			case "decimal": longName = "System.Decimal"; break;
+			case "double": longName = "System.Double"; break;
+			case "float": longName = "System.Single"; break;
+			case "int": longName = "System.Int32"; break;
+			case "uint": longName = "System.UInt32"; break;
+			case "nint": longName = "System.IntPtr"; break;
+			case "nuint": longName = "System.UIntPtr"; break;
+			case "long": longName = "System.Int64"; break;
+			case "ulong": longName = "System.UInt64"; break;
+			case "short": longName = "System.Int16"; break;
+			case "ushort": longName = "System.UInt16"; break;
+			case "object": longName = "System.Object"; break;
+			case "string": longName = "System.String"; break;
+			case "dynamic": longName = "System.Object"; break;
+			default: throw new ArgumentException($"Unknown type {shortTypeName}");
 			}
 			return longName;
  		}
+
 		static string Resolve (this PredefinedTypeSyntax type, EvaluationContext ctx, List<object> args)
 		{
 			return Resolve (type);
