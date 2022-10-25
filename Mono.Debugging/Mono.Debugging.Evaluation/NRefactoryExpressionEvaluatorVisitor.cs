@@ -69,9 +69,9 @@ namespace Mono.Debugging.Evaluation
 			if (name.StartsWith ("global::", StringComparison.Ordinal))
 				name = name.Substring ("global::".Length);
 
-			var indexOfSlash = name.IndexOf('<');
-			if (indexOfSlash > -1)
-				name = name.Substring(0, indexOfSlash);
+			var index = name.IndexOf('<');
+			if (index > -1)
+				name = name.Substring(0, index);
 			return name;
 		}
 

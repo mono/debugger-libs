@@ -483,16 +483,14 @@ namespace Mono.Debugging.Client
 			if (string.IsNullOrEmpty(path))
 				return path;
 
-			string result;
-			try
-			{
-				result = realpath(path, IntPtr.Zero) ?? Path.GetFullPath(path);
+			string result = null;
+			try {
+				result = realpath(path, IntPtr.Zero);
 			}
-			catch
-			{
-				result = Path.GetFullPath(path);
+			catch {
 			}
-			return result;
+
+			return string.IsNullOrEmpty(result) ? Path.GetFullPath(path) : result;
 		}
 
 		public static bool FileNameEquals (string file1, string file2)

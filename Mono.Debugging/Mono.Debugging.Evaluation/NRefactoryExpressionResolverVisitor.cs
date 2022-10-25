@@ -106,8 +106,6 @@ namespace Mono.Debugging.Evaluation
 			} else {
 				if (memberType) {
 					type = type.Substring (type.LastIndexOf ('.') + 1);
-				} else {
-					//type = "global::" + type;
 				}
 
 				parentType = type + GenerateGenericArgs (genericArgs);
