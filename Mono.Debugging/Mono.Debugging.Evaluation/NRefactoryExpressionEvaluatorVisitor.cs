@@ -30,11 +30,13 @@ using System.Collections.Generic;
 
 using Mono.Debugging.Client;
 
-using ICSharpCode.NRefactory.CSharp;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Mono.Debugging.Evaluation
 {
-	public class NRefactoryExpressionEvaluatorVisitor : IAstVisitor<ValueReference>
+	public class NRefactoryExpressionEvaluatorVisitor : CSharpSyntaxVisitor<ValueReference>
 	{
 		readonly Dictionary<string, ValueReference> userVariables;
 		readonly EvaluationOptions options;
@@ -61,11 +63,15 @@ namespace Mono.Debugging.Evaluation
 			return new NotSupportedExpressionException ();
 		}
 
-		static string ResolveTypeName (AstType type)
+		static string ResolveTypeName (SyntaxNode type)
 		{
 			string name = type.ToString ();
 			if (name.StartsWith ("global::", StringComparison.Ordinal))
 				name = name.Substring ("global::".Length);
+
+			var index = name.IndexOf('<');
+			if (index > -1)
+				name = name.Substring(0, index);
 			return name;
 		}
 
@@ -127,42 +133,42 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		static object EvaluateOperation (BinaryOperatorType op, double v1, double v2)
+		static object EvaluateOperation (SyntaxKind op, double v1, double v2)
 		{
 			switch (op) {
-			case BinaryOperatorType.Add: return v1 + v2;
-			case BinaryOperatorType.Divide: return v1 / v2;
-			case BinaryOperatorType.Multiply: return v1 * v2;
-			case BinaryOperatorType.Subtract: return v1 - v2;
-			case BinaryOperatorType.GreaterThan: return v1 > v2;
-			case BinaryOperatorType.GreaterThanOrEqual: return v1 >= v2;
-			case BinaryOperatorType.LessThan: return v1 < v2;
-			case BinaryOperatorType.LessThanOrEqual: return v1 <= v2;
-			case BinaryOperatorType.Equality: return v1 == v2;
-			case BinaryOperatorType.InEquality: return v1 != v2;
+			case SyntaxKind.AddExpression: return v1 + v2;
+			case SyntaxKind.DivideExpression: return v1 / v2;
+			case SyntaxKind.MultiplyExpression: return v1 * v2;
+			case SyntaxKind.SubtractExpression: return v1 - v2;
+			case SyntaxKind.GreaterThanExpression: return v1 > v2;
+			case SyntaxKind.GreaterThanOrEqualExpression: return v1 >= v2;
+			case SyntaxKind.LessThanExpression: return v1 < v2;
+			case SyntaxKind.LessThanOrEqualExpression: return v1 <= v2;
+			case SyntaxKind.EqualsExpression: return v1 == v2;
+			case SyntaxKind.NotEqualsExpression: return v1 != v2;
 			default: throw ParseError ("Invalid binary operator.");
 			}
 		}
 
-		static object EvaluateOperation (BinaryOperatorType op, long v1, long v2)
+		static object EvaluateOperation (SyntaxKind op, long v1, long v2)
 		{
 			switch (op) {
-			case BinaryOperatorType.Add: return v1 + v2;
-			case BinaryOperatorType.BitwiseAnd: return v1 & v2;
-			case BinaryOperatorType.BitwiseOr: return v1 | v2;
-			case BinaryOperatorType.ExclusiveOr: return v1 ^ v2;
-			case BinaryOperatorType.Divide: return v1 / v2;
-			case BinaryOperatorType.Modulus: return v1 % v2;
-			case BinaryOperatorType.Multiply: return v1 * v2;
-			case BinaryOperatorType.ShiftLeft: return v1 << (int) v2;
-			case BinaryOperatorType.ShiftRight: return v1 >> (int) v2;
-			case BinaryOperatorType.Subtract: return v1 - v2;
-			case BinaryOperatorType.GreaterThan: return v1 > v2;
-			case BinaryOperatorType.GreaterThanOrEqual: return v1 >= v2;
-			case BinaryOperatorType.LessThan: return v1 < v2;
-			case BinaryOperatorType.LessThanOrEqual: return v1 <= v2;
-			case BinaryOperatorType.Equality: return v1 == v2;
-			case BinaryOperatorType.InEquality: return v1 != v2;
+			case SyntaxKind.AddExpression: return v1 + v2;
+			case SyntaxKind.BitwiseAndExpression: return v1 & v2;
+			case SyntaxKind.BitwiseOrExpression: return v1 | v2;
+			case SyntaxKind.ExclusiveOrExpression: return v1 ^ v2;
+			case SyntaxKind.DivideExpression: return v1 / v2;
+			case SyntaxKind.ModuloExpression: return v1 % v2;
+			case SyntaxKind.MultiplyExpression: return v1 * v2;
+			case SyntaxKind.LeftShiftExpression: return v1 << (int) v2;
+			case SyntaxKind.RightShiftExpression: return v1 >> (int) v2;
+			case SyntaxKind.SubtractExpression: return v1 - v2;
+			case SyntaxKind.GreaterThanExpression: return v1 > v2;
+			case SyntaxKind.GreaterThanOrEqualExpression: return v1 >= v2;
+			case SyntaxKind.LessThanExpression: return v1 < v2;
+			case SyntaxKind.LessThanOrEqualExpression: return v1 <= v2;
+			case SyntaxKind.EqualsExpression: return v1 == v2;
+			case SyntaxKind.NotEqualsExpression: return v1 != v2;
 			default: throw ParseError ("Invalid binary operator.");
 			}
 		}
@@ -223,7 +229,7 @@ namespace Mono.Debugging.Evaluation
 			return negate ? !retval : retval;
 		}
 
-		static ValueReference EvaluateOverloadedOperator (EvaluationContext ctx, string expression, BinaryOperatorType op, object type1, object type2, object targetVal1, object targetVal2, object val1, object val2)
+		static ValueReference EvaluateOverloadedOperator (EvaluationContext ctx, string expression, SyntaxKind op, object type1, object type2, object targetVal1, object targetVal2, object val1, object val2)
 		{
 			object[] args = new [] { targetVal1, targetVal2 };
 			object[] argTypes = { type1, type2 };
@@ -231,22 +237,22 @@ namespace Mono.Debugging.Evaluation
 			string methodName = null;
 
 			switch (op) {
-			case BinaryOperatorType.BitwiseAnd:         methodName = "op_BitwiseAnd"; break;
-			case BinaryOperatorType.BitwiseOr:          methodName = "op_BitwiseOr"; break;
-			case BinaryOperatorType.ExclusiveOr:        methodName = "op_ExclusiveOr"; break;
-			case BinaryOperatorType.GreaterThan:        methodName = "op_GreaterThan"; break;
-			case BinaryOperatorType.GreaterThanOrEqual: methodName = "op_GreaterThanOrEqual"; break;
-			case BinaryOperatorType.Equality:           methodName = "op_Equality"; break;
-			case BinaryOperatorType.InEquality:         methodName = "op_Inequality"; break;
-			case BinaryOperatorType.LessThan:           methodName = "op_LessThan"; break;
-			case BinaryOperatorType.LessThanOrEqual:    methodName = "op_LessThanOrEqual"; break;
-			case BinaryOperatorType.Add:                methodName = "op_Addition"; break;
-			case BinaryOperatorType.Subtract:           methodName = "op_Subtraction"; break;
-			case BinaryOperatorType.Multiply:           methodName = "op_Multiply"; break;
-			case BinaryOperatorType.Divide:             methodName = "op_Division"; break;
-			case BinaryOperatorType.Modulus:            methodName = "op_Modulus"; break;
-			case BinaryOperatorType.ShiftLeft:          methodName = "op_LeftShift"; break;
-			case BinaryOperatorType.ShiftRight:         methodName = "op_RightShift"; break;
+			case SyntaxKind.BitwiseAndExpression:         methodName = "op_BitwiseAnd"; break;
+			case SyntaxKind.BitwiseOrExpression:          methodName = "op_BitwiseOr"; break;
+			case SyntaxKind.ExclusiveOrExpression:        methodName = "op_ExclusiveOr"; break;
+			case SyntaxKind.GreaterThanExpression:        methodName = "op_GreaterThan"; break;
+			case SyntaxKind.GreaterThanOrEqualExpression: methodName = "op_GreaterThanOrEqual"; break;
+			case SyntaxKind.EqualsExpression:             methodName = "op_Equality"; break;
+			case SyntaxKind.NotEqualsExpression:          methodName = "op_Inequality"; break;
+			case SyntaxKind.LessThanExpression:           methodName = "op_LessThan"; break;
+			case SyntaxKind.LessThanOrEqualExpression:    methodName = "op_LessThanOrEqual"; break;
+			case SyntaxKind.AddExpression:                methodName = "op_Addition"; break;
+			case SyntaxKind.SubtractExpression:           methodName = "op_Subtraction"; break;
+			case SyntaxKind.MultiplyExpression:           methodName = "op_Multiply"; break;
+			case SyntaxKind.DivideExpression:             methodName = "op_Division"; break;
+			case SyntaxKind.ModuloExpression:             methodName = "op_Modulus"; break;
+			case SyntaxKind.LeftShiftExpression:          methodName = "op_LeftShift"; break;
+			case SyntaxKind.RightShiftExpression:         methodName = "op_RightShift"; break;
 			}
 
 			if (methodName == null)
@@ -265,9 +271,9 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, result);
 		}
 
-		ValueReference EvaluateBinaryOperatorExpression (BinaryOperatorType op, ValueReference left, Expression rightExp)
+		ValueReference EvaluateBinaryOperatorExpression (SyntaxKind op, ValueReference left, ExpressionSyntax rightExp)
 		{
-			if (op == BinaryOperatorType.ConditionalAnd) {
+			if (op == SyntaxKind.LogicalAndExpression) {
 				var val = left.ObjectValue;
 				if (!(val is bool))
 					throw ParseError ("Left operand of logical And must be a boolean.");
@@ -275,14 +281,14 @@ namespace Mono.Debugging.Evaluation
 				if (!(bool) val)
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
 
-				var vr = rightExp.AcceptVisitor<ValueReference> (this);
+				var vr = Visit (rightExp);
 				if (vr == null || ctx.Adapter.GetTypeName (ctx, vr.Type) != "System.Boolean")
 					throw ParseError ("Right operand of logical And must be a boolean.");
 
 				return vr;
 			}
 
-			if (op == BinaryOperatorType.ConditionalOr) {
+			if (op == SyntaxKind.LogicalOrExpression) {
 				var val = left.ObjectValue;
 				if (!(val is bool))
 					throw ParseError ("Left operand of logical Or must be a boolean.");
@@ -290,14 +296,14 @@ namespace Mono.Debugging.Evaluation
 				if ((bool) val)
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, true);
 
-				var vr = rightExp.AcceptVisitor<ValueReference> (this);
+				var vr = Visit (rightExp);
 				if (vr == null || ctx.Adapter.GetTypeName (ctx, vr.Type) != "System.Boolean")
 					throw ParseError ("Right operand of logical Or must be a boolean.");
 
 				return vr;
 			}
 
-			var right = rightExp.AcceptVisitor<ValueReference> (this);
+			var right = Visit (rightExp);
 			var targetVal1 = left.Value;
 			var targetVal2 = right.Value;
 			var type1 = ctx.Adapter.GetValueType (ctx, targetVal1);
@@ -308,9 +314,9 @@ namespace Mono.Debugging.Evaluation
 
 			if (ctx.Adapter.IsNullableType (ctx, type1) && ctx.Adapter.NullableHasValue (ctx, type1, val1)) {
 				if (val2 == null) {
-					if (op == BinaryOperatorType.Equality)
+					if (op == SyntaxKind.EqualsExpression)
 						return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
-					if (op == BinaryOperatorType.InEquality)
+					if (op == SyntaxKind.NotEqualsExpression)
 						return LiteralValueReference.CreateObjectLiteral (ctx, expression, true);
 				}
 
@@ -322,9 +328,9 @@ namespace Mono.Debugging.Evaluation
 
 			if (ctx.Adapter.IsNullableType (ctx, type2) && ctx.Adapter.NullableHasValue (ctx, type2, val2)) {
 				if (val1 == null) {
-					if (op == BinaryOperatorType.Equality)
+					if (op == SyntaxKind.EqualsExpression)
 						return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
-					if (op == BinaryOperatorType.InEquality)
+					if (op == SyntaxKind.NotEqualsExpression)
 						return LiteralValueReference.CreateObjectLiteral (ctx, expression, true);
 				}
 
@@ -336,7 +342,7 @@ namespace Mono.Debugging.Evaluation
 
 			if (val1 is string || val2 is string) {
 				switch (op) {
-				case BinaryOperatorType.Add:
+				case SyntaxKind.AddExpression:
 					if (val1 != null && val2 != null) {
 						if (!(val1 is string))
 							val1 = ctx.Adapter.CallToString (ctx, targetVal1);
@@ -352,11 +358,11 @@ namespace Mono.Debugging.Evaluation
 					}
 
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, res);
-				case BinaryOperatorType.Equality:
+				case SyntaxKind.EqualsExpression:
 					if ((val1 == null || val1 is string) && (val2 == null || val2 is string))
 						return LiteralValueReference.CreateObjectLiteral (ctx, expression, ((string) val1) == ((string) val2));
 					break;
-				case BinaryOperatorType.InEquality:
+				case SyntaxKind.NotEqualsExpression:
 					if ((val1 == null || val1 is string) && (val2 == null || val2 is string))
 						return LiteralValueReference.CreateObjectLiteral (ctx, expression, ((string) val1) != ((string) val2));
 					break;
@@ -365,9 +371,9 @@ namespace Mono.Debugging.Evaluation
 
 			if (val1 == null || (!ctx.Adapter.IsPrimitive (ctx, targetVal1) && !ctx.Adapter.IsEnum (ctx, targetVal1))) {
 				switch (op) {
-				case BinaryOperatorType.Equality:
+				case SyntaxKind.EqualsExpression:
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, false, type1, type2, targetVal1, targetVal2, val1, val2));
-				case BinaryOperatorType.InEquality:
+				case SyntaxKind.NotEqualsExpression:
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, CheckEquality (ctx, true, type1, type2, targetVal1, targetVal2, val1, val2));
 				default:
 					if (val1 != null && val2 != null)
@@ -378,11 +384,11 @@ namespace Mono.Debugging.Evaluation
 
 			if ((val1 is bool) && (val2 is bool)) {
 				switch (op) {
-				case BinaryOperatorType.ExclusiveOr:
+				case SyntaxKind.ExclusiveOrExpression:
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, (bool) val1 ^ (bool) val2);
-				case BinaryOperatorType.Equality:
+				case SyntaxKind.EqualsExpression:
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, (bool) val1 == (bool) val2);
-				case BinaryOperatorType.InEquality:
+				case SyntaxKind.NotEqualsExpression:
 					return LiteralValueReference.CreateObjectLiteral (ctx, expression, (bool) val1 != (bool) val2);
 				}
 			}
@@ -432,103 +438,6 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateObjectLiteral (ctx, expression, res);
 		}
 
-		static string ResolveType (EvaluationContext ctx, TypeReferenceExpression mre, List<object> args)
-		{
-			var memberType = mre.Type as MemberType;
-
-			if (memberType != null) {
-				var name = memberType.MemberName;
-
-				if (memberType.TypeArguments.Count > 0) {
-					name += "`" + memberType.TypeArguments.Count;
-
-					foreach (var arg in memberType.TypeArguments) {
-						var resolved = arg.Resolve (ctx);
-
-						if (resolved == null)
-							return null;
-
-						args.Add (resolved);
-					}
-				}
-
-				return name;
-			}
-
-			return mre.ToString ();
-		}
-
-		static string ResolveType (EvaluationContext ctx, MemberReferenceExpression mre, List<object> args)
-		{
-			string parent, name;
-
-			if (mre.Target is MemberReferenceExpression) {
-				parent = ResolveType (ctx, (MemberReferenceExpression) mre.Target, args);
-			} else if (mre.Target is TypeReferenceExpression) {
-				parent = ResolveType (ctx, (TypeReferenceExpression) mre.Target, args);
-			} else if (mre.Target is IdentifierExpression) {
-				parent = ((IdentifierExpression) mre.Target).Identifier;
-			} else {
-				return null;
-			}
-
-			name = parent + "." + mre.MemberName;
-			if (mre.TypeArguments.Count > 0) {
-				name += "`" + mre.TypeArguments.Count;
-
-				foreach (var arg in mre.TypeArguments) {
-					var resolved = arg.Resolve (ctx);
-
-					if (resolved == null)
-						return null;
-
-					args.Add (resolved);
-				}
-			}
-
-			return name;
-		}
-
-		static object ResolveType (EvaluationContext ctx, MemberReferenceExpression mre)
-		{
-			var args = new List<object> ();
-			var name = ResolveType (ctx, mre, args);
-
-			if (name == null)
-				return null;
-
-			if (args.Count > 0)
-				return ctx.Adapter.GetType (ctx, name, args.ToArray ());
-
-			return ctx.Adapter.GetType (ctx, name);
-		}
-
-		static ValueReference ResolveTypeValueReference (EvaluationContext ctx, MemberReferenceExpression mre)
-		{
-			object resolved = ResolveType (ctx, mre);
-
-			if (resolved != null) {
-				ctx.Adapter.ForceLoadType (ctx, resolved);
-
-				return new TypeValueReference (ctx, resolved);
-			}
-
-			throw ParseError ("Could not resolve type: {0}", mre);
-		}
-
-		static ValueReference ResolveTypeValueReference (EvaluationContext ctx, AstType type)
-		{
-			object resolved = type.Resolve (ctx);
-
-			if (resolved != null) {
-				ctx.Adapter.ForceLoadType (ctx, resolved);
-
-				return new TypeValueReference (ctx, resolved);
-			}
-
-			throw ParseError ("Could not resolve type: {0}", ResolveTypeName (type));
-		}
-
 		static object[] UpdateDelayedTypes (object[] types, Tuple<int, object>[] updates, ref bool alreadyUpdated)
 		{
 			if (alreadyUpdated || types == null || updates == null || types.Length < updates.Length || updates.Length == 0)
@@ -543,77 +452,56 @@ namespace Mono.Debugging.Evaluation
 		}
 
 		#region IAstVisitor implementation
-
-		public ValueReference VisitAnonymousMethodExpression (AnonymousMethodExpression anonymousMethodExpression)
+		public override ValueReference VisitArrayCreationExpression (ArrayCreationExpressionSyntax node)
 		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitUndocumentedExpression (UndocumentedExpression undocumentedExpression)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitArrayCreateExpression (ArrayCreateExpression arrayCreateExpression)
-		{
-			var type = arrayCreateExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
+			var type = Visit(node.Type.ElementType);
 			if (type == null)
 				throw ParseError ("Invalid type in array creation.");
-			var lengths = new int [arrayCreateExpression.Arguments.Count];
-			for (int i = 0; i < lengths.Length; i++) {
-				lengths [i] = (int)Convert.ChangeType (arrayCreateExpression.Arguments.ElementAt (i).AcceptVisitor<ValueReference> (this).ObjectValue, typeof (int));
+
+			var lengths = Array.Empty<int>();
+			if (node.Type is ArrayTypeSyntax ats) {
+				lengths = new int[ats.RankSpecifiers[0].Sizes.Count];
+				for (int i = 0; i < lengths.Length; i++) {
+					var arsi = ats.RankSpecifiers[0].Sizes[i];
+					lengths [i] = (int)Convert.ChangeType (Visit(arsi).ObjectValue, typeof (int));
+				}
 			}
 			var array = ctx.Adapter.CreateArray (ctx, type.Type, lengths);
-			if (arrayCreateExpression.Initializer.Elements.Any ()) {
+			if (node.Initializer?.Expressions.Count > 0) {
 				var arrayAdaptor = ctx.Adapter.CreateArrayAdaptor (ctx, array);
 				int index = 0;
-				foreach (var el in LinearElements(arrayCreateExpression.Initializer.Elements)) {
-					arrayAdaptor.SetElement (new int [] { index++ }, el.AcceptVisitor<ValueReference> (this).Value);
+				foreach (var el in LinearElements(node.Initializer.Expressions)) {
+					arrayAdaptor.SetElement (new int [] { index++ },  Visit(el).Value);
 				}
 			}
 			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, array);
 		}
 
-		IEnumerable<Expression> LinearElements (AstNodeCollection<Expression> elements)
+		IEnumerable<ExpressionSyntax> LinearElements (SeparatedSyntaxList<ExpressionSyntax> elements)
 		{
 			foreach (var el in elements) {
-				if (el is ArrayInitializerExpression)
-					foreach (var el2 in LinearElements (((ArrayInitializerExpression)el).Elements)) {
+				if (el is ArrayCreationExpressionSyntax arrCre) { 
+					foreach (var el2 in LinearElements (arrCre.Initializer.Expressions)) {
 						yield return el2;
-					} else
+					}
+				} else if (el is InitializerExpressionSyntax ies) { 
+					foreach (var el2 in LinearElements (ies.Expressions)) {
+						yield return el2;
+					}
+				} else
 					yield return el;
 			}
 		}
 
-		public ValueReference VisitArrayInitializerExpression (ArrayInitializerExpression arrayInitializerExpression)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitAsExpression (AsExpression asExpression)
-		{
-			var type = asExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
-			if (type == null)
-				throw ParseError ("Invalid type in cast.");
-
-			var val = asExpression.Expression.AcceptVisitor<ValueReference> (this);
-			var result = ctx.Adapter.TryCast (ctx, val.Value, type.Type);
-
-			if (result == null)
-				return new NullValueReference (ctx, type.Type);
-
-			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, result, type.Type);
-		}
-
-		public ValueReference VisitAssignmentExpression (AssignmentExpression assignmentExpression)
+		public override ValueReference VisitAssignmentExpression (AssignmentExpressionSyntax node)
 		{
 			if (!options.AllowMethodEvaluation)
 				throw new ImplicitEvaluationDisabledException ();
 
-			var left = assignmentExpression.Left.AcceptVisitor<ValueReference> (this);
+			var left = Visit (node.Left);
 
-			if (assignmentExpression.Operator == AssignmentOperatorType.Assign) {
-				var right = assignmentExpression.Right.AcceptVisitor<ValueReference> (this);
+			if (node.Kind () == SyntaxKind.SimpleAssignmentExpression) {
+				var right = Visit (node.Right);
 				if (left is UserVariableReference) {
 					left.Value = right.Value;
 				} else {
@@ -621,30 +509,30 @@ namespace Mono.Debugging.Evaluation
 					left.Value = castedValue;
 				}
 			} else {
-				BinaryOperatorType op;
+				SyntaxKind op;
 
-				switch (assignmentExpression.Operator) {
-				case AssignmentOperatorType.Add:         op = BinaryOperatorType.Add; break;
-				case AssignmentOperatorType.Subtract:    op = BinaryOperatorType.Subtract; break;
-				case AssignmentOperatorType.Multiply:    op = BinaryOperatorType.Multiply; break;
-				case AssignmentOperatorType.Divide:      op = BinaryOperatorType.Divide; break;
-				case AssignmentOperatorType.Modulus:     op = BinaryOperatorType.Modulus; break;
-				case AssignmentOperatorType.ShiftLeft:   op = BinaryOperatorType.ShiftLeft; break;
-				case AssignmentOperatorType.ShiftRight:  op = BinaryOperatorType.ShiftRight; break;
-				case AssignmentOperatorType.BitwiseAnd:  op = BinaryOperatorType.BitwiseAnd; break;
-				case AssignmentOperatorType.BitwiseOr:   op = BinaryOperatorType.BitwiseOr; break;
-				case AssignmentOperatorType.ExclusiveOr: op = BinaryOperatorType.ExclusiveOr; break;
+				switch (node.Kind ()) {
+				case SyntaxKind.AddAssignmentExpression:         op = SyntaxKind.AddExpression; break;
+				case SyntaxKind.SubtractAssignmentExpression:    op = SyntaxKind.SubtractExpression; break;
+				case SyntaxKind.MultiplyAssignmentExpression:    op = SyntaxKind.MultiplyExpression; break;
+				case SyntaxKind.DivideAssignmentExpression:      op = SyntaxKind.DivideExpression; break;
+				case SyntaxKind.ModuloAssignmentExpression:      op = SyntaxKind.ModuloExpression; break;
+				case SyntaxKind.LeftShiftAssignmentExpression:   op = SyntaxKind.LeftShiftExpression; break;
+				case SyntaxKind.RightShiftAssignmentExpression:  op = SyntaxKind.RightShiftExpression; break;
+				case SyntaxKind.AndAssignmentExpression:         op = SyntaxKind.BitwiseAndExpression; break;
+				case SyntaxKind.OrAssignmentExpression:          op = SyntaxKind.BitwiseOrExpression; break;
+				case SyntaxKind.ExclusiveOrAssignmentExpression: op = SyntaxKind.ExclusiveOrExpression; break;
 				default: throw ParseError ("Invalid operator in assignment.");
 				}
 
-				var result = EvaluateBinaryOperatorExpression (op, left, assignmentExpression.Right);
+				var result = EvaluateBinaryOperatorExpression (op, left, node.Right);
 				left.Value = result.Value;
 			}
 
 			return left;
 		}
 
-		public ValueReference VisitBaseReferenceExpression (BaseReferenceExpression baseReferenceExpression)
+		public override ValueReference VisitBaseExpression (BaseExpressionSyntax node)
 		{
 			var self = ctx.Adapter.GetThisReference (ctx);
 
@@ -654,20 +542,51 @@ namespace Mono.Debugging.Evaluation
 			throw ParseError ("'base' reference not available in static methods.");
 		}
 
-		public ValueReference VisitBinaryOperatorExpression (BinaryOperatorExpression binaryOperatorExpression)
+		public override ValueReference VisitBinaryExpression (BinaryExpressionSyntax node)
 		{
-			var left = binaryOperatorExpression.Left.AcceptVisitor<ValueReference> (this);
+			if (node.IsKind (SyntaxKind.AsExpression)) {
+				var type = Visit (node.Right) as TypeValueReference;
+				if (type == null)
+					throw ParseError ("Invalid type in cast.");
 
-			return EvaluateBinaryOperatorExpression (binaryOperatorExpression.Operator, left, binaryOperatorExpression.Right);
+				var val = Visit (node.Left);
+				var result = ctx.Adapter.TryCast (ctx, val.Value, type.Type);
+
+				if (result == null)
+					return new NullValueReference (ctx, type.Type);
+
+				return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, result, type.Type);
+			}
+			if (node.IsKind (SyntaxKind.IsExpression)) {
+				var type = (Visit (node.Right) as TypeValueReference)?.Type;
+				if (type == null)
+					throw ParseError ("Invalid type in 'is' expression.");
+				if (ctx.Adapter.IsNullableType (ctx, type))
+					type = ctx.Adapter.GetGenericTypeArguments (ctx, type).Single ();
+				var val = Visit (node.Left).Value;
+				if (ctx.Adapter.IsNull (ctx, val))
+					return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
+				var valueIsPrimitive = ctx.Adapter.IsPrimitive (ctx, val);
+				var typeIsPrimitive = ctx.Adapter.IsPrimitiveType (type);
+				if (valueIsPrimitive != typeIsPrimitive)
+					return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
+				if (typeIsPrimitive)
+					return LiteralValueReference.CreateObjectLiteral (ctx, expression, ctx.Adapter.GetTypeName (ctx, type) == ctx.Adapter.GetValueTypeName (ctx, val));
+				return LiteralValueReference.CreateObjectLiteral (ctx, expression, ctx.Adapter.TryCast (ctx, val, type) != null);
+			}
+
+			var left = this.Visit (node.Left);
+
+			return EvaluateBinaryOperatorExpression (node.Kind (), left, node.Right);
 		}
 
-		public ValueReference VisitCastExpression (CastExpression castExpression)
+		public override ValueReference VisitCastExpression (CastExpressionSyntax node)
 		{
-			var type = castExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
+			var type = Visit(node.Type) as TypeValueReference;
 			if (type == null)
 				throw ParseError ("Invalid type in cast.");
 
-			var val = castExpression.Expression.AcceptVisitor<ValueReference> (this);
+			var val = Visit(node.Expression);
 			object result = ctx.Adapter.TryCast (ctx, val.Value, type.Type);
 			if (result == null)
 				throw ParseError ("Invalid cast.");
@@ -675,26 +594,26 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, result, type.Type);
 		}
 
-		public ValueReference VisitCheckedExpression (CheckedExpression checkedExpression)
+		public override ValueReference VisitCheckedExpression (CheckedExpressionSyntax node)
 		{
 			throw NotSupported ();
 		}
 
-		public ValueReference VisitConditionalExpression (ConditionalExpression conditionalExpression)
+		public override ValueReference VisitConditionalExpression (ConditionalExpressionSyntax node)
 		{
-			ValueReference val = conditionalExpression.Condition.AcceptVisitor<ValueReference> (this);
+			ValueReference val = Visit(node.Condition);
 			if (val is TypeValueReference)
 				throw NotSupported ();
 
-			if ((bool) val.ObjectValue)
-				return conditionalExpression.TrueExpression.AcceptVisitor<ValueReference> (this);
+			if ((bool)val.ObjectValue)
+				return Visit (node.WhenTrue);;
 
-			return conditionalExpression.FalseExpression.AcceptVisitor<ValueReference> (this);
+			return Visit (node.WhenFalse);
 		}
 
-		public ValueReference VisitDefaultValueExpression (DefaultValueExpression defaultValueExpression)
+		public override ValueReference VisitDefaultExpression (DefaultExpressionSyntax node)
 		{
-			var type = defaultValueExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
+			var type = Visit(node.Type) as TypeValueReference;
 			if (type == null)
 				throw ParseError ("Invalid type in 'default' expression.");
 
@@ -722,14 +641,9 @@ namespace Mono.Debugging.Evaluation
 			}
 		}
 
-		public ValueReference VisitDirectionExpression (DirectionExpression directionExpression)
+		public override ValueReference VisitIdentifierName (IdentifierNameSyntax node)
 		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitIdentifierExpression (IdentifierExpression identifierExpression)
-		{
-			var name = identifierExpression.Identifier;
+			var name = node.Identifier.ValueText;
 
 			if (name == "__EXCEPTION_OBJECT__")
 				return ctx.Adapter.GetCurrentException (ctx);
@@ -795,31 +709,32 @@ namespace Mono.Debugging.Evaluation
 				throw ParseError (message);
 			}
 
-			throw ParseError ("Unknown identifier: {0}", name);
+			// Assume a namespace
+			return new NamespaceValueReference(ctx, name);
 		}
 
-		public ValueReference VisitIndexerExpression (IndexerExpression indexerExpression)
+		public override ValueReference VisitElementAccessExpression (ElementAccessExpressionSyntax node)
 		{
 			int n = 0;
 
-			var target = indexerExpression.Target.AcceptVisitor<ValueReference> (this);
+			var target = Visit(node.Expression);
 			if (target is TypeValueReference)
 				throw NotSupported ();
 
 			if (ctx.Adapter.IsArray (ctx, target.Value)) {
-				int[] indexes = new int [indexerExpression.Arguments.Count];
+				int[] indexes = new int [node.ArgumentList.Arguments.Count];
 
-				foreach (var arg in indexerExpression.Arguments) {
-					var index = arg.AcceptVisitor<ValueReference> (this);
+				foreach (var arg in node.ArgumentList.Arguments) {
+					var index = Visit(arg);
 					indexes[n++] = (int) Convert.ChangeType (index.ObjectValue, typeof (int));
 				}
 
 				return new ArrayValueReference (ctx, target.Value, indexes);
 			}
 
-			object[] args = new object [indexerExpression.Arguments.Count];
-			foreach (var arg in indexerExpression.Arguments)
-				args[n++] = arg.AcceptVisitor<ValueReference> (this).Value;
+			object[] args = new object [node.ArgumentList.Arguments.Count];
+			foreach (var arg in node.ArgumentList.Arguments)
+				args[n++] = Visit (arg).Value;
 
 			var indexer = ctx.Adapter.GetIndexerReference (ctx, target.Value, target.Type, args);
 			if (indexer == null)
@@ -828,43 +743,35 @@ namespace Mono.Debugging.Evaluation
 			return indexer;
 		}
 
-		string ResolveMethodName (MemberReferenceExpression method, out object[] typeArgs)
+		string ResolveMethodName (SyntaxNode invocationExpression, out object[] typeArgs)
 		{
-			if (method.TypeArguments.Count > 0) {
-				var args = new List<object> ();
-
-				foreach (var arg in method.TypeArguments) {
-					var type = arg.AcceptVisitor (this);
-					args.Add (type.Type);
-				}
-
-				typeArgs = args.ToArray ();
-			} else {
+			if (invocationExpression is IdentifierNameSyntax id) {
 				typeArgs = null;
+				return id.Identifier.ValueText;
+			}
+			if (invocationExpression is GenericNameSyntax gns) {
+				if (gns.Arity > 0) {
+					var args = new List<object> ();
+
+					foreach (var arg in gns.TypeArgumentList.Arguments) {
+						var type = Visit(arg);
+						args.Add (type.Type);
+					}
+
+					typeArgs = args.ToArray ();
+				} else {
+					typeArgs = null;
+				}
+				return gns.Identifier.ValueText;
 			}
 
-			return method.MemberName;
+			typeArgs = null;
+			var fullName = invocationExpression.ToString();
+			var lastIndexOfDot = fullName.LastIndexOf(".");
+			return fullName.Substring(lastIndexOfDot + 1);
 		}
 
-		string ResolveMethodName (IdentifierExpression method, out object[] typeArgs)
-		{
-			if (method.TypeArguments.Count > 0) {
-				var args = new List<object> ();
-
-				foreach (var arg in method.TypeArguments) {
-					var type = arg.AcceptVisitor (this);
-					args.Add (type.Type);
-				}
-
-				typeArgs = args.ToArray ();
-			} else {
-				typeArgs = null;
-			}
-
-			return method.Identifier;
-		}
-
-		public ValueReference VisitInvocationExpression (InvocationExpression invocationExpression)
+		public override ValueReference VisitInvocationExpression (InvocationExpressionSyntax node)
 		{
 			if (!options.AllowMethodEvaluation)
 				throw new ImplicitEvaluationDisabledException ();
@@ -874,13 +781,13 @@ namespace Mono.Debugging.Evaluation
 			ValueReference target = null;
 			string methodName;
 
-			var types = new object [invocationExpression.Arguments.Count];
-			var args = new object [invocationExpression.Arguments.Count];
+			var types = new object [node.ArgumentList.Arguments.Count];
+			var args = new object [node.ArgumentList.Arguments.Count];
 			object[] typeArgs = null;
 			int n = 0;
 
-			foreach (var arg in invocationExpression.Arguments) {
-				var vref = arg.AcceptVisitor<ValueReference> (this);
+			foreach (var arg in node.ArgumentList.Arguments) {
+				var vref = this.Visit (arg);
 				args[n] = vref.Value;
 				types[n] = ctx.Adapter.GetValueType (ctx, args[n]);
 
@@ -891,14 +798,12 @@ namespace Mono.Debugging.Evaluation
 			object vtype = null;
 			Tuple<int, object>[] resolvedLambdaTypes;
 
-			if (invocationExpression.Target is MemberReferenceExpression) {
-				var field = (MemberReferenceExpression) invocationExpression.Target;
-				target = field.Target.AcceptVisitor<ValueReference> (this);
-				if (field.Target is BaseReferenceExpression)
+			if (node.Expression is MemberAccessExpressionSyntax field) {
+				target = Visit (field.Expression);
+				if (field.Expression is BaseExpressionSyntax)
 					invokeBaseMethod = true;
 				methodName = ResolveMethodName (field, out typeArgs);
-			} else if (invocationExpression.Target is IdentifierExpression) {
-				var method = (IdentifierExpression) invocationExpression.Target;
+			} else if (node.Expression is SyntaxNode method && (method is IdentifierNameSyntax || method is GenericNameSyntax)) {
 				var vref = ctx.Adapter.GetThisReference (ctx);
 
 				methodName = ResolveMethodName (method, out typeArgs);
@@ -991,42 +896,31 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateVoidReturnLiteral (ctx, expression);
 		}
 
-		public ValueReference VisitIsExpression (IsExpression isExpression)
+
+		public override ValueReference VisitParenthesizedLambdaExpression (ParenthesizedLambdaExpressionSyntax node)
 		{
-			var type = (isExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference)?.Type;
-			if (type == null)
-				throw ParseError ("Invalid type in 'is' expression.");
-			if (ctx.Adapter.IsNullableType (ctx, type))
-				type = ctx.Adapter.GetGenericTypeArguments (ctx, type).Single ();
-			var val = isExpression.Expression.AcceptVisitor<ValueReference> (this).Value;
-			if (ctx.Adapter.IsNull (ctx, val))
-				return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
-			var valueIsPrimitive = ctx.Adapter.IsPrimitive (ctx, val);
-			var typeIsPrimitive = ctx.Adapter.IsPrimitiveType (type);
-			if (valueIsPrimitive != typeIsPrimitive)
-				return LiteralValueReference.CreateObjectLiteral (ctx, expression, false);
-			if (typeIsPrimitive)
-				return LiteralValueReference.CreateObjectLiteral (ctx, expression, ctx.Adapter.GetTypeName (ctx, type) == ctx.Adapter.GetValueTypeName (ctx, val));
-			return LiteralValueReference.CreateObjectLiteral (ctx, expression, ctx.Adapter.TryCast (ctx, val, type) != null);
+			return VisitLambdaExpression(node);
 		}
 
-		public ValueReference VisitLambdaExpression (LambdaExpression lambdaExpression)
+		public override ValueReference VisitSimpleLambdaExpression (SimpleLambdaExpressionSyntax node)
 		{
-			if (lambdaExpression.IsAsync)
+			return VisitLambdaExpression (node);
+		}
+
+		ValueReference VisitLambdaExpression (LambdaExpressionSyntax node)
+		{
+			if (node.AsyncKeyword != default)
 				throw NotSupported ();
 
-			AstNode parent = lambdaExpression.Parent;
-			while (parent != null && parent is ParenthesizedExpression)
+			var parent = node.Parent;
+			while (parent != null && parent is ParenthesizedExpressionSyntax)
 				parent = parent.Parent;
 
-			if (parent is InvocationExpression || parent is CastExpression) {
-				var writer = new System.IO.StringWriter ();
-				var visitor = new LambdaBodyOutputVisitor (ctx, userVariables, writer);
-
-				lambdaExpression.AcceptVisitor (visitor);
-				var body = writer.ToString ();
+			if (parent is InvocationExpressionSyntax || parent is CastExpressionSyntax || parent is ArgumentSyntax) {
+				var visitor = new LambdaBodyOutputVisitor (ctx, userVariables);
+				visitor.Visit (node);
 				var values = visitor.GetLocalValues ();
-				object val = ctx.Adapter.CreateDelayedLambdaValue (ctx, body, values);
+				object val = ctx.Adapter.CreateDelayedLambdaValue (ctx, node.ToString (), values);
 				if (val != null)
 					return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, val);
 			}
@@ -1034,91 +928,102 @@ namespace Mono.Debugging.Evaluation
 			throw NotSupported ();
 		}
 
-		public ValueReference VisitMemberReferenceExpression (MemberReferenceExpression memberReferenceExpression)
+		public override ValueReference VisitMemberAccessExpression (MemberAccessExpressionSyntax node)
 		{
-			if (memberReferenceExpression.TypeArguments.Count > 0)
-				return ResolveTypeValueReference (ctx, memberReferenceExpression);
+			if (node.Name is GenericNameSyntax gns) {
+				var expr = Visit (node.Expression);
 
-			var target = memberReferenceExpression.Target.AcceptVisitor<ValueReference> (this);
-			var member = target.GetChild (memberReferenceExpression.MemberName, ctx.Options);
+				if (expr is TypeValueReference tvr && node.Expression is GenericNameSyntax gnsOuter) {
+					// Thing<string>.Done<int> is
+					// Thing`1.Done`1 with type arguments System.String and System.Int32
+					// Thing`1 is node.Expression
+					// Done`1 is node.Name
+					var outer = MakeGenericTypeName (gnsOuter, gnsOuter.Identifier.ValueText);
 
-			if (member == null) {
-				if (!(target is TypeValueReference)) {
-					if (ctx.Adapter.IsNull (ctx, target.Value))
-						throw new EvaluatorException ("{0} is null", target.Name);
+					var typeArgsOuter = GetGenericTypeArgs(gnsOuter);
+					var inner = MakeGenericTypeName(gns, gns.Identifier.ValueText);
+					var typeArgsInner = GetGenericTypeArgs(gns);
+
+					string nestedTypeName = $"{outer}.{inner}";
+					var nestedType = ctx.Adapter.GetType(ctx, nestedTypeName, typeArgsOuter.Concat(typeArgsInner).ToArray());
+					return new TypeValueReference(ctx, nestedType);
+
 				}
 
-				throw ParseError ("Unknown member: {0}", memberReferenceExpression.MemberName);
+				var typeArgs = GetGenericTypeArgs (gns);
+				string typeName = $"{ResolveTypeName (node)}`{gns.TypeArgumentList.Arguments.Count}";
+
+				var type1 = ctx.Adapter.GetType (ctx, typeName, typeArgs);
+				return new TypeValueReference (ctx, type1);
 			}
 
-			return member;
+			if (node.Name is IdentifierNameSyntax)
+			{
+				var name = ResolveTypeName(node);
+				var type = ctx.Adapter.GetType(ctx, name);
+
+				if (type != null)
+					return new TypeValueReference(ctx, type);
+			}
+			var target = Visit (node.Expression);
+
+			var member = target.GetChild(node.Name.Identifier.ValueText, ctx.Options);
+
+			if (member != null)
+				return member;
+
+			if (!(target is TypeValueReference)) {
+				if (ctx.Adapter.IsNull(ctx, target.Value))
+					throw new EvaluatorException("{0} is null", target.Name);
+			}
+			throw new EvaluatorException("{0} is null", target.Name);
+
 		}
 
-		public ValueReference VisitNamedArgumentExpression (NamedArgumentExpression namedArgumentExpression)
+		object [] GetGenericTypeArgs (GenericNameSyntax gns)
 		{
-			throw NotSupported ();
+			object [] typeArgs = new object [gns.TypeArgumentList.Arguments.Count];
+
+			for (var i = 0; i < gns.TypeArgumentList.Arguments.Count; i++) {
+				var typeArg = Visit (gns.TypeArgumentList.Arguments [i]);
+				typeArgs [i] = typeArg.Type;
+			}
+
+			return typeArgs;
 		}
 
-		public ValueReference VisitNamedExpression (NamedExpression namedExpression)
+		public override ValueReference VisitLiteralExpression (LiteralExpressionSyntax node)
 		{
-			throw NotSupported ();
+			if (node.Kind() == SyntaxKind.NullLiteralExpression)
+				return new NullValueReference (ctx, ctx.Adapter.GetType (ctx, "System.Object"));
+			return base.VisitLiteralExpression (node);
 		}
 
-		public ValueReference VisitNullReferenceExpression (NullReferenceExpression nullReferenceExpression)
+		public override ValueReference VisitObjectCreationExpression (ObjectCreationExpressionSyntax node)
 		{
-			return new NullValueReference (ctx, ctx.Adapter.GetType (ctx, "System.Object"));
-		}
-
-		public ValueReference VisitObjectCreateExpression (ObjectCreateExpression objectCreateExpression)
-		{
-			var type = objectCreateExpression.Type.AcceptVisitor<ValueReference> (this) as TypeValueReference;
+			var type = Visit(node.Type) as TypeValueReference;
 			var args = new List<object> ();
 
-			foreach (var arg in objectCreateExpression.Arguments) {
-				var val = arg.AcceptVisitor<ValueReference> (this);
+			foreach (var arg in node.ArgumentList.Arguments) {
+				var val = Visit(arg);
 				args.Add (val != null ? val.Value : null);
 			}
 
 			return LiteralValueReference.CreateTargetObjectLiteral (ctx, expression, ctx.Adapter.CreateValue (ctx, type.Type, args.ToArray ()));
 		}
 
-		public ValueReference VisitAnonymousTypeCreateExpression (AnonymousTypeCreateExpression anonymousTypeCreateExpression)
+		public override ValueReference VisitParenthesizedExpression (ParenthesizedExpressionSyntax node)
 		{
-			throw NotSupported ();
+			return Visit (node.Expression);
 		}
 
-		public ValueReference VisitParenthesizedExpression (ParenthesizedExpression parenthesizedExpression)
+		public override ValueReference VisitPredefinedType (PredefinedTypeSyntax node)
 		{
-			return parenthesizedExpression.Expression.AcceptVisitor<ValueReference> (this);
+			var type = ctx.Adapter.GetType(ctx, node.Resolve());
+			return new TypeValueReference (ctx, type);
 		}
 
-		public ValueReference VisitPointerReferenceExpression (PointerReferenceExpression pointerReferenceExpression)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitPrimitiveExpression (PrimitiveExpression primitiveExpression)
-		{
-			if (primitiveExpression.Value != null)
-				return LiteralValueReference.CreateObjectLiteral (ctx, expression, primitiveExpression.Value);
-
-			if (expectedType != null)
-				return new NullValueReference (ctx, expectedType);
-
-			return new NullValueReference (ctx, ctx.Adapter.GetType (ctx, "System.Object"));
-		}
-
-		public ValueReference VisitSizeOfExpression (SizeOfExpression sizeOfExpression)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitStackAllocExpression (StackAllocExpression stackAllocExpression)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitThisReferenceExpression (ThisReferenceExpression thisReferenceExpression)
+		public override ValueReference VisitThisExpression (ThisExpressionSyntax node)
 		{
 			var self = ctx.Adapter.GetThisReference (ctx);
 
@@ -1128,11 +1033,11 @@ namespace Mono.Debugging.Evaluation
 			return self;
 		}
 
-		public ValueReference VisitTypeOfExpression (TypeOfExpression typeOfExpression)
+		public override ValueReference VisitTypeOfExpression (TypeOfExpressionSyntax node)
 		{
-			var name = ResolveTypeName (typeOfExpression.Type);
-			var type = typeOfExpression.Type.Resolve (ctx);
+			var name = ResolveTypeName (node.Type);
 
+			var type = ctx.Adapter.GetType(ctx, name);
 			if (type == null)
 				throw ParseError ("Could not load type: {0}", name);
 
@@ -1143,53 +1048,15 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateTargetObjectLiteral (ctx, name, result);
 		}
 
-		public ValueReference VisitTypeReferenceExpression (TypeReferenceExpression typeReferenceExpression)
+		public override ValueReference VisitPostfixUnaryExpression (PostfixUnaryExpressionSyntax node)
 		{
-			var type = typeReferenceExpression.Type.Resolve (ctx);
-
-			if (type != null) {
-				ctx.Adapter.ForceLoadType (ctx, type);
-
-				return new TypeValueReference (ctx, type);
-			}
-
-			var name = ResolveTypeName (typeReferenceExpression.Type);
-
-			// Assume it is a namespace.
-			return new NamespaceValueReference (ctx, name);
-		}
-
-		public ValueReference VisitUnaryOperatorExpression (UnaryOperatorExpression unaryOperatorExpression)
-		{
-			var vref = unaryOperatorExpression.Expression.AcceptVisitor<ValueReference> (this);
+			var vref = Visit (node.Operand);
 			var val = vref.ObjectValue;
 			object newVal;
 			long num;
 
-			switch (unaryOperatorExpression.Operator) {
-			case UnaryOperatorType.BitNot:
-				num = ~GetInteger (val);
-				val = Convert.ChangeType (num, val.GetType ());
-				break;
-			case UnaryOperatorType.Minus:
-				if (val is decimal) {
-					val = -(decimal)val;
-				} else if (val is double) {
-					val = -(double)val;
-				} else if (val is float) {
-					val = -(float)val;
-				} else {
-					num = -GetInteger (val);
-					val = Convert.ChangeType (num, val.GetType ());
-				}
-				break;
-			case UnaryOperatorType.Not:
-				if (!(val is bool))
-					throw ParseError ("Expected boolean type in Not operator.");
-
-				val = !(bool) val;
-				break;
-			case UnaryOperatorType.PostDecrement:
+			switch (node.Kind ()) {
+			case SyntaxKind.PostDecrementExpression:
 				if (val is decimal) {
 					newVal = ((decimal)val) - 1;
 				} else if (val is double) {
@@ -1202,20 +1069,7 @@ namespace Mono.Debugging.Evaluation
 				}
 				vref.Value = ctx.Adapter.CreateValue (ctx, newVal);
 				break;
-			case UnaryOperatorType.Decrement:
-				if (val is decimal) {
-					val = ((decimal)val) - 1;
-				} else if (val is double) {
-					val = ((double)val) - 1;
-				} else if (val is float) {
-					val = ((float)val) - 1;
-				} else {
-					num = GetInteger (val) - 1;
-					val = Convert.ChangeType (num, val.GetType ());
-				}
-				vref.Value = ctx.Adapter.CreateValue (ctx, val);
-				break;
-			case UnaryOperatorType.PostIncrement:
+			case SyntaxKind.PostIncrementExpression:
 				if (val is decimal) {
 					newVal = ((decimal)val) + 1;
 				} else if (val is double) {
@@ -1228,7 +1082,57 @@ namespace Mono.Debugging.Evaluation
 				}
 				vref.Value = ctx.Adapter.CreateValue (ctx, newVal);
 				break;
-			case UnaryOperatorType.Increment:
+			default:
+				throw NotSupported ();
+			}
+
+			return LiteralValueReference.CreateObjectLiteral (ctx, expression, val);
+		}
+
+		public override ValueReference VisitPrefixUnaryExpression (PrefixUnaryExpressionSyntax node)
+		{
+			var vref = Visit (node.Operand);
+			var val = vref.ObjectValue;
+			object newVal;
+			long num;
+
+			switch (node.Kind ()) {
+			case SyntaxKind.BitwiseNotExpression:
+				num = ~GetInteger (val);
+				val = Convert.ChangeType (num, val.GetType ());
+				break;
+			case SyntaxKind.UnaryMinusExpression:
+				if (val is decimal) {
+					val = -(decimal)val;
+				} else if (val is double) {
+					val = -(double)val;
+				} else if (val is float) {
+					val = -(float)val;
+				} else {
+					num = -GetInteger (val);
+					val = Convert.ChangeType (num, val.GetType ());
+				}
+				break;
+			case SyntaxKind.LogicalNotExpression:
+				if (!(val is bool))
+					throw ParseError ("Expected boolean type in Not operator.");
+
+				val = !(bool)val;
+				break;
+			case SyntaxKind.PreDecrementExpression:
+				if (val is decimal) {
+					val = ((decimal)val) - 1;
+				} else if (val is double) {
+					val = ((double)val) - 1;
+				} else if (val is float) {
+					val = ((float)val) - 1;
+				} else {
+					num = GetInteger (val) - 1;
+					val = Convert.ChangeType (num, val.GetType ());
+				}
+				vref.Value = ctx.Adapter.CreateValue (ctx, val);
+				break;
+			case SyntaxKind.PreIncrementExpression:
 				if (val is decimal) {
 					val = ((decimal)val) + 1;
 				} else if (val is double) {
@@ -1241,7 +1145,7 @@ namespace Mono.Debugging.Evaluation
 				}
 				vref.Value = ctx.Adapter.CreateValue (ctx, val);
 				break;
-			case UnaryOperatorType.Plus:
+			case SyntaxKind.UnaryPlusExpression:
 				break;
 			default:
 				throw NotSupported ();
@@ -1250,432 +1154,69 @@ namespace Mono.Debugging.Evaluation
 			return LiteralValueReference.CreateObjectLiteral (ctx, expression, val);
 		}
 
-		public ValueReference VisitUncheckedExpression (UncheckedExpression uncheckedExpression)
+		public override ValueReference VisitArgument (ArgumentSyntax node)
 		{
-			throw NotSupported ();
+			return this.Visit(node.Expression);
 		}
-
-		[Obsolete]
-		public ValueReference VisitEmptyExpression (EmptyExpression emptyExpression)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQueryExpression (QueryExpression queryExpression)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQueryContinuationClause (QueryContinuationClause queryContinuationClause)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQueryFromClause (QueryFromClause queryFromClause)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQueryLetClause (QueryLetClause queryLetClause)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQueryWhereClause (QueryWhereClause queryWhereClause)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQueryJoinClause (QueryJoinClause queryJoinClause)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQueryOrderClause (QueryOrderClause queryOrderClause)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQueryOrdering (QueryOrdering queryOrdering)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQuerySelectClause (QuerySelectClause querySelectClause)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitQueryGroupClause (QueryGroupClause queryGroupClause)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitAttribute (ICSharpCode.NRefactory.CSharp.Attribute attribute)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitAttributeSection (AttributeSection attributeSection)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitDelegateDeclaration (DelegateDeclaration delegateDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitNamespaceDeclaration (NamespaceDeclaration namespaceDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitTypeDeclaration (TypeDeclaration typeDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitUsingAliasDeclaration (UsingAliasDeclaration usingAliasDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitUsingDeclaration (UsingDeclaration usingDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitExternAliasDeclaration (ExternAliasDeclaration externAliasDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitBlockStatement (BlockStatement blockStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitBreakStatement (BreakStatement breakStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitCheckedStatement (CheckedStatement checkedStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitContinueStatement (ContinueStatement continueStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitDoWhileStatement (DoWhileStatement doWhileStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitEmptyStatement (EmptyStatement emptyStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitExpressionStatement (ExpressionStatement expressionStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitFixedStatement (FixedStatement fixedStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitForeachStatement (ForeachStatement foreachStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitForStatement (ForStatement forStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitGotoCaseStatement (GotoCaseStatement gotoCaseStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitGotoDefaultStatement (GotoDefaultStatement gotoDefaultStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitGotoStatement (GotoStatement gotoStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitIfElseStatement (IfElseStatement ifElseStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitLabelStatement (LabelStatement labelStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitLockStatement (LockStatement lockStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitReturnStatement (ReturnStatement returnStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitSwitchStatement (SwitchStatement switchStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitSwitchSection (SwitchSection switchSection)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitCaseLabel (CaseLabel caseLabel)
+		public override ValueReference VisitAliasQualifiedName(AliasQualifiedNameSyntax node)
 		{
-			throw NotSupported ();
+			//return null;
+			return this.Visit(node.Name);
 		}
 
-		public ValueReference VisitThrowStatement (ThrowStatement throwStatement)
+		public override ValueReference VisitNullableType (NullableTypeSyntax node)
 		{
-			throw NotSupported ();
+			var genericTypeArgument = new[] { Visit(node.ElementType).Type };
+			var type1 = ctx.Adapter.GetType(ctx, "System.Nullable`1", genericTypeArgument);
+			return new TypeValueReference(ctx, type1);
 		}
 
-		public ValueReference VisitTryCatchStatement (TryCatchStatement tryCatchStatement)
+		public override ValueReference VisitGenericName (GenericNameSyntax node)
 		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitCatchClause (CatchClause catchClause)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitUncheckedStatement (UncheckedStatement uncheckedStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitUnsafeStatement (UnsafeStatement unsafeStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitUsingStatement (UsingStatement usingStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitVariableDeclarationStatement (VariableDeclarationStatement variableDeclarationStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitWhileStatement (WhileStatement whileStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitYieldBreakStatement (YieldBreakStatement yieldBreakStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitYieldReturnStatement (YieldReturnStatement yieldReturnStatement)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitAccessor (Accessor accessor)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitConstructorDeclaration (ConstructorDeclaration constructorDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitConstructorInitializer (ConstructorInitializer constructorInitializer)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitDestructorDeclaration (DestructorDeclaration destructorDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitEnumMemberDeclaration (EnumMemberDeclaration enumMemberDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitEventDeclaration (EventDeclaration eventDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitCustomEventDeclaration (CustomEventDeclaration customEventDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitFieldDeclaration (FieldDeclaration fieldDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitIndexerDeclaration (IndexerDeclaration indexerDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitMethodDeclaration (MethodDeclaration methodDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitOperatorDeclaration (OperatorDeclaration operatorDeclaration)
-		{
-			throw NotSupported ();
-		}
+			object [] typeArgs = new object [node.TypeArgumentList.Arguments.Count];
 
-		public ValueReference VisitParameterDeclaration (ParameterDeclaration parameterDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitPropertyDeclaration (PropertyDeclaration propertyDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitVariableInitializer (VariableInitializer variableInitializer)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitFixedFieldDeclaration (FixedFieldDeclaration fixedFieldDeclaration)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitFixedVariableInitializer (FixedVariableInitializer fixedVariableInitializer)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitSyntaxTree (SyntaxTree syntaxTree)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitSimpleType (SimpleType simpleType)
-		{
-			return ResolveTypeValueReference (ctx, simpleType);
-		}
-
-		public ValueReference VisitMemberType (MemberType memberType)
-		{
-			return ResolveTypeValueReference (ctx, memberType);
-		}
-
-		public ValueReference VisitComposedType (ComposedType composedType)
-		{
-			return ResolveTypeValueReference (ctx, composedType);
-		}
-
-		public ValueReference VisitArraySpecifier (ArraySpecifier arraySpecifier)
-		{
-			throw NotSupported ();
-		}
+			for (var i = 0; i < node.TypeArgumentList.Arguments.Count; i++) {
+				var typeArg = Visit (node.TypeArgumentList.Arguments [i]);
+				typeArgs [i] = typeArg.Type;
+			}
 
-		public ValueReference VisitPrimitiveType (PrimitiveType primitiveType)
-		{
-			return ResolveTypeValueReference (ctx, primitiveType);
-		}
-
-		public ValueReference VisitComment (Comment comment)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitWhitespace (WhitespaceNode whitespaceNode)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitText (TextNode textNode)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitNewLine (NewLineNode newLineNode)
-		{
-			throw NotSupported ();
-		}
+			string typeName = node.Identifier.ValueText;
 
-		public ValueReference VisitPreProcessorDirective (PreProcessorDirective preProcessorDirective)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitDocumentationReference (DocumentationReference documentationReference)
-		{
-			throw NotSupported ();
-		}
-
-		public ValueReference VisitTypeParameterDeclaration (TypeParameterDeclaration typeParameterDeclaration)
-		{
-			throw NotSupported ();
-		}
+			typeName = MakeGenericTypeName(node, typeName);// $"{typeName}`{node.TypeArgumentList.Arguments.Count}";
 
-		public ValueReference VisitConstraint (Constraint constraint)
-		{
-			throw NotSupported ();
-		}
 
-		public ValueReference VisitCSharpTokenNode (CSharpTokenNode cSharpTokenNode)
-		{
-			throw NotSupported ();
+			var type1 = ctx.Adapter.GetType (ctx, typeName, typeArgs);
+			return new TypeValueReference (ctx, type1);
 		}
 
-		public ValueReference VisitIdentifier (Identifier identifier)
+		static string MakeGenericTypeName(GenericNameSyntax node, string typeName)
 		{
-			throw NotSupported ();
-		}
+			if (node.Parent is QualifiedNameSyntax qns && qns.Left is IdentifierNameSyntax ins)
+				return $"{ins.Identifier.Value}.{typeName}`{node.TypeArgumentList.Arguments.Count}";
 
-		public ValueReference VisitPatternPlaceholder (AstNode placeholder, ICSharpCode.NRefactory.PatternMatching.Pattern pattern)
-		{
-			throw NotSupported ();
-		}
+			if (node.Parent is QualifiedNameSyntax qns2 && qns2.Left is QualifiedNameSyntax left)
+				return $"{left}.{typeName}`{node.TypeArgumentList.Arguments.Count}";
+			return $"{typeName}`{node.TypeArgumentList.Arguments.Count}";
+;
+ 		}
 
-		public ValueReference VisitNullNode(AstNode nullNode)
+		public override ValueReference VisitQualifiedName(QualifiedNameSyntax node)
 		{
-			throw NotSupported ();
+			if(node.Right is GenericNameSyntax) {
+				return Visit(node.Right);
+			}
+			var type1 = ctx.Adapter.GetType(ctx, node.ToString());
+			return new TypeValueReference(ctx, type1);
 		}
 
-		public ValueReference VisitErrorNode (AstNode errorNode)
+		public override ValueReference DefaultVisit (SyntaxNode node)
 		{
-			throw NotSupported ();
+			if (node is LiteralExpressionSyntax syntax)
+			{
+				return LiteralValueReference.CreateObjectLiteral(ctx, expression, syntax.Token.Value);
+			}
+			throw NotSupported();
 		}
-
 		#endregion
 	}
 }

@@ -31,7 +31,9 @@ using System.Collections.Generic;
 
 using Mono.Debugging.Client;
 
-using ICSharpCode.NRefactory.CSharp;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Mono.Debugging.Evaluation
 {
@@ -74,13 +76,13 @@ namespace Mono.Debugging.Evaluation
 
 			expression = ReplaceExceptionTag (expression, ctx.Options.CurrentExceptionTag);
 
-			var expr = new CSharpParser ().ParseExpression (expression);
+			var expr = SyntaxFactory.ParseExpression (expression);
 			if (expr == null)
 				throw new EvaluatorException ("Could not parse expression '{0}'", expression);
 
 			var evaluator = new NRefactoryExpressionEvaluatorVisitor (ctx, expression, expectedType, userVariables);
 
-			return expr.AcceptVisitor (evaluator);
+			return evaluator.Visit (expr);
 		}
 
 		public override string Resolve (DebuggerSession session, SourceLocation location, string exp)
@@ -100,15 +102,16 @@ namespace Mono.Debugging.Evaluation
 
 			expression = ReplaceExceptionTag (expression, session.Options.EvaluationOptions.CurrentExceptionTag);
 
-			var expr = new CSharpParser ().ParseExpression (expression);
+			
+			var expr = SyntaxFactory.ParseExpression (expression);
 			if (expr == null)
 				return expression;
 
 			var resolver = new NRefactoryExpressionResolverVisitor (session, location, expression);
-			expr.AcceptVisitor (resolver);
+			resolver.Visit (expr);
 
 			string resolved = resolver.GetResolvedExpression ();
-			if (resolved == expression && !tryTypeOf && (expr is BinaryOperatorExpression) && IsTypeName (expression)) {
+			if (resolved == expression && !tryTypeOf && (expr is BinaryExpressionSyntax) && IsTypeName (expression)) {
 				// This is a hack to be able to parse expressions such as "List<string>". The NRefactory parser
 				// can parse a single type name, so a solution is to wrap it around a typeof(). We do it if
 				// the evaluation fails.
@@ -131,15 +134,11 @@ namespace Mono.Debugging.Evaluation
 
 			expression = ReplaceExceptionTag (expression, ctx.Options.CurrentExceptionTag);
 
-			// Required as a workaround for a bug in the parser (it won't parse simple expressions like numbers)
-			if (!expression.EndsWith (";", StringComparison.Ordinal))
-				expression += ";";
+			ParseOptions options = new CSharpParseOptions ();
+			var expr = SyntaxFactory.ParseExpression (expression, options: options);
 
-			var parser = new CSharpParser ();
-			parser.ParseExpression (expression);
-
-			if (parser.HasErrors)
-				return new ValidationResult (false, parser.Errors.First ().Message);
+			if (expr.ContainsDiagnostics)
+				return new ValidationResult (false, expr.GetDiagnostics().First ().GetMessage());
 
 			return new ValidationResult (true, null);
 		}
