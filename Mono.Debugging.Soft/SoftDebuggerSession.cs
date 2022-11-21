@@ -2268,9 +2268,8 @@ namespace Mono.Debugging.Soft
 			string assemblyName;
 			bool hasSymbol;
 			if (!isDynamic) {
-				var metaData = asm?.GetMetadata() ?? null;
-				assemblyName = metaData?.MainModule?.Name ?? string.Empty;
-				hasSymbol = metaData?.MainModule?.HasSymbols ?? false;
+				assemblyName = name.Name;
+				hasSymbol = asm.HasDebugInfo;
 			} else {
 				assemblyName = string.Empty;
 				hasSymbol = false;
