@@ -1142,24 +1142,13 @@ namespace Mono.Debugging.Soft
 			}
 
 			if (breakEvent is FunctionBreakpoint function) {
-				foreach (var method in FindMethodsByName (function.FunctionName, function.ParamTypes)) {
+				foreach (var method in FindMethodsByName (function.TypeName, function.MethodName, function.ParamTypes)) {
 					if (!ResolveFunctionBreakpoint (breakInfo, function, method)) {
 						breakInfo.SetStatus (BreakEventStatus.NotBound, null);
 					}
 				}
 
-				// FIXME: handle types like GenericType<>, GenericType<SomeOtherType>, and GenericType<...>+NestedGenricType<...>
-				var openParen = function.FunctionName.IndexOf ('(');
-				int dot;
-
-				if (openParen != -1) {
-					//Handle stuff like SomeNamespace.SomeType.Method(SomeOtherNamespace.SomeOtherType)
-					dot = function.FunctionName.LastIndexOf ('.', openParen);
-				} else {
-					dot = function.FunctionName.LastIndexOf ('.');
-				}
-				if (dot != -1)
-					breakInfo.TypeName = function.FunctionName.Substring (0, dot);
+				breakInfo.TypeName = function.TypeName;
 
 				lock (pending_bes) {
 					pending_bes.Add (breakInfo);
@@ -1600,37 +1589,17 @@ namespace Mono.Debugging.Soft
 		}
 
 		//If paramType == null all overloads are returned
-		IEnumerable<MethodMirror> FindMethodsByName (string function, string[] paramTypes)
+		IEnumerable<MethodMirror> FindMethodsByName (string typeName, string methodName, string[] paramTypes)
 		{
 			if (!started)
 				yield break;
 			
 			if (vm.Version.AtLeast (2, 9)) {
-				var bracket = function.IndexOf ('(');
-				int dot;
-				if (bracket != -1) {
-					//Handle stuff like SomeNamespace.SomeType.Method(SomeOtherNamespace.SomeOtherType)
-					dot = function.LastIndexOf ('.', bracket);
-				} else {
-					dot = function.LastIndexOf ('.');
-				}
-				if (dot == -1 || dot + 1 == function.Length)
-					yield break;
-
-				// FIXME: handle types like GenericType<>, GenericType<SomeOtherType>, and GenericType<...>+NestedGenricType<...>
-				string methodName;
-				string typeName = function.Substring (0, dot);
-				if (bracket == -1) {
-					methodName = function.Substring (dot + 1);
-				} else {
-					methodName = function.Substring (dot + 1, bracket - (dot + 1));
-				}
-
 				// FIXME: need a way of querying all types so we can substring match typeName (e.g. user may have typed "Console" instead of "System.Console")
 				foreach (var type in vm.GetTypes (typeName, false)) {
 					ProcessType (type);
 					
-					foreach (var method in type.GetMethodsByNameFlags (methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static, false)) {
+					foreach (var method in type.GetMethodsByNameFlags (methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static, true)) {
 						if (!CheckMethodParams (method, paramTypes))
 							continue;
 						
@@ -2896,7 +2865,7 @@ namespace Mono.Debugging.Soft
 			foreach (var bi in tempPendingBes) {
 				if (CheckTypeName (type, bi.TypeName)) {
 					var bp = (FunctionBreakpoint)bi.BreakEvent;
-					foreach (var method in FindMethodsByName (bp.FunctionName, bp.ParamTypes)) {
+					foreach (var method in FindMethodsByName (bp.TypeName, bp.MethodName, bp.ParamTypes)) {
 						ResolveFunctionBreakpoint (bi, bp, method);
 					}
 				}
