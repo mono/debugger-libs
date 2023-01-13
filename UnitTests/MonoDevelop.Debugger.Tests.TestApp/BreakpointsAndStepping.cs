@@ -55,6 +55,10 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 		}
 
+		public void FunctionBreakpoint ()
+		{/*9141b68a-ad1a-46ca-848f-4d8cfe84923b*/
+		}
+
 		public void OutputAndDebugWriter ()
 		{
 			Console.Write ("NormalText");
