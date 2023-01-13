@@ -411,10 +411,13 @@ namespace Mono.Debugging.Tests
 
 		public void SetNextStatement (string guid, int offset = 0, string statement = null, ITextFile file = null)
 		{
+			targetStoppedEvent.Reset ();
+
 			file = file ?? SourceFile;
 			int line, column;
 			GetLineAndColumn (guid, offset, statement, out line, out column, file);
 			Session.SetNextStatement (file.Name, line, column);
+			CheckPosition(guid, offset, statement, file: file);
 		}
 
 		public void AddCatchpoint (string exceptionName, bool includeSubclasses)
