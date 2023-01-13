@@ -25,6 +25,7 @@
     <Compile Include="..\MonoDevelop.Debugger.Tests.TestApp\TestEvaluation.cs" />
     <Compile Include="..\MonoDevelop.Debugger.Tests.TestApp\BreakpointsAndStepping.cs" />
     <Compile Include="..\MonoDevelop.Debugger.Tests.TestApp\AdvancedEvaluation.cs" />
+    <Compile Include="..\MonoDevelop.Debugger.Tests.TestApp\Logging.cs" />
   </ItemGroup>
 
 </Project>
