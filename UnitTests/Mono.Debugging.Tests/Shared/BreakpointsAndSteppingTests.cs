@@ -1029,6 +1029,16 @@ namespace Mono.Debugging.Tests
 		}
 
 		[Test]
+		public void HitFunctionBreakpoint ()
+		{
+			Start ("BreakpointsAndStepping");
+			var fp = new FunctionBreakpoint ("FunctionBreakpoint", "C#");
+			Session.Breakpoints.Add (fp);
+			StartTest ("FunctionBreakpoint");
+			CheckPosition ("9141b68a-ad1a-46ca-848f-4d8cfe84923b");
+		}
+
+		[Test]
 		public void HitCountBreakpoints ()
 		{
 			ObjectValue val;
