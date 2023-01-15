@@ -39,6 +39,7 @@ namespace Mono.Debugging.Tests
 		protected BreakpointsAndSteppingTests (string de)
 			: base (de)
 		{
+			AllowTargetInvokes = true; // Needed for SoftDebugger function breakpoint test
 		}
 
 		[OneTimeSetUp]
@@ -1031,8 +1032,9 @@ namespace Mono.Debugging.Tests
 		[Test]
 		public void HitFunctionBreakpoint ()
 		{
-			Start ("BreakpointsAndStepping");
-			var fp = new FunctionBreakpoint ("FunctionBreakpoint", "C#");
+			InitializeTest ();
+			// SoftDebugger currently requires a fully qualified name, VsCodeDebugger does not
+			var fp = new FunctionBreakpoint ("MonoDevelop.Debugger.Tests.TestApp.BreakpointsAndStepping.FunctionBreakpoint", "C#");
 			Session.Breakpoints.Add (fp);
 			StartTest ("FunctionBreakpoint");
 			CheckPosition ("9141b68a-ad1a-46ca-848f-4d8cfe84923b");
