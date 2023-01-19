@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using Mono.Debugging.Soft;
 using System.IO;
 using System.Threading;
+using System.Linq;
 
 namespace Mono.Debugging.Tests
 {
@@ -1038,6 +1039,26 @@ namespace Mono.Debugging.Tests
 			Session.Breakpoints.Add (fp);
 			StartTest ("FunctionBreakpoint");
 			CheckPosition ("9141b68a-ad1a-46ca-848f-4d8cfe84923b");
+		}
+
+		[Test]
+		public void MultipleThreads ()
+		{
+			InitializeTest ();
+			AddBreakpoint ("536f5570-c182-4d21-ad23-ae9f6a8b2892");
+			StartTest ("MultipleThreads");
+			CheckPosition ("536f5570-c182-4d21-ad23-ae9f6a8b2892");
+			var threads = Session.GetProcesses ()[0].GetThreads ().Where(t => t.Name.StartsWith("Thread ")).ToArray();
+
+			Assert.That (threads.Length, Is.EqualTo (10));
+
+			for (int i = 0; i < threads.Length; i++) {
+				var thread = threads[i];
+				thread.PrefetchBacktrace ();
+
+				Assert.NotNull (thread.Backtrace, "Backtrace was null");
+				Assert.That (thread.Backtrace.FrameCount, Is.Not.EqualTo (0));
+			}
 		}
 
 		[Test]
