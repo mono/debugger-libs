@@ -63,7 +63,7 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 		{
 			for (var i = 0; i < 10; i++)
 			{
-				var thread = new Thread(() => Thread.Sleep(1000));
+				var thread = new Thread(() => Thread.Sleep(3000));
 				thread.Name = "Thread " + i;
 				thread.Start();
 			}
