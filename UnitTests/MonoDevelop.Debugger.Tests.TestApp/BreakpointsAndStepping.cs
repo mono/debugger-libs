@@ -55,6 +55,22 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 			}
 		}
 
+		public void FunctionBreakpoint ()
+		{/*9141b68a-ad1a-46ca-848f-4d8cfe84923b*/
+		}
+
+		public void MultipleThreads ()
+		{
+			for (var i = 0; i < 10; i++)
+			{
+				var thread = new Thread(() => Thread.Sleep(10000));
+				thread.Name = "Thread " + i;
+				thread.Start();
+			}
+
+			Console.WriteLine("Done"); /*536f5570-c182-4d21-ad23-ae9f6a8b2892*/
+		}
+
 		public void OutputAndDebugWriter ()
 		{
 			Console.Write ("NormalText");
