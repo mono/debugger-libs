@@ -29,13 +29,48 @@ using System.Collections.Generic;
 
 namespace Mono.Debugging.Client
 {
+
 	[Serializable]
 	public class FunctionBreakpoint : Breakpoint
 	{
 		public FunctionBreakpoint (string functionName, string language) : base (null, 1, 1)
 		{
-			FunctionName = functionName;
 			Language = language;
+			ParseTypeAndMethodName (functionName);
+		}
+
+		private void ParseTypeAndMethodName (string functionName)
+		{
+			FunctionName = functionName;
+			var bracket = functionName.IndexOf ('(');
+				int dot;
+			if (bracket != -1) {
+				//Handle stuff like SomeNamespace.SomeType.Method(SomeOtherNamespace.SomeOtherType)
+				dot = functionName.LastIndexOf('.', bracket);
+			} else {
+				dot = functionName.LastIndexOf('.');
+			}
+			if (dot == -1 || dot + 1 == functionName.Length)
+				return;
+
+			// FIXME: handle types like GenericType<>, GenericType<SomeOtherType>, and GenericType<...>+NestedGenricType<...>
+			string methodName;
+			string typeName = functionName.Substring (0, dot);
+			if (bracket == -1) {
+				methodName = functionName.Substring (dot + 1);
+			} else {
+				methodName = functionName.Substring (dot + 1, bracket - (dot + 1));
+			}
+			TypeName = typeName;
+			MethodName = methodName;
+		}
+
+		public FunctionBreakpoint (string typeName, string methodName, string language) : base (null, 1, 1)
+		{
+			Language = language;
+			TypeName = typeName;
+			MethodName = methodName;
+			FunctionName = TypeName + "." + MethodName;
 		}
 
 		static bool SkipArrayRank (string text, ref int index, int endIndex)
@@ -131,8 +166,8 @@ namespace Mono.Debugging.Client
 		
 		internal FunctionBreakpoint (XmlElement elem, string baseDir) : base (elem, baseDir)
 		{
-			FunctionName = elem.GetAttribute ("function");
-			
+			var functionName = elem.GetAttribute ("function");
+			ParseTypeAndMethodName (functionName);
 			string text = elem.GetAttribute ("language");
 			if (string.IsNullOrEmpty (text))
 				Language = "C#";
@@ -164,11 +199,18 @@ namespace Mono.Debugging.Client
 			
 			return elem;
 		}
-		
 		public string FunctionName {
 			get; set;
 		}
-		
+
+		public string TypeName {
+			get; set;
+		}
+
+		public string MethodName {
+			get; set;
+		}
+
 		public string Language {
 			get; set;
 		}
@@ -183,6 +225,8 @@ namespace Mono.Debugging.Client
 			
 			var bp = (FunctionBreakpoint) ev;
 			FunctionName = bp.FunctionName;
+			MethodName = bp.MethodName;
+			TypeName = bp.TypeName;
 			ParamTypes = bp.ParamTypes;
 		}
 	}
