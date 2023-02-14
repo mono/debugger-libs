@@ -172,7 +172,7 @@ namespace Mono.Debugging.Tests
 			};
 			ops.EvaluationOptions.AllowTargetInvoke = AllowTargetInvokes;
 			ops.EvaluationOptions.EvaluationTimeout = 100000;
-
+			ops.EvaluationOptions.AllowMethodEvaluation = true; // Needed for SoftDebugger function breakpoint test
 			var sourcePath = Path.Combine (TargetProjectSourceDir, test + ".cs");
 			SourceFile = ReadFile(sourcePath);
 			AddBreakpoint ("break");
@@ -205,10 +205,10 @@ namespace Mono.Debugging.Tests
 				if (e.Backtrace != null) {
 					Frame = e.Backtrace.GetFrame (0);
 					lastStoppedPosition = Frame.SourceLocation;
-					targetStoppedEvent.Set ();
 				} else {
 					Console.WriteLine ("e.Backtrace is null");
 				}
+				targetStoppedEvent.Set ();
 			};
 
 			var targetExited = new ManualResetEvent (false);
@@ -411,10 +411,16 @@ namespace Mono.Debugging.Tests
 
 		public void SetNextStatement (string guid, int offset = 0, string statement = null, ITextFile file = null)
 		{
+			if (IsVsDebugger) // We run set next statement asynchronously, so need to wait
+				targetStoppedEvent.Reset ();
+
 			file = file ?? SourceFile;
 			int line, column;
 			GetLineAndColumn (guid, offset, statement, out line, out column, file);
 			Session.SetNextStatement (file.Name, line, column);
+
+			if (IsVsDebugger) // We run set next statement asynchronously, so need to wait
+				CheckPosition (guid, offset, statement, file: file);
 		}
 
 		public void AddCatchpoint (string exceptionName, bool includeSubclasses)
