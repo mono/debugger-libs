@@ -61,12 +61,19 @@ namespace MonoDevelop.Debugger.Tests.TestApp
 
 		public void MultipleThreads ()
 		{
+			var threadStart = new ManualResetEvent(false);
 			for (var i = 0; i < 10; i++)
 			{
-				var thread = new Thread(() => Thread.Sleep(10000));
-
+				var thread = new Thread(() =>
+				{
+					threadStart.Set();
+					Thread.Sleep(10000);
+				});
+				thread.IsBackground = true;
 				thread.Name = "Thread " + i;
 				thread.Start();
+				threadStart.WaitOne();
+				threadStart.Reset();
 			}
 
 			Console.WriteLine("Done"); /*536f5570-c182-4d21-ad23-ae9f6a8b2892*/
