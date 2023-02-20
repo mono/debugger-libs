@@ -69,7 +69,8 @@ namespace Mono.Debugging.Evaluation
 				connectedValues.Clear ();
 			}
 		}
-		
+
+		[Obsolete]
 		public override object InitializeLifetimeService ()
 		{
 			return null;
