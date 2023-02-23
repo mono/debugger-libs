@@ -34,6 +34,9 @@ using Mono.Debugging.Backend;
 using MDB = Mono.Debugger.Soft;
 using DC = Mono.Debugging.Client;
 using Mono.Debugging.Evaluation;
+using System.IO;
+using System.Security.Cryptography;
+using System.Net.Http;
 
 namespace Mono.Debugging.Soft
 {
@@ -41,11 +44,50 @@ namespace Mono.Debugging.Soft
 		public Mono.Debugger.Soft.StackFrame StackFrame {
 			get; private set;
 		}
-		
+		private static SHA256 _sha256 = System.Security.Cryptography.SHA256.Create ();
+		private static HttpClient HttpClient => new HttpClient ();
 		public SoftDebuggerStackFrame (Mono.Debugger.Soft.StackFrame frame, string addressSpace, SourceLocation location, string language, bool isExternalCode, bool hasDebugInfo, bool isDebuggerHidden, string fullModuleName, string fullTypeName)
 			: base (frame.ILOffset, addressSpace, location, language, isExternalCode, hasDebugInfo, isDebuggerHidden, fullModuleName, fullTypeName)
 		{
 			StackFrame = frame;
+			if (location.SourceLink == null || File.Exists (location.FileName))
+				return;
+			string sourceLinkCachedPathPartial = Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.LocalApplicationData), "SourceServer", GetHashOfString (location.SourceLink.Uri));
+			string sourceLinkCachedPath = Path.Combine (sourceLinkCachedPathPartial, location.SourceLink.RelativeFilePath);
+			if (File.Exists (sourceLinkCachedPath)) //first try to find on cache using relativePath as it's done by VS while debugging
+			{
+				this.UpdateSourceFile(sourceLinkCachedPath);
+			} else {
+				sourceLinkCachedPath = Path.Combine (sourceLinkCachedPathPartial, Path.GetFileName (location.SourceLink.RelativeFilePath));
+				if (File.Exists (sourceLinkCachedPath)) //second try to find on cache without relativePath as it's done by VS when using "Go To Definition (F12)"
+				{
+					this.UpdateSourceFile (sourceLinkCachedPath);
+				}
+				else
+				{
+					try {
+						using (var response = HttpClient.GetStreamAsync (location.SourceLink.Uri).Result) {
+							Directory.CreateDirectory (Path.GetDirectoryName (sourceLinkCachedPath));
+							var fileStream = File.Create (sourceLinkCachedPath);
+							response.CopyTo (fileStream);
+							fileStream.Close ();
+							this.UpdateSourceFile (sourceLinkCachedPath);
+						}
+					}
+					catch (Exception) {
+						//expected exception when file is not available for download
+					}
+				}
+			}
+		}
+		private static string GetHashOfString (string str)
+		{
+			byte[] bytes = _sha256.ComputeHash (UnicodeEncoding.Unicode.GetBytes (str));
+			StringBuilder builder = new StringBuilder (bytes.Length * 2);
+			foreach (byte b in bytes) {
+				builder.Append (b.ToString ("x2"));
+			}
+			return builder.ToString ();
 		}
 	}
 	
@@ -102,6 +144,22 @@ namespace Mono.Debugging.Soft
 			string typeFullName = null;
 			string typeFQN = null;
 			string methodName;
+			int lineNumber = frame.LineNumber;
+			int columnNumber = frame.ColumnNumber;
+			int endLineNumber = frame.Location.EndLineNumber;
+			int endColumnNumber = frame.Location.EndColumnNumber;
+
+			if (fileName ==  null) {
+				(int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files) = session.GetPdbData (frame.Method.DeclaringType.Assembly).GetDebugInfoFromPdb (method);
+				frame.Method.SetDebugInfoFromPdb (max_il_offset, il_offsets, line_numbers, column_numbers, end_line_numbers, end_column_numbers, source_files);
+				frame.ClearDebugInfoToTryToGetFromLoadedPdb ();
+				fileName = frame.FileName;
+				lineNumber = frame.LineNumber;
+				columnNumber = frame.ColumnNumber;
+				endLineNumber = frame.Location.EndLineNumber;
+				endColumnNumber = frame.Location.EndColumnNumber;
+			}
+			
 			
 			if (fileName != null)
 				fileName = SoftDebuggerSession.NormalizePath (fileName);
@@ -190,8 +248,8 @@ namespace Mono.Debugging.Soft
 				}
 			}
 
-			var sourceLink = session.GetSourceLink (frame.Method, frame.FileName);
-			var location = new DC.SourceLocation (methodName, fileName, frame.LineNumber, frame.ColumnNumber, frame.Location.EndLineNumber, frame.Location.EndColumnNumber, frame.Location.SourceFileHash, sourceLink);
+			var sourceLink = session.GetSourceLink (frame.Method, fileName);
+			var location = new DC.SourceLocation (methodName, fileName, lineNumber, columnNumber, endLineNumber, endColumnNumber, frame.Location.SourceFileHash, sourceLink);
 
 			string addressSpace = string.Empty;
 			bool hasDebugInfo = false;
@@ -211,7 +269,7 @@ namespace Mono.Debugging.Soft
 
 			return new SoftDebuggerStackFrame (frame, addressSpace, location, language, external, hasDebugInfo, hidden, typeFQN, typeFullName);
 		}
-		
+
 		protected override EvaluationContext GetEvaluationContext (int frameIndex, EvaluationOptions options)
 		{
 			ValidateStack ();

@@ -168,5 +168,64 @@ namespace Mono.Debugging.Soft
 			}
 			return null;
 		}
+
+		internal (int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files) GetDebugInfoFromPdb(MethodMirror method)
+		{
+			int max_il_offset = 0;
+			List<int> il_offsets = new List<int> ();
+			List<int> line_numbers = new List<int> ();
+			List<int> column_numbers = new List<int> ();
+			List<int> end_line_numbers = new List<int> ();
+			List<int> end_column_numbers = new List<int> ();
+			List<string> source_list = new List<string> ();
+			string documentName = "";
+			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (GetStream ())) {
+				var reader = metadataReader.GetMetadataReader ();
+				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
+				MethodDebugInformation methodDebugInformation = reader.GetMethodDebugInformation (methodHandle);
+				if (!methodDebugInformation.Document.IsNil) {
+					var document = reader.GetDocument (methodDebugInformation.Document);
+					documentName = reader.GetString (document.Name);
+				}
+				foreach (var sp in methodDebugInformation.GetSequencePoints()) {
+					il_offsets.Add (sp.Offset);
+					line_numbers.Add (sp.StartLine);
+					column_numbers.Add (sp.EndColumn);
+					end_line_numbers.Add (sp.EndLine);
+					end_column_numbers.Add (sp.EndColumn);
+					source_list.Add (documentName);
+
+					if (sp.Offset > max_il_offset && !sp.IsHidden)
+						max_il_offset = sp.Offset;
+				}
+			}
+			return (max_il_offset, il_offsets.ToArray(), line_numbers.ToArray(), column_numbers.ToArray(), end_line_numbers.ToArray(), end_column_numbers.ToArray(), source_list.ToArray());
+		}
+
+		internal Location GetLocationByFileName (AssemblyMirror asm, string fileName, int line, int column)
+		{
+			var documentName = "";
+			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (GetStream ())) {
+				var reader = metadataReader.GetMetadataReader ();
+				foreach (var methodDebugInformationHandle in reader.MethodDebugInformation) {
+					uint methodToken = (uint)MetadataTokens.GetToken(reader, methodDebugInformationHandle.ToDefinitionHandle());
+					MethodDebugInformation methodDebugInformation = reader.GetMethodDebugInformation (methodDebugInformationHandle);
+					if (!methodDebugInformation.Document.IsNil) {
+						var document = reader.GetDocument (methodDebugInformation.Document);
+						documentName = reader.GetString (document.Name);
+					}
+					if (Path.GetFileName (documentName) == Path.GetFileName (fileName)) {
+						foreach (var sp in methodDebugInformation.GetSequencePoints ()) {
+							if (!sp.IsHidden && sp.StartLine >= line && sp.EndLine <= line &&
+								sp.StartColumn >= column && sp.EndColumn >= column) {
+								var method = asm.GetMethod (methodToken);
+								return new Location (asm.VirtualMachine, method, 0, sp.Offset, documentName, sp.StartLine, sp.StartColumn, sp.EndLine, sp.EndColumn, null);
+							}
+						}
+					}
+				}
+			}
+			return null;
+		}
 	}
 }

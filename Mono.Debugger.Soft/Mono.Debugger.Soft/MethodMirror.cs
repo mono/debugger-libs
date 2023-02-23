@@ -491,5 +491,23 @@ namespace Mono.Debugger.Soft
 		{
 			updatedByEnC = true;
 		}
+
+		public void SetDebugInfoFromPdb (int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files)
+		{
+			this.debug_info = new DebugInfo();
+			this.debug_info.max_il_offset = max_il_offset;
+			this.debug_info.il_offsets = il_offsets;
+			this.debug_info.line_numbers = line_numbers;
+			this.debug_info.column_numbers = column_numbers;
+			this.debug_info.end_line_numbers = end_line_numbers;
+			this.debug_info.end_column_numbers = end_column_numbers;
+			List<SourceInfo> sourceList = new List<SourceInfo>();
+			foreach (var source in source_files) {
+				var sourceInfo = new SourceInfo ();
+				sourceInfo.source_file = source;
+				sourceList.Add (sourceInfo);
+			}
+			this.debug_info.source_files = sourceList.ToArray();
+		}
 	}
 }

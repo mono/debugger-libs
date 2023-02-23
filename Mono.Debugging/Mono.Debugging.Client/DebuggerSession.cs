@@ -56,6 +56,7 @@ namespace Mono.Debugging.Client
 		readonly object breakpointStoreLock = new object ();
 		BreakpointStore breakpointStore;
 		DebuggerSessionOptions options;
+		bool justMyCode;
 		ProcessInfo[] currentProcesses;
 		ThreadInfo activeThread;
 		bool ownedBreakpointStore;
@@ -855,6 +856,11 @@ namespace Mono.Debugging.Client
 		/// </summary>
 		public DebuggerSessionOptions Options {
 			get { return options; }
+		}
+		
+		public bool JustMyCode {
+			get { return justMyCode && Options.ProjectAssembliesOnly; }
+			set { justMyCode = value; }
 		}
 		
 		/// <summary>

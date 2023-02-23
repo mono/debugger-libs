@@ -50,6 +50,11 @@ using Mono.Debugging.Evaluation;
 using StackFrame = Mono.Debugger.Soft.StackFrame;
 using System.Collections.Immutable;
 using Assembly = Mono.Debugging.Client.Assembly;
+using Microsoft.SymbolStore.SymbolStores;
+using Microsoft.SymbolStore;
+using System.Threading.Tasks;
+using static System.Collections.Specialized.BitVector32;
+using Microsoft.FileFormats.PE;
 
 namespace Mono.Debugging.Soft
 {
@@ -70,6 +75,7 @@ namespace Mono.Debugging.Soft
 		ExceptionEventRequest unhandledExceptionRequest;
 		Dictionary<string, string> assemblyPathMap;
 		Dictionary<string, string> symbolPathMap;
+		Dictionary<AssemblyMirror, PortablePdbData> symbolServerPPDB = new Dictionary<AssemblyMirror, PortablePdbData>();
 		ThreadMirror current_thread, recent_thread;
 		List<AssemblyMirror> assemblyFilters;
 		StepEventRequest currentStepRequest;
@@ -93,6 +99,8 @@ namespace Mono.Debugging.Soft
 
 		internal int StackVersion;
 
+		private readonly ITracer _tracer;
+
 		public SoftDebuggerAdaptor Adaptor {
 			get; private set;
 		}
@@ -103,6 +111,7 @@ namespace Mono.Debugging.Soft
 			Adaptor.BusyStateChanged += (sender, e) => SetBusyState (e);
 			Adaptor.DebuggerSession = this;
 			sourceUpdates = new List<SourceUpdate> ();
+			_tracer = new TracerSymbolServer (this.LogWriter);
 		}
 
 		protected virtual SoftDebuggerAdaptor CreateSoftDebuggerAdaptor ()
@@ -627,7 +636,7 @@ namespace Mono.Debugging.Soft
 		
 		void RegisterUserAssemblies (SoftDebuggerStartInfo dsi)
 		{
-			if (Options.ProjectAssembliesOnly && dsi.UserAssemblyNames != null) {
+			if (dsi.UserAssemblyNames != null) {
 				assemblyFilters = new List<AssemblyMirror> ();
 				userAssemblyNames = dsi.UserAssemblyNames.Select (x => x.ToString ()).ToList ();
 			}
@@ -650,6 +659,22 @@ namespace Mono.Debugging.Soft
 		public void AddOrReplaceSymbolPathMap (string assembly, string path)
 		{
 			symbolPathMap[assembly] = path;
+		}
+
+		private string symbolCachePath;
+		private string[] symbolServerUrls;
+		private SymbolStore symbolStore;
+
+		public void SetSymbolCache(string symbolCachePath)
+		{
+			this.symbolCachePath = symbolCachePath;
+			symbolStore = null;
+		}
+
+		public void SetSymbolServerUrl (string[] symbolServerUrls)
+		{
+			this.symbolServerUrls = symbolServerUrls;
+			symbolStore = null;
 		}
 
 		protected bool SetSocketTimeouts (int sendTimeout, int receiveTimeout, int keepaliveInterval)
@@ -902,6 +927,10 @@ namespace Mono.Debugging.Soft
 		internal PortablePdbData GetPdbData (AssemblyMirror asm)
 		{
 			string pdbFileName;
+			PortablePdbData portablePdb = null;
+			if (symbolServerPPDB.TryGetValue(asm, out portablePdb)) {
+				return portablePdb;
+			}
 			if (!symbolPathMap.TryGetValue(asm.GetName().FullName, out pdbFileName) || Path.GetExtension(pdbFileName) != ".pdb")
 			{
 				string assemblyFileName;
@@ -928,7 +957,7 @@ namespace Mono.Debugging.Soft
 			SourceLinkMap[] maps;
 
 			lock (SourceLinkCache) {
-				if (SourceLinkCache.TryGetValue (asm, out maps))
+				if (SourceLinkCache.TryGetValue (asm, out maps) && maps.Count() > 0)
 					return maps;
 			}
 
@@ -936,7 +965,8 @@ namespace Mono.Debugging.Soft
 
 			if (asm.VirtualMachine.Version.AtLeast (2, 48)) {
 				jsonString = asm.ManifestModule.SourceLink;
-			} else {
+			}
+			if (jsonString == "") {
 				// Read the pdb ourselves
 				jsonString = GetPdbData (asm)?.GetSourceLinkBlob ();
 			}
@@ -1175,17 +1205,8 @@ namespace Mono.Debugging.Soft
 				bool found = false;
 
 				breakInfo.FileName = breakpoint.FileName;
-
-				foreach (var location in FindLocationsByFile (breakpoint.FileName, breakpoint.Line, breakpoint.Column, out _, out insideLoadedRange)) {
-					OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
-					                                        breakpoint.FileName, breakpoint.Line, breakpoint.Column,
-															GetPrettyMethodName (location.Method), location.ILOffset));
-
-					breakInfo.Location = location;
-					InsertBreakpoint (breakpoint, breakInfo);
-					found = true;
-					breakInfo.SetStatus (BreakEventStatus.Bound, null);
-				}
+				TryResolveBreakpoint (breakInfo, breakpoint, out insideLoadedRange);
+				
 				lock (pending_bes) {
 					pending_bes.Add (breakInfo);
 				}
@@ -1223,6 +1244,45 @@ namespace Mono.Debugging.Soft
 			}
 			UpdateTypeLoadFilters ();
 			return breakInfo;
+		}
+
+		private bool TryResolveBreakpoint (BreakInfo breakInfo, Breakpoint breakpoint, out bool insideLoadedRange)
+		{
+			var found = false;
+			insideLoadedRange = false;
+			if (breakpoint == null)
+				return false;
+			foreach (var location in FindLocationsByFile (breakpoint.FileName, breakpoint.Line, breakpoint.Column, out _, out insideLoadedRange)) {
+				OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
+														breakpoint.FileName, breakpoint.Line, breakpoint.Column,
+														GetPrettyMethodName (location.Method), location.ILOffset));
+
+				breakInfo.Location = location;
+				InsertBreakpoint (breakpoint, breakInfo);
+				found = true;
+				breakInfo.SetStatus (BreakEventStatus.Bound, null);
+			}
+
+			if (!found) {
+				var location = FindLocationsByFileInPdbLoadedFromSymbolServer (breakpoint.FileName, breakpoint.Line, breakpoint.Column);
+				if (location != null) {
+					breakInfo.Location = location;
+					InsertBreakpoint (breakpoint, breakInfo);
+					found = true;
+					breakInfo.SetStatus (BreakEventStatus.Bound, null);
+				}
+			}
+			return found;
+		}
+
+		private Location FindLocationsByFileInPdbLoadedFromSymbolServer (string fileName, int line, int column)
+		{
+			foreach (var symbolServerPPDB in symbolServerPPDB) {
+				var location = symbolServerPPDB.Value.GetLocationByFileName (symbolServerPPDB.Key, fileName, line, column);
+				if (location != null)
+					return location;
+			}
+			return null;
 		}
 
 		void UpdateTypeLoadFilters()
@@ -1705,9 +1765,9 @@ namespace Mono.Debugging.Soft
 				req.Depth = depth;
 				req.Size = size;
 				req.Filter = ShouldFilterStaticCtor () | StepFilter.DebuggerHidden | StepFilter.DebuggerStepThrough;
-				if (Options.ProjectAssembliesOnly)
+				if (JustMyCode)
 					req.Filter |= StepFilter.DebuggerNonUserCode;
-				if (assemblyFilters != null && assemblyFilters.Count > 0)
+				if (JustMyCode && assemblyFilters != null && assemblyFilters.Count > 0)
 					req.AssemblyFilter = assemblyFilters;
 				try {
 					req.Enabled = true;
@@ -1929,7 +1989,7 @@ namespace Mono.Debugging.Soft
 
 		bool StepThrough (MethodMirror method)
 		{
-			if (Options.ProjectAssembliesOnly && !IsUserAssembly (method.DeclaringType.Assembly))
+			if (JustMyCode && !IsUserAssembly (method.DeclaringType.Assembly))
 				return true;
 
 			//With Sdb 2.30 this logic was moved to Runtime no need to spend time on checking this
@@ -1944,17 +2004,17 @@ namespace Mono.Debugging.Soft
 						case "System.Diagnostics.DebuggerStepThroughAttribute":
 							return true;
 						case "System.Diagnostics.DebuggerNonUserCodeAttribute":
-							return Options.ProjectAssembliesOnly;
+							return JustMyCode;
 						}
 					}
 				}
 
-				if (Options.ProjectAssembliesOnly) {
+				if (JustMyCode) {
 					foreach (var attr in method.DeclaringType.GetCustomAttributes (false)) {
 						var attrName = attr.Constructor.DeclaringType.FullName;
 
 						if (attrName == "System.Diagnostics.DebuggerNonUserCodeAttribute")
-							return Options.ProjectAssembliesOnly;
+							return JustMyCode;
 					}
 				}
 			}
@@ -1985,18 +2045,18 @@ namespace Mono.Debugging.Soft
 					switch (attrName) {
 					case "System.Diagnostics.DebuggerHiddenAttribute":      return true;
 					case "System.Diagnostics.DebuggerStepThroughAttribute": return true;
-					case "System.Diagnostics.DebuggerNonUserCodeAttribute": return Options.ProjectAssembliesOnly;
+					case "System.Diagnostics.DebuggerNonUserCodeAttribute": return JustMyCode;
 					case "System.Diagnostics.DebuggerStepperBoundaryAttribute": return true;
 					}
 				}
 			}
 
-			if (Options.ProjectAssembliesOnly) {
+			if (JustMyCode) {
 				foreach (var attr in method.DeclaringType.GetCustomAttributes (false)) {
 					var attrName = attr.Constructor.DeclaringType.FullName;
 
 					if (attrName == "System.Diagnostics.DebuggerNonUserCodeAttribute")
-						return Options.ProjectAssembliesOnly;
+						return JustMyCode;
 				}
 			}
 
@@ -2005,12 +2065,12 @@ namespace Mono.Debugging.Soft
 
 		/// <summary>
 		/// Checks all frames in thread where exception occured and if any frame has user code it returns true.
-		/// Also notice that this method already check if Options.ProjectAssembliesOnly==false 
+		/// Also notice that this method already check if JustMyCode==false 
 		/// </summary>
 		bool ExceptionInUserCode (ExceptionEvent ev)
 		{
 			// this is just optimization to prevent need to fetch Frames
-			if (Options.ProjectAssembliesOnly == false)
+			if (JustMyCode == false)
 				return true;
 			foreach (var frame in ev.Thread.GetFrames ()) {
 				if (!IsExternalCode (frame))
@@ -2263,6 +2323,51 @@ namespace Mono.Debugging.Soft
 			);
 
 			OnAssemblyLoaded (assembly);
+			TryLoadSymbolFromSymbolServerIfNeeded (asm);
+		}
+		internal void CreateSymbolStore ()
+		{
+			foreach (var urlServer in symbolServerUrls) {
+				if (string.IsNullOrEmpty (urlServer))
+					continue;
+				try {
+					symbolStore = new HttpSymbolStore (_tracer, symbolStore, new Uri ($"{urlServer}/"), null);
+				} catch (Exception ex) {
+					OnDebuggerOutput (false, $"Failed to create HttpSymbolStore for this URL - {urlServer} - {ex.Message}");
+				}
+			}
+			if (!string.IsNullOrEmpty (symbolCachePath)) {
+				try {
+					symbolStore = new CacheSymbolStore (_tracer, symbolStore, symbolCachePath);
+				} catch (Exception ex) {
+					OnDebuggerOutput (false, $"Failed to create CacheSymbolStore for this path - {symbolCachePath} - {ex.Message}");
+				}
+			}
+		}
+
+		private async Task<bool> TryLoadSymbolFromSymbolServerIfNeeded (AssemblyMirror asm)
+		{
+			if (symbolPathMap.ContainsKey(asm.GetName ().FullName))
+				return false;
+			if (symbolStore == null)
+				CreateSymbolStore ();
+			if (symbolStore == null)
+				return false;
+			if (asm.GetPdbInfo (out int age, out Guid guid, out string pdbPath, out bool isPortableCodeView, out PdbChecksum[] pdbChecksums) == false)
+				return false;
+			var pdbName = Path.GetFileName (pdbPath);
+			var pdbGuid = guid.ToString ("N").ToUpperInvariant () + (isPortableCodeView ? "FFFFFFFF" : age.ToString());
+			var key = $"{pdbName}/{pdbGuid}/{pdbName}";
+			SymbolStoreFile file = await symbolStore.GetFile (new SymbolStoreKey (key, pdbPath, false, pdbChecksums), new CancellationTokenSource ().Token).ConfigureAwait(false);
+			if (file != null) {
+				symbolPathMap[asm.GetName ().FullName] = Path.Combine (symbolCachePath, key);
+				var portablePdb = GetPdbData (asm);
+				if (portablePdb != null) {
+					symbolServerPPDB[asm] = portablePdb;
+					TryResolvePendingBreakpoints ();
+				}
+			}
+			return true;
 		}
 
 		void RegisterAssembly (AssemblyMirror asm)
@@ -2440,17 +2545,14 @@ namespace Mono.Debugging.Soft
 					}
 				}
 			}
+			TryResolvePendingBreakpoints ();
+		}
+
+		private void TryResolvePendingBreakpoints ()
+		{
 			foreach (var bp in pending_bes) {
 				if (bp.Status != BreakEventStatus.Bound) {
-					foreach (var location in FindLocationsByFile (bp.Breakpoint.FileName, bp.Breakpoint.Line, bp.Breakpoint.Column, out _, out bool insideLoadedRange)) {
-						OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
-																bp.Breakpoint.FileName, bp.Breakpoint.Line, bp.Breakpoint.Column,
-																GetPrettyMethodName (location.Method), location.ILOffset));
-
-						bp.Location = location;
-						InsertBreakpoint (bp.Breakpoint, bp);
-						bp.SetStatus (BreakEventStatus.Bound, null);
-					}
+					TryResolveBreakpoint (bp, bp.Breakpoint, out bool insideLoadedRange);
 				}
 			}
 		}
@@ -3549,5 +3651,34 @@ namespace Mono.Debugging.Soft
 			base ("Could not connect to the debugger.", ex)
 		{
 		}
+	}
+
+	public sealed class TracerSymbolServer : ITracer
+	{
+		private readonly OutputWriterDelegate writer;
+
+		public TracerSymbolServer (OutputWriterDelegate writer)
+		{
+			this.writer = writer;
+		}
+
+		public void WriteLine (string message) => writer?.Invoke (false, message);
+
+		public void WriteLine (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
+
+		public void Information (string message) => writer?.Invoke (false, message);
+
+		public void Information (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
+
+		public void Warning (string message) => writer?.Invoke (false, message);
+		public void Warning (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
+
+		public void Error (string message) => writer?.Invoke (false, message);
+
+		public void Error (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
+
+		public void Verbose (string message) => writer?.Invoke (false, message);
+
+		public void Verbose (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
 	}
 }

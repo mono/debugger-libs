@@ -6,6 +6,7 @@ using System.IO;
 
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using Microsoft.FileFormats.PE;
 
 #if ENABLE_CECIL
 using Mono.Cecil;
@@ -158,7 +159,11 @@ namespace Mono.Debugger.Soft
 				return meta = Mono.Cecil.AssemblyDefinition.ReadAssembly (ms);
 		}
 #endif
-
+		public bool GetPdbInfo (out int age, out Guid guid, out string pdbPath, out bool isPortableCodeView, out PdbChecksum[] pdbChecksums)
+		{
+			return vm.conn.Assembly_GetDebugDirectoryInformation (id, out age, out guid, out pdbPath, out isPortableCodeView, out pdbChecksums);
+		}
+		
 		public byte[] GetMetadataBlob () {
 			if (metadata_blob != null)
 				return metadata_blob;
