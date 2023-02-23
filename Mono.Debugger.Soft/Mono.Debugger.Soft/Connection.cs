@@ -569,7 +569,7 @@ namespace Mono.Debugger.Soft
 			GET_METHOD_FROM_TOKEN = 12,
 			HAS_DEBUG_INFO = 13,
 			GET_CATTRS = 14,
-			GET_DEBUG_INFORMATION = 16
+			GET_DEBUG_INFORMATION = 17
 		}
 
 		enum CmdModule {
