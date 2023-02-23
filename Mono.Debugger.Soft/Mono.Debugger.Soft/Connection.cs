@@ -2446,17 +2446,20 @@ namespace Mono.Debugger.Soft
 		}
 		internal bool Assembly_GetDebugDirectoryInformation (long id, out int age, out Guid guid, out string pdbPath, out bool isPortableCodeView, out PdbChecksum[] pdbChecksums)
 		{
-			List<PdbChecksum> pdbChecksumsList = new List<PdbChecksum> ();
+			age = 0;
+			guid = Guid.Empty;
+			pdbPath = "";
+			isPortableCodeView = false;
+			pdbChecksums = null;
+
+			if (!Version.AtLeast (2, 63))
+				return false;
+			
 			var packet = SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.GET_DEBUG_INFORMATION, new PacketWriter ().WriteId (id));
 			if (packet.ReadByte () == 0) //is embedded pdb or don't have debug info
-			{
-				age = 0;
-				guid = Guid.Empty;
-				pdbPath = "";
-				isPortableCodeView = false;
-				pdbChecksums = pdbChecksumsList.ToArray ();
 				return false;
-			}
+
+			List<PdbChecksum> pdbChecksumsList = new List<PdbChecksum> ();
 			age = packet.ReadInt ();
 			guid = new Guid(packet.ReadByteArray ());
 			pdbPath = packet.ReadString ();
