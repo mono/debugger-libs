@@ -151,7 +151,7 @@ namespace Mono.Debugging.Soft
 
 			if (fileName ==  null) {
 
-				var ppdb = session.GetPdbData (frame.Method.DeclaringType.Assembly);
+				var ppdb = session.GetPdbData (frame.Method);
 				if (ppdb != null) {
 					(int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files) = ppdb.GetDebugInfoFromPdb (method);
 					frame.Method.SetDebugInfoFromPdb (max_il_offset, il_offsets, line_numbers, column_numbers, end_line_numbers, end_column_numbers, source_files);

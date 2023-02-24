@@ -73,8 +73,12 @@ namespace Mono.Debugging.Soft
 		readonly List<BreakInfo> pending_bes = new List<BreakInfo> ();
 		TypeLoadEventRequest typeLoadReq, typeLoadTypeNameReq;
 		ExceptionEventRequest unhandledExceptionRequest;
-		Dictionary<string, string> assemblyPathMap;
-		Dictionary<string, string> symbolPathMap;
+		public Dictionary<string, string> AssemblyPathMap {
+			get; internal set;
+		}
+		public Dictionary<string, string> SymbolPathMap {
+			get; internal set;
+		}
 		Dictionary<AssemblyMirror, PortablePdbData> symbolServerPPDB = new Dictionary<AssemblyMirror, PortablePdbData>();
 		Dictionary<AssemblyMirror, PortablePdbData> otherLoadedPPDB = new Dictionary<AssemblyMirror, PortablePdbData> ();
 		List<AssemblyMirror> assembliesWithoutPPDB = new List<AssemblyMirror> ();
@@ -87,6 +91,9 @@ namespace Mono.Debugging.Soft
 		SoftDebuggerStartArgs startArgs;
 		List<string> userAssemblyNames;
 		List<SourceUpdate> sourceUpdates;
+		public DebugSymbolsManager DebugSymbolsManager {
+			get;
+		}
 		ThreadInfo[] current_threads;
 		string remoteProcessName;
 		long currentAddress = -1;
@@ -98,6 +105,7 @@ namespace Mono.Debugging.Soft
 		bool autoStepInto;
 		bool disposed;
 		bool started;
+		bool justMyCode;
 
 		internal int StackVersion;
 
@@ -107,13 +115,24 @@ namespace Mono.Debugging.Soft
 			get; private set;
 		}
 
+		public bool JustMyCode {
+			get { return justMyCode && Options.ProjectAssembliesOnly; }
+			set {
+				var oldValue = justMyCode;
+				justMyCode = value;
+				if (oldValue == true && oldValue != value) {
+					DebugSymbolsManager.TryLoadSymbolFromSymbolServerIfNeeded ();
+				}
+			}
+		}
+
 		public SoftDebuggerSession ()
 		{
 			Adaptor = CreateSoftDebuggerAdaptor ();
 			Adaptor.BusyStateChanged += (sender, e) => SetBusyState (e);
 			Adaptor.DebuggerSession = this;
 			sourceUpdates = new List<SourceUpdate> ();
-			_tracer = new TracerSymbolServer (this.LogWriter);
+			DebugSymbolsManager = new DebugSymbolsManager (this);
 		}
 
 		protected virtual SoftDebuggerAdaptor CreateSoftDebuggerAdaptor ()
@@ -642,60 +661,25 @@ namespace Mono.Debugging.Soft
 				assemblyFilters = new List<AssemblyMirror> ();
 				userAssemblyNames = dsi.UserAssemblyNames.Select (x => x.ToString ()).ToList ();
 			}
-			
-			assemblyPathMap = dsi.AssemblyPathMap;
-			if (assemblyPathMap == null)
-				assemblyPathMap = new Dictionary<string, string> ();
+
+			AssemblyPathMap = dsi.AssemblyPathMap;
+			if (AssemblyPathMap == null)
+				AssemblyPathMap = new Dictionary<string, string> ();
 
 			if (dsi.SymbolPathMap == null)
-				symbolPathMap = new Dictionary<string, string>();
+				SymbolPathMap = new Dictionary<string, string>();
 			else
-				symbolPathMap = dsi.SymbolPathMap;
+				SymbolPathMap = dsi.SymbolPathMap;
 		}
 
 		public void AddOrReplaceAssemblyPathMap(string assembly, string path)
 		{
-			assemblyPathMap[assembly] = path;
+			AssemblyPathMap[assembly] = path;
 		}
 
 		public void AddOrReplaceSymbolPathMap (string assembly, string path)
 		{
-			symbolPathMap[assembly] = path;
-		}
-		public string HasSymbolLoaded (AssemblyMirror assembly)
-		{
-			if (symbolPathMap.TryGetValue (assembly.Location, out string symbolPath))
-				return symbolPath;
-			if (otherLoadedPPDB.ContainsKey (assembly))
-				return "Dynamically loaded";
-			return null;
-		}
-		public bool ForceLoadSymbolFromAssembly (AssemblyMirror assembly)
-		{
-			if (HasSymbolLoaded (assembly) != null)
-				return true;
-			return TryLoadSymbolFromSymbolServerIfNeeded (assembly).Result;
-		}
-
-		private string symbolCachePath;
-		private string[] symbolServerUrls;
-		private SymbolStore symbolStore;
-
-		public void SetSymbolCache(string symbolCachePath)
-		{
-			this.symbolCachePath = symbolCachePath;
-			symbolStore = null;
-		}
-
-		public void SetSymbolServerUrl (string[] symbolServerUrls)
-		{
-			this.symbolServerUrls = symbolServerUrls;
-			symbolStore = null;
-			var assembliesToTryToLoadPPDB = assembliesWithoutPPDB.ToList ();
-			assembliesWithoutPPDB.Clear ();
-			foreach (var asm in assembliesToTryToLoadPPDB) {
-				TryLoadSymbolFromSymbolServerIfNeeded (asm);
-			}
+			SymbolPathMap[assembly] = path;
 		}
 
 		protected bool SetSocketTimeouts (int sendTimeout, int receiveTimeout, int keepaliveInterval)
@@ -945,44 +929,9 @@ namespace Mono.Debugging.Soft
 			return new [] { new ProcessInfo (procs[0].Id, procs[0].Name) };
 		}
 
-		internal PortablePdbData GetPdbData (AssemblyMirror asm)
-		{
-			string pdbFileName;
-			PortablePdbData portablePdb = null;
-			if (symbolServerPPDB.TryGetValue(asm, out portablePdb)) {
-				return portablePdb;
-			}
-			if (otherLoadedPPDB.TryGetValue (asm, out portablePdb)) {
-				return portablePdb;
-			}
-			if (assembliesWithoutPPDB.Contains(asm)) {
-				return null;
-			}
-			if (!symbolPathMap.TryGetValue(asm.GetName().FullName, out pdbFileName) || Path.GetExtension(pdbFileName) != ".pdb")
-			{
-				string assemblyFileName;
-				if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
-					assemblyFileName = asm.Location;
-				pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
-			}
-			if (PortablePdbData.IsPortablePdb (pdbFileName)) {
-				portablePdb = new PortablePdbData (pdbFileName);
-			}
-			else {
-				// Attempt to fetch pdb from the debuggee over the wire
-				var pdbBlob = asm.GetPdbBlob ();
-				portablePdb = pdbBlob != null ? new PortablePdbData (pdbBlob) : null;
-			}
-			if (portablePdb == null)
-				assembliesWithoutPPDB.Add (asm);
-			else
-				otherLoadedPPDB.Add (asm, portablePdb);
-			return portablePdb;
-		}
-
 		internal PortablePdbData GetPdbData (MethodMirror method)
 		{
-			return GetPdbData (method.DeclaringType.Assembly);
+			return DebugSymbolsManager.GetPdbData (method.DeclaringType.Assembly);
 		}
 
 		readonly Dictionary<AssemblyMirror, SourceLinkMap []> SourceLinkCache = new Dictionary<AssemblyMirror, SourceLinkMap []> ();
@@ -1003,7 +952,7 @@ namespace Mono.Debugging.Soft
 			}
 			if (jsonString == "") {
 				// Read the pdb ourselves
-				jsonString = GetPdbData (asm)?.GetSourceLinkBlob ();
+				jsonString = DebugSymbolsManager.GetPdbData (asm)?.GetSourceLinkBlob ();
 			}
 
 			if (!string.IsNullOrWhiteSpace(jsonString)) {
@@ -1300,7 +1249,7 @@ namespace Mono.Debugging.Soft
 			}
 
 			if (!found) {
-				var location = FindLocationsByFileInPdbLoadedFromSymbolServer (breakpoint.FileName, breakpoint.Line, breakpoint.Column);
+				var location = DebugSymbolsManager.FindLocationsByFileInPdbLoadedFromSymbolServer (breakpoint.FileName, breakpoint.Line, breakpoint.Column);
 				if (location != null) {
 					breakInfo.Location = location;
 					InsertBreakpoint (breakpoint, breakInfo);
@@ -1309,16 +1258,6 @@ namespace Mono.Debugging.Soft
 				}
 			}
 			return found;
-		}
-
-		private Location FindLocationsByFileInPdbLoadedFromSymbolServer (string fileName, int line, int column)
-		{
-			foreach (var symbolServerPPDB in symbolServerPPDB) {
-				var location = symbolServerPPDB.Value.GetLocationByFileName (symbolServerPPDB.Key, fileName, line, column);
-				if (location != null)
-					return location;
-			}
-			return null;
 		}
 
 		void UpdateTypeLoadFilters()
@@ -2359,57 +2298,7 @@ namespace Mono.Debugging.Soft
 			);
 
 			OnAssemblyLoaded (assembly);
-			TryLoadSymbolFromSymbolServerIfNeeded (asm);
-		}
-		internal void CreateSymbolStore ()
-		{
-			foreach (var urlServer in symbolServerUrls) {
-				if (string.IsNullOrEmpty (urlServer))
-					continue;
-				try {
-					symbolStore = new HttpSymbolStore (_tracer, symbolStore, new Uri ($"{urlServer}/"), null);
-				} catch (Exception ex) {
-					OnDebuggerOutput (false, $"Failed to create HttpSymbolStore for this URL - {urlServer} - {ex.Message}");
-				}
-			}
-			if (!string.IsNullOrEmpty (symbolCachePath)) {
-				try {
-					symbolStore = new CacheSymbolStore (_tracer, symbolStore, symbolCachePath);
-				} catch (Exception ex) {
-					OnDebuggerOutput (false, $"Failed to create CacheSymbolStore for this path - {symbolCachePath} - {ex.Message}");
-				}
-			}
-		}
-
-		private async Task<bool> TryLoadSymbolFromSymbolServerIfNeeded (AssemblyMirror asm)
-		{
-			if (symbolPathMap.ContainsKey(asm.GetName ().FullName))
-				return false;
-			if (assembliesWithoutPPDB.Contains (asm))
-				return false;
-			if (symbolStore == null)
-				CreateSymbolStore ();
-			if (symbolStore == null)
-				return false;
-			if (asm.GetPdbInfo (out int age, out Guid guid, out string pdbPath, out bool isPortableCodeView, out PdbChecksum[] pdbChecksums) == false)
-				return false;
-			var pdbName = Path.GetFileName (pdbPath);
-			var pdbGuid = guid.ToString ("N").ToUpperInvariant () + (isPortableCodeView ? "FFFFFFFF" : age.ToString());
-			var key = $"{pdbName}/{pdbGuid}/{pdbName}";
-			SymbolStoreFile file = await symbolStore.GetFile (new SymbolStoreKey (key, pdbPath, false, pdbChecksums), new CancellationTokenSource ().Token).ConfigureAwait(false);
-			if (file != null) {
-				symbolPathMap[asm.GetName ().FullName] = Path.Combine (symbolCachePath, key);
-				var portablePdb = GetPdbData (asm);
-				if (portablePdb != null) {
-					symbolServerPPDB[asm] = portablePdb;
-					TryResolvePendingBreakpoints ();
-				}
-				else {
-					assembliesWithoutPPDB.Add (asm);
-					return false;
-				}
-			}
-			return true;
+			DebugSymbolsManager.TryLoadSymbolFromSymbolServerIfNeeded (asm);
 		}
 
 		void RegisterAssembly (AssemblyMirror asm)
@@ -2590,7 +2479,7 @@ namespace Mono.Debugging.Soft
 			TryResolvePendingBreakpoints ();
 		}
 
-		private void TryResolvePendingBreakpoints ()
+		public void TryResolvePendingBreakpoints ()
 		{
 			foreach (var bp in pending_bes) {
 				if (bp.Status != BreakEventStatus.Bound) {
@@ -3693,34 +3582,5 @@ namespace Mono.Debugging.Soft
 			base ("Could not connect to the debugger.", ex)
 		{
 		}
-	}
-
-	public sealed class TracerSymbolServer : ITracer
-	{
-		private readonly OutputWriterDelegate writer;
-
-		public TracerSymbolServer (OutputWriterDelegate writer)
-		{
-			this.writer = writer;
-		}
-
-		public void WriteLine (string message) => writer?.Invoke (false, message);
-
-		public void WriteLine (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
-
-		public void Information (string message) => writer?.Invoke (false, message);
-
-		public void Information (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
-
-		public void Warning (string message) => writer?.Invoke (false, message);
-		public void Warning (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
-
-		public void Error (string message) => writer?.Invoke (false, message);
-
-		public void Error (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
-
-		public void Verbose (string message) => writer?.Invoke (false, message);
-
-		public void Verbose (string format, params object[] arguments) => writer?.Invoke (false, string.Format (format, arguments));
 	}
 }
