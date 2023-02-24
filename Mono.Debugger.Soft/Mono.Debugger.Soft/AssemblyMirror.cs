@@ -159,6 +159,11 @@ namespace Mono.Debugger.Soft
 				return meta = Mono.Cecil.AssemblyDefinition.ReadAssembly (ms);
 		}
 #endif
+		public bool HasDebugInfoLoaded()
+		{
+			return vm.conn.Assembly_HasDebugInfoLoaded (id);
+		}
+
 		public bool GetPdbInfo (out int age, out Guid guid, out string pdbPath, out bool isPortableCodeView, out PdbChecksum[] pdbChecksums)
 		{
 			return vm.conn.Assembly_GetDebugDirectoryInformation (id, out age, out guid, out pdbPath, out isPortableCodeView, out pdbChecksums);

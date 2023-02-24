@@ -569,7 +569,8 @@ namespace Mono.Debugger.Soft
 			GET_METHOD_FROM_TOKEN = 12,
 			HAS_DEBUG_INFO = 13,
 			GET_CATTRS = 14,
-			GET_DEBUG_INFORMATION = 17
+			GET_DEBUG_INFORMATION = 17,
+			HAS_DEBUG_INFO_LOADED = 18,
 		}
 
 		enum CmdModule {
@@ -2444,6 +2445,14 @@ namespace Mono.Debugger.Soft
 		internal bool Assembly_HasDebugInfo (long id) {
 			return SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.HAS_DEBUG_INFO, new PacketWriter ().WriteId (id)).ReadBool ();
 		}
+
+		internal bool Assembly_HasDebugInfoLoaded (long id)
+		{
+			if (!Version.AtLeast (2, 63))
+				return false;
+			return SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.HAS_DEBUG_INFO_LOADED, new PacketWriter ().WriteId (id)).ReadBool () ;
+		}
+
 		internal bool Assembly_GetDebugDirectoryInformation (long id, out int age, out Guid guid, out string pdbPath, out bool isPortableCodeView, out PdbChecksum[] pdbChecksums)
 		{
 			age = 0;

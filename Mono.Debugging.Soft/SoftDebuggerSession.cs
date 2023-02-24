@@ -76,6 +76,8 @@ namespace Mono.Debugging.Soft
 		Dictionary<string, string> assemblyPathMap;
 		Dictionary<string, string> symbolPathMap;
 		Dictionary<AssemblyMirror, PortablePdbData> symbolServerPPDB = new Dictionary<AssemblyMirror, PortablePdbData>();
+		Dictionary<AssemblyMirror, PortablePdbData> otherLoadedPPDB = new Dictionary<AssemblyMirror, PortablePdbData> ();
+		List<AssemblyMirror> assembliesWithoutPPDB = new List<AssemblyMirror> ();
 		ThreadMirror current_thread, recent_thread;
 		List<AssemblyMirror> assemblyFilters;
 		StepEventRequest currentStepRequest;
@@ -660,6 +662,20 @@ namespace Mono.Debugging.Soft
 		{
 			symbolPathMap[assembly] = path;
 		}
+		public string HasSymbolLoaded (AssemblyMirror assembly)
+		{
+			if (symbolPathMap.TryGetValue (assembly.Location, out string symbolPath))
+				return symbolPath;
+			if (otherLoadedPPDB.ContainsKey (assembly))
+				return "Dynamically loaded";
+			return null;
+		}
+		public bool ForceLoadSymbolFromAssembly (AssemblyMirror assembly)
+		{
+			if (HasSymbolLoaded (assembly) != null)
+				return true;
+			return TryLoadSymbolFromSymbolServerIfNeeded (assembly).Result;
+		}
 
 		private string symbolCachePath;
 		private string[] symbolServerUrls;
@@ -675,6 +691,11 @@ namespace Mono.Debugging.Soft
 		{
 			this.symbolServerUrls = symbolServerUrls;
 			symbolStore = null;
+			var assembliesToTryToLoadPPDB = assembliesWithoutPPDB.ToList ();
+			assembliesWithoutPPDB.Clear ();
+			foreach (var asm in assembliesToTryToLoadPPDB) {
+				TryLoadSymbolFromSymbolServerIfNeeded (asm);
+			}
 		}
 
 		protected bool SetSocketTimeouts (int sendTimeout, int receiveTimeout, int keepaliveInterval)
@@ -931,6 +952,12 @@ namespace Mono.Debugging.Soft
 			if (symbolServerPPDB.TryGetValue(asm, out portablePdb)) {
 				return portablePdb;
 			}
+			if (otherLoadedPPDB.TryGetValue (asm, out portablePdb)) {
+				return portablePdb;
+			}
+			if (assembliesWithoutPPDB.Contains(asm)) {
+				return null;
+			}
 			if (!symbolPathMap.TryGetValue(asm.GetName().FullName, out pdbFileName) || Path.GetExtension(pdbFileName) != ".pdb")
 			{
 				string assemblyFileName;
@@ -938,11 +965,19 @@ namespace Mono.Debugging.Soft
 					assemblyFileName = asm.Location;
 				pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
 			}
-			if (PortablePdbData.IsPortablePdb (pdbFileName))
-				return new PortablePdbData (pdbFileName);
-			// Attempt to fetch pdb from the debuggee over the wire
-			var pdbBlob = asm.GetPdbBlob ();
-			return pdbBlob != null ? new PortablePdbData (pdbBlob) : null;
+			if (PortablePdbData.IsPortablePdb (pdbFileName)) {
+				portablePdb = new PortablePdbData (pdbFileName);
+			}
+			else {
+				// Attempt to fetch pdb from the debuggee over the wire
+				var pdbBlob = asm.GetPdbBlob ();
+				portablePdb = pdbBlob != null ? new PortablePdbData (pdbBlob) : null;
+			}
+			if (portablePdb == null)
+				assembliesWithoutPPDB.Add (asm);
+			else
+				otherLoadedPPDB.Add (asm, portablePdb);
+			return portablePdb;
 		}
 
 		internal PortablePdbData GetPdbData (MethodMirror method)
@@ -993,7 +1028,8 @@ namespace Mono.Debugging.Soft
 		{
 			if (originalFileName == null)
 				return null;
-
+			if (File.Exists (originalFileName))
+				return null;
 			var maps = GetSourceLinkMaps (method);
 			if (maps == null || maps.Length == 0)
 				return null;
@@ -2349,6 +2385,8 @@ namespace Mono.Debugging.Soft
 		{
 			if (symbolPathMap.ContainsKey(asm.GetName ().FullName))
 				return false;
+			if (assembliesWithoutPPDB.Contains (asm))
+				return false;
 			if (symbolStore == null)
 				CreateSymbolStore ();
 			if (symbolStore == null)
@@ -2365,6 +2403,10 @@ namespace Mono.Debugging.Soft
 				if (portablePdb != null) {
 					symbolServerPPDB[asm] = portablePdb;
 					TryResolvePendingBreakpoints ();
+				}
+				else {
+					assembliesWithoutPPDB.Add (asm);
+					return false;
 				}
 			}
 			return true;
