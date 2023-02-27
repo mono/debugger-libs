@@ -117,13 +117,16 @@ namespace Mono.Debugging.Soft
 
 		public bool JustMyCode {
 			get { return justMyCode && Options.ProjectAssembliesOnly; }
-			set {
-				var oldValue = justMyCode;
-				justMyCode = value;
-				if (oldValue == true && oldValue != value) {
-					DebugSymbolsManager.TryLoadSymbolFromSymbolServerIfNeeded ();
-				}
+		}
+
+		public async Task<bool> SetJustMyCode(bool value)
+		{
+			var oldValue = justMyCode;
+			justMyCode = value;
+			if (oldValue == true && oldValue != value) {
+				await DebugSymbolsManager.TryLoadSymbolFromSymbolServerIfNeeded ();
 			}
+			return true;
 		}
 
 		public SoftDebuggerSession ()

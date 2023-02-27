@@ -68,18 +68,18 @@ namespace Mono.Debugging.Soft
 			symbolStore = null;
 		}
 
-		public void SetSymbolServerUrl (string[] symbolServerUrls)
+		public async Task SetSymbolServerUrl (string[] symbolServerUrls)
 		{
 			this.symbolServerUrls = symbolServerUrls;
 			symbolStore = null;
-			TryLoadSymbolFromSymbolServerIfNeeded ();
+			await TryLoadSymbolFromSymbolServerIfNeeded ();
 		}
 
-		public void TryLoadSymbolFromSymbolServerIfNeeded ()
+		public async Task TryLoadSymbolFromSymbolServerIfNeeded ()
 		{
 			var assembliesToTryToLoadPPDB = symbolsByAssembly.Where (asm => asm.Value.Status == SymbolStatus.NotFound || asm.Value.Status == SymbolStatus.NotTriedToLoad).ToList ();
 			foreach (var asm in assembliesToTryToLoadPPDB) {
-				TryLoadSymbolFromSymbolServerIfNeeded (asm.Key);
+				await TryLoadSymbolFromSymbolServerIfNeeded (asm.Key);
 			}
 		}
 
@@ -149,9 +149,7 @@ namespace Mono.Debugging.Soft
 			if (session.SymbolPathMap.ContainsKey (asmName))
 				return true;
 			if (symbolsByAssembly.TryGetValue (asm, out var symbolsInfo)) {
-				if (symbolsInfo.Status == SymbolStatus.NotFound)
-					return false;
-				if (symbolsInfo.Status != SymbolStatus.NotTriedToLoad)
+				if (symbolsInfo.PdbData != null)
 					return true;
 			}
 			if (session.JustMyCode) {
@@ -167,7 +165,7 @@ namespace Mono.Debugging.Soft
 			var pdbName = Path.GetFileName (pdbPath);
 			var pdbGuid = guid.ToString ("N").ToUpperInvariant () + (isPortableCodeView ? "FFFFFFFF" : age.ToString ());
 			var key = $"{pdbName}/{pdbGuid}/{pdbName}";
-			SymbolStoreFile file = await symbolStore.GetFile (new SymbolStoreKey (key, pdbPath, false, pdbChecksums), new CancellationTokenSource ().Token).ConfigureAwait (false);
+			SymbolStoreFile file = await symbolStore.GetFile (new SymbolStoreKey (key, pdbPath, false, pdbChecksums), new CancellationTokenSource ().Token);
 			if (file != null) {
 				session.SymbolPathMap[asmName] = Path.Combine (symbolCachePath, key);
 				var portablePdb = GetPdbData (asm, true);
