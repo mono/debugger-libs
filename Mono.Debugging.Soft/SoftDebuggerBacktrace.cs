@@ -75,6 +75,7 @@ namespace Mono.Debugging.Soft
 						}
 					}
 					catch (Exception) {
+						DC.DebuggerLoggingService.LogMessage ($"File with uri={location.SourceLink.Uri} is not available for download");
 						//expected exception when file is not available for download
 					}
 				}
