@@ -50,6 +50,11 @@ using Mono.Debugging.Evaluation;
 using StackFrame = Mono.Debugger.Soft.StackFrame;
 using System.Collections.Immutable;
 using Assembly = Mono.Debugging.Client.Assembly;
+using Microsoft.SymbolStore.SymbolStores;
+using Microsoft.SymbolStore;
+using System.Threading.Tasks;
+using static System.Collections.Specialized.BitVector32;
+using Microsoft.FileFormats.PE;
 
 namespace Mono.Debugging.Soft
 {
@@ -68,8 +73,15 @@ namespace Mono.Debugging.Soft
 		readonly List<BreakInfo> pending_bes = new List<BreakInfo> ();
 		TypeLoadEventRequest typeLoadReq, typeLoadTypeNameReq;
 		ExceptionEventRequest unhandledExceptionRequest;
-		Dictionary<string, string> assemblyPathMap;
-		Dictionary<string, string> symbolPathMap;
+		public Dictionary<string, string> AssemblyPathMap {
+			get; internal set;
+		}
+		public Dictionary<string, string> SymbolPathMap {
+			get; internal set;
+		}
+		Dictionary<AssemblyMirror, PortablePdbData> symbolServerPPDB = new Dictionary<AssemblyMirror, PortablePdbData>();
+		Dictionary<AssemblyMirror, PortablePdbData> otherLoadedPPDB = new Dictionary<AssemblyMirror, PortablePdbData> ();
+		List<AssemblyMirror> assembliesWithoutPPDB = new List<AssemblyMirror> ();
 		ThreadMirror current_thread, recent_thread;
 		List<AssemblyMirror> assemblyFilters;
 		StepEventRequest currentStepRequest;
@@ -79,6 +91,9 @@ namespace Mono.Debugging.Soft
 		SoftDebuggerStartArgs startArgs;
 		List<string> userAssemblyNames;
 		List<SourceUpdate> sourceUpdates;
+		public DebugSymbolsManager DebugSymbolsManager {
+			get;
+		}
 		ThreadInfo[] current_threads;
 		string remoteProcessName;
 		long currentAddress = -1;
@@ -90,11 +105,28 @@ namespace Mono.Debugging.Soft
 		bool autoStepInto;
 		bool disposed;
 		bool started;
+		bool justMyCode;
 
 		internal int StackVersion;
 
+		private readonly ITracer _tracer;
+
 		public SoftDebuggerAdaptor Adaptor {
 			get; private set;
+		}
+
+		public bool JustMyCode {
+			get { return justMyCode && Options.ProjectAssembliesOnly; }
+		}
+
+		public async Task<bool> SetJustMyCode(bool value)
+		{
+			var oldValue = justMyCode;
+			justMyCode = value;
+			if (oldValue == true && oldValue != value) {
+				await DebugSymbolsManager.TryLoadSymbolFromSymbolServerIfNeeded ();
+			}
+			return true;
 		}
 
 		public SoftDebuggerSession ()
@@ -103,6 +135,7 @@ namespace Mono.Debugging.Soft
 			Adaptor.BusyStateChanged += (sender, e) => SetBusyState (e);
 			Adaptor.DebuggerSession = this;
 			sourceUpdates = new List<SourceUpdate> ();
+			DebugSymbolsManager = new DebugSymbolsManager (this);
 		}
 
 		protected virtual SoftDebuggerAdaptor CreateSoftDebuggerAdaptor ()
@@ -627,29 +660,29 @@ namespace Mono.Debugging.Soft
 		
 		void RegisterUserAssemblies (SoftDebuggerStartInfo dsi)
 		{
-			if (Options.ProjectAssembliesOnly && dsi.UserAssemblyNames != null) {
+			if (dsi.UserAssemblyNames != null) {
 				assemblyFilters = new List<AssemblyMirror> ();
 				userAssemblyNames = dsi.UserAssemblyNames.Select (x => x.ToString ()).ToList ();
 			}
-			
-			assemblyPathMap = dsi.AssemblyPathMap;
-			if (assemblyPathMap == null)
-				assemblyPathMap = new Dictionary<string, string> ();
+
+			AssemblyPathMap = dsi.AssemblyPathMap;
+			if (AssemblyPathMap == null)
+				AssemblyPathMap = new Dictionary<string, string> ();
 
 			if (dsi.SymbolPathMap == null)
-				symbolPathMap = new Dictionary<string, string>();
+				SymbolPathMap = new Dictionary<string, string>();
 			else
-				symbolPathMap = dsi.SymbolPathMap;
+				SymbolPathMap = dsi.SymbolPathMap;
 		}
 
 		public void AddOrReplaceAssemblyPathMap(string assembly, string path)
 		{
-			assemblyPathMap[assembly] = path;
+			AssemblyPathMap[assembly] = path;
 		}
 
 		public void AddOrReplaceSymbolPathMap (string assembly, string path)
 		{
-			symbolPathMap[assembly] = path;
+			SymbolPathMap[assembly] = path;
 		}
 
 		protected bool SetSocketTimeouts (int sendTimeout, int receiveTimeout, int keepaliveInterval)
@@ -899,26 +932,9 @@ namespace Mono.Debugging.Soft
 			return new [] { new ProcessInfo (procs[0].Id, procs[0].Name) };
 		}
 
-		internal PortablePdbData GetPdbData (AssemblyMirror asm)
-		{
-			string pdbFileName;
-			if (!symbolPathMap.TryGetValue(asm.GetName().FullName, out pdbFileName) || Path.GetExtension(pdbFileName) != ".pdb")
-			{
-				string assemblyFileName;
-				if (!assemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
-					assemblyFileName = asm.Location;
-				pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
-			}
-			if (PortablePdbData.IsPortablePdb (pdbFileName))
-				return new PortablePdbData (pdbFileName);
-			// Attempt to fetch pdb from the debuggee over the wire
-			var pdbBlob = asm.GetPdbBlob ();
-			return pdbBlob != null ? new PortablePdbData (pdbBlob) : null;
-		}
-
 		internal PortablePdbData GetPdbData (MethodMirror method)
 		{
-			return GetPdbData (method.DeclaringType.Assembly);
+			return DebugSymbolsManager.GetPdbData (method.DeclaringType.Assembly);
 		}
 
 		readonly Dictionary<AssemblyMirror, SourceLinkMap []> SourceLinkCache = new Dictionary<AssemblyMirror, SourceLinkMap []> ();
@@ -928,7 +944,7 @@ namespace Mono.Debugging.Soft
 			SourceLinkMap[] maps;
 
 			lock (SourceLinkCache) {
-				if (SourceLinkCache.TryGetValue (asm, out maps))
+				if (SourceLinkCache.TryGetValue (asm, out maps) && maps.Count() > 0)
 					return maps;
 			}
 
@@ -936,9 +952,10 @@ namespace Mono.Debugging.Soft
 
 			if (asm.VirtualMachine.Version.AtLeast (2, 48)) {
 				jsonString = asm.ManifestModule.SourceLink;
-			} else {
+			}
+			if (jsonString == "") {
 				// Read the pdb ourselves
-				jsonString = GetPdbData (asm)?.GetSourceLinkBlob ();
+				jsonString = DebugSymbolsManager.GetPdbData (asm)?.GetSourceLinkBlob ();
 			}
 
 			if (!string.IsNullOrWhiteSpace(jsonString)) {
@@ -963,7 +980,8 @@ namespace Mono.Debugging.Soft
 		{
 			if (originalFileName == null)
 				return null;
-
+			if (File.Exists (originalFileName))
+				return null;
 			var maps = GetSourceLinkMaps (method);
 			if (maps == null || maps.Length == 0)
 				return null;
@@ -1175,17 +1193,8 @@ namespace Mono.Debugging.Soft
 				bool found = false;
 
 				breakInfo.FileName = breakpoint.FileName;
-
-				foreach (var location in FindLocationsByFile (breakpoint.FileName, breakpoint.Line, breakpoint.Column, out _, out insideLoadedRange)) {
-					OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
-					                                        breakpoint.FileName, breakpoint.Line, breakpoint.Column,
-															GetPrettyMethodName (location.Method), location.ILOffset));
-
-					breakInfo.Location = location;
-					InsertBreakpoint (breakpoint, breakInfo);
-					found = true;
-					breakInfo.SetStatus (BreakEventStatus.Bound, null);
-				}
+				TryResolveBreakpoint (breakInfo, breakpoint, out insideLoadedRange);
+				
 				lock (pending_bes) {
 					pending_bes.Add (breakInfo);
 				}
@@ -1223,6 +1232,35 @@ namespace Mono.Debugging.Soft
 			}
 			UpdateTypeLoadFilters ();
 			return breakInfo;
+		}
+
+		private bool TryResolveBreakpoint (BreakInfo breakInfo, Breakpoint breakpoint, out bool insideLoadedRange)
+		{
+			var found = false;
+			insideLoadedRange = false;
+			if (breakpoint == null)
+				return false;
+			foreach (var location in FindLocationsByFile (breakpoint.FileName, breakpoint.Line, breakpoint.Column, out _, out insideLoadedRange)) {
+				OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
+														breakpoint.FileName, breakpoint.Line, breakpoint.Column,
+														GetPrettyMethodName (location.Method), location.ILOffset));
+
+				breakInfo.Location = location;
+				InsertBreakpoint (breakpoint, breakInfo);
+				found = true;
+				breakInfo.SetStatus (BreakEventStatus.Bound, null);
+			}
+
+			if (!found) {
+				var location = DebugSymbolsManager.FindLocationsByFileInPdbLoadedFromSymbolServer (breakpoint.FileName, breakpoint.Line, breakpoint.Column);
+				if (location != null) {
+					breakInfo.Location = location;
+					InsertBreakpoint (breakpoint, breakInfo);
+					found = true;
+					breakInfo.SetStatus (BreakEventStatus.Bound, null);
+				}
+			}
+			return found;
 		}
 
 		void UpdateTypeLoadFilters()
@@ -1705,9 +1743,9 @@ namespace Mono.Debugging.Soft
 				req.Depth = depth;
 				req.Size = size;
 				req.Filter = ShouldFilterStaticCtor () | StepFilter.DebuggerHidden | StepFilter.DebuggerStepThrough;
-				if (Options.ProjectAssembliesOnly)
+				if (JustMyCode)
 					req.Filter |= StepFilter.DebuggerNonUserCode;
-				if (assemblyFilters != null && assemblyFilters.Count > 0)
+				if (JustMyCode && assemblyFilters != null && assemblyFilters.Count > 0)
 					req.AssemblyFilter = assemblyFilters;
 				try {
 					req.Enabled = true;
@@ -1929,7 +1967,7 @@ namespace Mono.Debugging.Soft
 
 		bool StepThrough (MethodMirror method)
 		{
-			if (Options.ProjectAssembliesOnly && !IsUserAssembly (method.DeclaringType.Assembly))
+			if (JustMyCode && !IsUserAssembly (method.DeclaringType.Assembly))
 				return true;
 
 			//With Sdb 2.30 this logic was moved to Runtime no need to spend time on checking this
@@ -1944,17 +1982,17 @@ namespace Mono.Debugging.Soft
 						case "System.Diagnostics.DebuggerStepThroughAttribute":
 							return true;
 						case "System.Diagnostics.DebuggerNonUserCodeAttribute":
-							return Options.ProjectAssembliesOnly;
+							return JustMyCode;
 						}
 					}
 				}
 
-				if (Options.ProjectAssembliesOnly) {
+				if (JustMyCode) {
 					foreach (var attr in method.DeclaringType.GetCustomAttributes (false)) {
 						var attrName = attr.Constructor.DeclaringType.FullName;
 
 						if (attrName == "System.Diagnostics.DebuggerNonUserCodeAttribute")
-							return Options.ProjectAssembliesOnly;
+							return JustMyCode;
 					}
 				}
 			}
@@ -1985,18 +2023,18 @@ namespace Mono.Debugging.Soft
 					switch (attrName) {
 					case "System.Diagnostics.DebuggerHiddenAttribute":      return true;
 					case "System.Diagnostics.DebuggerStepThroughAttribute": return true;
-					case "System.Diagnostics.DebuggerNonUserCodeAttribute": return Options.ProjectAssembliesOnly;
+					case "System.Diagnostics.DebuggerNonUserCodeAttribute": return JustMyCode;
 					case "System.Diagnostics.DebuggerStepperBoundaryAttribute": return true;
 					}
 				}
 			}
 
-			if (Options.ProjectAssembliesOnly) {
+			if (JustMyCode) {
 				foreach (var attr in method.DeclaringType.GetCustomAttributes (false)) {
 					var attrName = attr.Constructor.DeclaringType.FullName;
 
 					if (attrName == "System.Diagnostics.DebuggerNonUserCodeAttribute")
-						return Options.ProjectAssembliesOnly;
+						return JustMyCode;
 				}
 			}
 
@@ -2005,12 +2043,12 @@ namespace Mono.Debugging.Soft
 
 		/// <summary>
 		/// Checks all frames in thread where exception occured and if any frame has user code it returns true.
-		/// Also notice that this method already check if Options.ProjectAssembliesOnly==false 
+		/// Also notice that this method already check if JustMyCode==false 
 		/// </summary>
 		bool ExceptionInUserCode (ExceptionEvent ev)
 		{
 			// this is just optimization to prevent need to fetch Frames
-			if (Options.ProjectAssembliesOnly == false)
+			if (JustMyCode == false)
 				return true;
 			foreach (var frame in ev.Thread.GetFrames ()) {
 				if (!IsExternalCode (frame))
@@ -2263,6 +2301,7 @@ namespace Mono.Debugging.Soft
 			);
 
 			OnAssemblyLoaded (assembly);
+			DebugSymbolsManager.TryLoadSymbolFromSymbolServerIfNeeded (asm);
 		}
 
 		void RegisterAssembly (AssemblyMirror asm)
@@ -2440,17 +2479,14 @@ namespace Mono.Debugging.Soft
 					}
 				}
 			}
+			TryResolvePendingBreakpoints ();
+		}
+
+		public void TryResolvePendingBreakpoints ()
+		{
 			foreach (var bp in pending_bes) {
 				if (bp.Status != BreakEventStatus.Bound) {
-					foreach (var location in FindLocationsByFile (bp.Breakpoint.FileName, bp.Breakpoint.Line, bp.Breakpoint.Column, out _, out bool insideLoadedRange)) {
-						OnDebuggerOutput (false, string.Format ("Resolved pending breakpoint at '{0}:{1},{2}' to {3} [0x{4:x5}].\n",
-																bp.Breakpoint.FileName, bp.Breakpoint.Line, bp.Breakpoint.Column,
-																GetPrettyMethodName (location.Method), location.ILOffset));
-
-						bp.Location = location;
-						InsertBreakpoint (bp.Breakpoint, bp);
-						bp.SetStatus (BreakEventStatus.Bound, null);
-					}
+					TryResolveBreakpoint (bp, bp.Breakpoint, out bool insideLoadedRange);
 				}
 			}
 		}

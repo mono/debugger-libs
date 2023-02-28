@@ -248,5 +248,10 @@ namespace Mono.Debugger.Soft
 
 			return Method.GetLocals ().Where (l => l.LiveRangeStart <= location.ILOffset && l.LiveRangeEnd >= location.ILOffset && l.Name == name).FirstOrDefault ();
 		}
-    }
+
+		public void ClearDebugInfoToTryToGetFromLoadedPdb ()
+		{
+			location = null;
+		}
+	}
 }

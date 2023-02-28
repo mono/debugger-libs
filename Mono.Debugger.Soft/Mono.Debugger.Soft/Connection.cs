@@ -6,6 +6,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
+using Microsoft.FileFormats.PE;
 
 namespace Mono.Debugger.Soft
 {
@@ -515,6 +516,7 @@ namespace Mono.Debugger.Soft
 			INVOKE_METHODS = 13,
 			START_BUFFERING = 14,
 			STOP_BUFFERING = 15,
+			READ_MEMORY = 16,
 			GET_ENC_CAPABILITIES = 21
 		}
 
@@ -566,6 +568,9 @@ namespace Mono.Debugger.Soft
 			GET_TYPE_FROM_TOKEN = 11,
 			GET_METHOD_FROM_TOKEN = 12,
 			HAS_DEBUG_INFO = 13,
+			GET_CATTRS = 14,
+			GET_DEBUG_INFORMATION = 17,
+			HAS_DEBUG_INFO_LOADED = 18,
 		}
 
 		enum CmdModule {
@@ -2441,6 +2446,42 @@ namespace Mono.Debugger.Soft
 			return SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.HAS_DEBUG_INFO, new PacketWriter ().WriteId (id)).ReadBool ();
 		}
 
+		internal bool Assembly_HasDebugInfoLoaded (long id)
+		{
+			if (!Version.AtLeast (2, 63))
+				return false;
+			return SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.HAS_DEBUG_INFO_LOADED, new PacketWriter ().WriteId (id)).ReadBool () ;
+		}
+
+		internal bool Assembly_GetDebugDirectoryInformation (long id, out int age, out Guid guid, out string pdbPath, out bool isPortableCodeView, out PdbChecksum[] pdbChecksums)
+		{
+			age = 0;
+			guid = Guid.Empty;
+			pdbPath = "";
+			isPortableCodeView = false;
+			pdbChecksums = null;
+
+			if (!Version.AtLeast (2, 63))
+				return false;
+			
+			var packet = SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.GET_DEBUG_INFORMATION, new PacketWriter ().WriteId (id));
+			if (packet.ReadByte () == 0) //is embedded pdb or don't have debug info
+				return false;
+
+			List<PdbChecksum> pdbChecksumsList = new List<PdbChecksum> ();
+			age = packet.ReadInt ();
+			guid = new Guid(packet.ReadByteArray ());
+			pdbPath = packet.ReadString ();
+			var lenPdbCheckSum = packet.ReadInt ();
+			for (int i = 0; i < lenPdbCheckSum; i++) {
+				var pdbHashType = packet.ReadString ();
+				var pdbChecksum = packet.ReadByteArray ();
+				pdbChecksumsList.Add (new PdbChecksum (pdbHashType, pdbChecksum));
+			}
+			isPortableCodeView = true;
+			pdbChecksums = pdbChecksumsList.ToArray ();
+			return true;
+		}
 		/*
 		 * TYPE
 		 */

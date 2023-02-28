@@ -46,9 +46,6 @@ namespace Mono.Debugging.Client
 		public bool ProjectAssembliesOnly { get; set; }
 		public AutomaticSourceDownload AutomaticSourceLinkDownload { get; set; }
 		public bool DebugSubprocesses { get; set; }
-		public ImmutableArray<SymbolSource> SymbolSearchPaths { get; set; } = ImmutableArray<SymbolSource>.Empty;
-		public bool SearchMicrosoftSymbolServer { get; set; }
-		public bool SearchNuGetSymbolServer { get; set; }
 	}
 
 	[Serializable]
