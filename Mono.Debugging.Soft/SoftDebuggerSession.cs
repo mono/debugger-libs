@@ -2137,8 +2137,8 @@ namespace Mono.Debugging.Soft
 						if (hasBreakInfo) {
 							if (currentRequest is StepEventRequest csr1 &&
 								csr1.Depth != StepDepth.Out &&
-							    binfo.Location.ILOffset == currentAddress && 
-							    e.Thread.Id == csr1.Thread.Id &&
+								binfo.Location.ILOffset == currentAddress && 
+								e.Thread.Id == csr1.Thread.Id &&
 								currentStackDepth == e.Thread.GetFrames ().Length)
 								redoCurrentStep = true;
 						}
