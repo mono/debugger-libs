@@ -1093,7 +1093,6 @@ namespace Mono.Debugging.Evaluation
 		{
 			var vref = Visit (node.Operand);
 			var val = vref.ObjectValue;
-			object newVal;
 			long num;
 
 			switch (node.Kind ()) {
