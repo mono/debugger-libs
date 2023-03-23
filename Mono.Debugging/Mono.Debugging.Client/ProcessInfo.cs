@@ -64,14 +64,14 @@ namespace Mono.Debugging.Client
 
 		public ProcessInfo (string name, string description)
 		{
-			this.name = name;
-			this.description = description;
+			this.name = name ?? string.Empty;
+			this.description = description ?? string.Empty;
 		}
 
 		public ProcessInfo (long id, string name)
 		{
 			this.id = id;
-			this.name = name;
+			this.name = name ?? string.Empty;
 		}
 		
 		public ThreadInfo[] GetThreads ()
