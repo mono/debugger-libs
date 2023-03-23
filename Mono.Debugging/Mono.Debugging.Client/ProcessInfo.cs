@@ -65,7 +65,7 @@ namespace Mono.Debugging.Client
 		public ProcessInfo (string name, string description)
 		{
 			this.name = name ?? string.Empty;
-			this.description = description ?? string.Empty;
+			this.description = description;
 		}
 
 		public ProcessInfo (long id, string name)
