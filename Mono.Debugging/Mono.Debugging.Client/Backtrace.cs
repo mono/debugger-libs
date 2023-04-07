@@ -60,6 +60,13 @@ namespace Mono.Debugging.Client
 			if (index >= frames.Count) {
 				var stackFrames = serverBacktrace.GetStackFrames (frames.Count, index + fetchMultipleCount);
 				foreach (var frame in stackFrames) {
+					if (frame == null) {
+						// This shouldn't happen unless the debugger backend has a bug.
+						// But this is something that has been seen so let's avoid
+						// throwing NREs, which can break VSMac's Call Stack pad.
+						continue;
+					}
+
 					frame.SourceBacktrace = serverBacktrace;
 					frame.Index = frames.Count;
 					frames.Add (frame);
