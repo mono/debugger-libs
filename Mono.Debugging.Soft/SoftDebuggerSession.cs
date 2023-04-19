@@ -2172,7 +2172,7 @@ namespace Mono.Debugging.Soft
 				vm.Resume ();
 				DequeueEventsForFirstThread ();
 			} else {
-				if (currentRequest != null) {
+				if (currentRequest != null && currentRequest is StepEventRequest) {
 					currentRequest.Enabled = false;
 					currentRequest = null;
 				}
