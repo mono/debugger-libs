@@ -1190,10 +1190,9 @@ namespace Mono.Debugging.Soft
 				}
 			} else if (breakEvent is Breakpoint breakpoint) {
 				bool insideLoadedRange;
-				bool found = false;
 
 				breakInfo.FileName = breakpoint.FileName;
-				TryResolveBreakpoint (breakInfo, breakpoint, out insideLoadedRange);
+				bool found = TryResolveBreakpoint (breakInfo, breakpoint, out insideLoadedRange);
 				
 				lock (pending_bes) {
 					pending_bes.Add (breakInfo);
