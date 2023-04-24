@@ -37,6 +37,7 @@ using Mono.Debugging.Evaluation;
 using System.IO;
 using System.Security.Cryptography;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Mono.Debugging.Soft
 {
@@ -65,22 +66,27 @@ namespace Mono.Debugging.Soft
 				}
 				else
 				{
-					try {
-						using (var response = HttpClient.GetStreamAsync (location.SourceLink.Uri).Result) {
-							Directory.CreateDirectory (Path.GetDirectoryName (sourceLinkCachedPath));
-							var fileStream = File.Create (sourceLinkCachedPath);
-							response.CopyTo (fileStream);
-							fileStream.Close ();
-							this.UpdateSourceFile (sourceLinkCachedPath);
-						}
-					}
-					catch (Exception) {
-						DC.DebuggerLoggingService.LogMessage ($"File with uri={location.SourceLink.Uri} is not available for download");
-						//expected exception when file is not available for download
-					}
+					_ = UpdateSourceFileFromSourceLinkServerAsync (location, sourceLinkCachedPath);
 				}
 			}
 		}
+
+		async Task UpdateSourceFileFromSourceLinkServerAsync(SourceLocation location, string sourceLinkCachedPath)
+		{
+			try {
+				using (var response = await HttpClient.GetStreamAsync (location.SourceLink.Uri)) {
+					Directory.CreateDirectory (Path.GetDirectoryName (sourceLinkCachedPath));
+					var fileStream = File.Create (sourceLinkCachedPath);
+					response.CopyTo (fileStream);
+					fileStream.Close ();
+					this.UpdateSourceFile (sourceLinkCachedPath);
+				}
+			} catch (Exception) {
+				DC.DebuggerLoggingService.LogMessage ($"File with uri={location.SourceLink.Uri} is not available for download");
+				//expected exception when file is not available for download
+			}
+		}
+
 		private static string GetHashOfString (string str)
 		{
 			byte[] bytes = _sha256.ComputeHash (UnicodeEncoding.Unicode.GetBytes (str));

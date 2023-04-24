@@ -11,6 +11,7 @@ namespace Mono.Debugging.Client
 	[Serializable]
 	public class StackFrame
 	{
+		readonly object sourceLocationLockObject = new object();
 		long address;
 		string addressSpace;
 		SourceLocation location;
@@ -79,7 +80,11 @@ namespace Mono.Debugging.Client
 		}
 		
 		public SourceLocation SourceLocation {
-			get { return location; }
+			get {
+				lock (sourceLocationLockObject) {
+					return location;
+				}
+			}
 		}
 
 		public long Address {
@@ -341,7 +346,7 @@ namespace Mono.Debugging.Client
 		
 		public string ResolveExpression (string exp)
 		{
-			return session.ResolveExpression (exp, location);
+			return session.ResolveExpression (exp, SourceLocation);
 		}
 		
 		public ObjectValue[] GetExpressionValues (string[] expressions, bool evaluateMethods)
@@ -433,6 +438,8 @@ namespace Mono.Debugging.Client
 		{
 			string loc;
 
+			var location = SourceLocation;
+
 			if (location.Line != -1 && !string.IsNullOrEmpty (location.FileName)) {
 				loc = " at " + location.FileName + ":" + location.Line;
 				if (location.Column != 0)
@@ -448,7 +455,11 @@ namespace Mono.Debugging.Client
 
 		public void UpdateSourceFile (string newFilePath)
 		{
-			location = new SourceLocation (location.MethodName, newFilePath, location.Line, location.Column, location.EndLine, location.EndColumn, location.FileHash, location.SourceLink);
+			var location = SourceLocation;
+
+			lock (sourceLocationLockObject) {
+				location = new SourceLocation (location.MethodName, newFilePath, location.Line, location.Column, location.EndLine, location.EndColumn, location.FileHash, location.SourceLink);
+			}
 		}
 	}
 	
