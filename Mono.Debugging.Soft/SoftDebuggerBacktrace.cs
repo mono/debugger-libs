@@ -156,18 +156,24 @@ namespace Mono.Debugging.Soft
 			int endLineNumber = frame.Location.EndLineNumber;
 			int endColumnNumber = frame.Location.EndColumnNumber;
 
-			if (fileName ==  null) {
-
-				var ppdb = session.GetPdbData (frame.Method);
-				if (ppdb != null) {
-					(int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files) = ppdb.GetDebugInfoFromPdb (method);
-					frame.Method.SetDebugInfoFromPdb (max_il_offset, il_offsets, line_numbers, column_numbers, end_line_numbers, end_column_numbers, source_files);
-					frame.ClearDebugInfoToTryToGetFromLoadedPdb ();
-					fileName = frame.FileName;
-					lineNumber = frame.LineNumber;
-					columnNumber = frame.ColumnNumber;
-					endLineNumber = frame.Location.EndLineNumber;
-					endColumnNumber = frame.Location.EndColumnNumber;
+			if (fileName ==  null && !session.JustMyCode) {
+				try {
+					var ppdb = session.GetPdbData (frame.Method);
+					if (ppdb != null) {
+						(int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files) = ppdb.GetDebugInfoFromPdb (method);
+						if (source_files.Length > 0) {
+							frame.Method.SetDebugInfoFromPdb (max_il_offset, il_offsets, line_numbers, column_numbers, end_line_numbers, end_column_numbers, source_files);
+							frame.ClearDebugInfoToTryToGetFromLoadedPdb ();
+							fileName = frame.FileName;
+							lineNumber = frame.LineNumber;
+							columnNumber = frame.ColumnNumber;
+							endLineNumber = frame.Location.EndLineNumber;
+							endColumnNumber = frame.Location.EndColumnNumber;
+						}
+					}
+				}
+				catch (Exception ex) {
+					DC.DebuggerLoggingService.LogMessage ($"Unable to find debug information from {frame.Method.FullName} - {ex}");
 				}
 			}
 			

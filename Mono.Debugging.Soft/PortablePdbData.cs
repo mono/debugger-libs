@@ -1,4 +1,4 @@
-﻿//
+//
 // PortablePdbData.cs
 //
 // Author:
@@ -182,6 +182,8 @@ namespace Mono.Debugging.Soft
 			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (GetStream ())) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
+				if (methodHandle.IsNil)
+					return (max_il_offset, il_offsets.ToArray (), line_numbers.ToArray (), column_numbers.ToArray (), end_line_numbers.ToArray (), end_column_numbers.ToArray (), source_list.ToArray ());
 				MethodDebugInformation methodDebugInformation = reader.GetMethodDebugInformation (methodHandle);
 				if (!methodDebugInformation.Document.IsNil) {
 					var document = reader.GetDocument (methodDebugInformation.Document);
