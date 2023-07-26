@@ -35,7 +35,6 @@ namespace Mono.Debugger.Soft
 
 	public sealed class StepEventRequest : EventRequest {
 
-		ThreadMirror step_thread;
 		StepDepth depth;
 		StepSize size;
 		StepFilter filter;
@@ -44,21 +43,15 @@ namespace Mono.Debugger.Soft
 			if (thread == null)
 				throw new ArgumentNullException ("thread");
 			CheckMirror (vm, thread);
-			this.step_thread = thread;
 			Depth = StepDepth.Into;
 			Size = StepSize.Min;
+			this.thread = thread;
 		}
 
 		public override void Enable () {
 			var mods = new List <Modifier> ();
-			mods.Add (new StepModifier () { Thread = step_thread.Id, Depth = (int)Depth, Size = (int)Size, Filter = (int)Filter });
+			mods.Add (new StepModifier () { Thread = thread.Id, Depth = (int)Depth, Size = (int)Size, Filter = (int)Filter });
 			SendReq (mods);
-		}
-
-		public new ThreadMirror Thread {
-			get {
-				return step_thread;
-			}
 		}
 
 		public StepDepth Depth {

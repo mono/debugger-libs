@@ -2089,8 +2089,18 @@ namespace Mono.Debugging.Soft
 			bool resume = true;
 			BreakInfo binfo;
 
-			if (currentRequest == null || (currentRequest != null && es[0] != null && es[0].Request != null && es[0].Request.GetId () != currentRequest.GetId ()))
-				currentRequest = es[0].Request;
+			if (currentRequest == null || (currentRequest != null && es[0] != null && es[0].Request != null && es[0].Request.GetId () != currentRequest.GetId ())) {
+				if (currentRequest != null &&
+				   es[0].Request != null &&
+				   currentRequest.Thread != null &&
+				   es[0].Thread != null &&
+				   currentRequest.Thread.Id == es[0].Thread.Id &&
+				   currentRequest is StepEventRequest) {
+				   currentRequest.Enabled = false;
+			   }
+			   currentRequest = es[0].Request;
+			}
+
 
 			if (es [0].EventType == EventType.Exception) {
 				var bad = es.FirstOrDefault (ee => ee.EventType != EventType.Exception);
