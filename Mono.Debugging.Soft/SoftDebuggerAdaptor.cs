@@ -444,6 +444,9 @@ namespace Mono.Debugging.Soft
 
 		public override ICollectionAdaptor CreateArrayAdaptor (EvaluationContext ctx, object arr)
 		{
+			if (arr is StructMirror) {
+				return new InlineArrayAdaptor ((StructMirror) arr, ctx);
+			}
 			return new ArrayAdaptor ((ArrayMirror) arr);
 		}
 
@@ -1970,7 +1973,11 @@ namespace Mono.Debugging.Soft
 		
 		public override bool IsArray (EvaluationContext ctx, object val)
 		{
-			return val is ArrayMirror;
+			if (val is ArrayMirror)
+				return true;
+			if (val is StructMirror && ((StructMirror)val).InlineArray != null)
+				return true;
+			return false;
 		}
 
 		public override bool IsValueType (object type)

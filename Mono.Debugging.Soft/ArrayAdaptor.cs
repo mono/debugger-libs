@@ -31,6 +31,43 @@ using Mono.Debugger.Soft;
 
 namespace Mono.Debugging.Soft
 {
+	public class InlineArrayAdaptor : ICollectionAdaptor
+	{
+		readonly StructMirror array;
+		EvaluationContext ctx;
+		public InlineArrayAdaptor (StructMirror array, EvaluationContext ctx)
+		{
+			this.array = array;
+			this.ctx = ctx;
+		}
+
+		public object GetElement (int[] indices)
+		{
+			return array.InlineArray[indices[0]];
+		}
+
+		public void SetElement (int[] indices, object val)
+		{
+			throw new NotImplementedException ();
+		}
+		public int[] GetLowerBounds ()
+		{
+			throw new NotImplementedException ();
+		}
+		public Array GetElements (int[] indices, int count)
+		{
+			throw new NotImplementedException ();
+		}
+		public object ElementType {
+			get {
+				return ctx.Adapter.GetValueType (ctx, array.Fields[0]);
+			}
+		}
+		public int[] GetDimensions ()
+		{
+			throw new NotImplementedException ();
+		}
+	}
 	public class ArrayAdaptor : ICollectionAdaptor
 	{
 		readonly ArrayMirror array;

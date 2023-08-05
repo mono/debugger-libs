@@ -318,7 +318,8 @@ namespace Mono.Debugger.Soft
 
 			InvokeAsyncResult r = new InvokeAsyncResult { AsyncState = state, AsyncWaitHandle = new ManualResetEvent (false), VM = vm, Thread = thread, Callback = callback };
 			thread.InvalidateFrames ();
-			r.ID = vm.conn.VM_BeginInvokeMethod (thread.Id, method.Id, this_obj != null ? vm.EncodeValue (this_obj) : vm.EncodeValue (vm.CreateValue (null)), vm.EncodeValues (arguments), f, InvokeCB, r);
+			var thisObj = !method.IsStatic ? (this_obj != null ? vm.EncodeValue (this_obj) : vm.EncodeValue (vm.CreateValue (null))) : null;
+			r.ID = vm.conn.VM_BeginInvokeMethod (thread.Id, method.Id, thisObj, vm.EncodeValues (arguments), f, InvokeCB, r);
 
 			return r;
 		}
