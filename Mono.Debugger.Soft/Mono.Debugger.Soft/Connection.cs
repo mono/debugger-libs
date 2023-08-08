@@ -1265,6 +1265,8 @@ namespace Mono.Debugger.Soft
 					if (conn.Version.AtLeast (2, 61))
 						WriteByte (0); //isBoxedVType
 					WriteId (v.Klass);
+					if (conn.Version.AtLeast (2, 65))
+						WriteInt (0); //InlineArray
 					WriteInt (v.Fields.Length);
 					for (int i = 0; i < v.Fields.Length; ++i)
 						WriteValue (v.Fields [i]);
