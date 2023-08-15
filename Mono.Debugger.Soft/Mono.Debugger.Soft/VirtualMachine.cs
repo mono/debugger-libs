@@ -696,6 +696,8 @@ namespace Mono.Debugger.Soft
 					vtype = new StructMirror (this, GetType (v.Klass), (Value[])null);
 				parent_vtypes [parent_vtypes.Count] = vtype;
 				vtype.SetFields (DecodeValues (v.Fields, parent_vtypes));
+				if (Version.AtLeast (2, 65) && v.InlineArray != null)
+					vtype.SetInlineArray (DecodeValues(v.InlineArray));
 				parent_vtypes.Remove (parent_vtypes.Count - 1);
 				return vtype;
 			case (ElementType)ValueTypeId.VALUE_TYPE_ID_NULL:

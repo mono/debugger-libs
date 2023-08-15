@@ -11,6 +11,7 @@ namespace Mono.Debugger.Soft
 	
 		TypeMirror type;
 		Value[] fields;
+		Value[] inlineArray;
 
 		internal StructMirror (VirtualMachine vm, TypeMirror type, Value[] fields) : base (vm, 0) {
 			this.type = type;
@@ -26,6 +27,11 @@ namespace Mono.Debugger.Soft
 		public Value[] Fields {
 			get {
 				return fields;
+			}
+		}
+		public Value[] InlineArray {
+			get {
+				return inlineArray;
 			}
 		}
 
@@ -60,6 +66,10 @@ namespace Mono.Debugger.Soft
 
 		internal void SetFields (Value[] fields) {
 			this.fields = fields;
+		}
+
+		internal void SetInlineArray (Value[] fields) {
+			this.inlineArray = fields;
 		}
 
 		internal void SetField (int index, Value value) {
