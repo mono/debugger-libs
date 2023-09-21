@@ -791,14 +791,14 @@ namespace Mono.Debugger.Soft
 			return res;
 		}
 
-		internal void CheckProtocolVersion (int major, int minor) {
-			if (!conn.Version.AtLeast (major, minor))
+		internal void CheckProtocolVersion (int major, int minor, bool checkOnlyRuntime = false) {
+			if (!conn.Version.AtLeast (major, minor, checkOnlyRuntime))
 				throw new NotSupportedException ("This request is not supported by the protocol version implemented by the debuggee.");
 		}
 
 		public string GetEnCCapabilities ()
 		{
-			if (conn.Version.AtLeast (2, 61))
+			if (conn.Version.AtLeast (2, 61, checkOnlyRuntime: true))
 				return conn.VM_EnCCapabilities ();
 			return "Baseline";
 		}
