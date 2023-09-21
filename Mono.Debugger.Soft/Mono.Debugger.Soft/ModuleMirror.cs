@@ -77,7 +77,7 @@ namespace Mono.Debugger.Soft
 		// Since protocol version 2.60
 		public void ApplyChanges (ArrayMirror dmeta, ArrayMirror dIL, Value dPDB) {
 		    /* dPDB is Value because it can be ArrayMirror or PrimitiveValue (vm, null) */
-		    vm.CheckProtocolVersion (2, 60);
+		    vm.CheckProtocolVersion (2, 60, checkOnlyRuntime: true);
 		    vm.conn.Module_ApplyChanges (id, dmeta.Id, dIL.Id, dPDB.Id);
 		}
 	}

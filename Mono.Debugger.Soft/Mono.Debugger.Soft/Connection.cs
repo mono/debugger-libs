@@ -33,19 +33,24 @@ namespace Mono.Debugger.Soft
 		/*
 		 * Check that this version is at least major:minor
 		 */
-		public bool AtLeast (int major, int minor) {
-			if (debuggerLibsMajorVersion > 2 || (debuggerLibsMajorVersion == 2 && debuggerLibsMinorVersion >= 56))
+		public bool AtLeast (int major, int minor, bool checkOnlyRuntime = false) {
+			if (checkOnlyRuntime)
+				return AtLeastRuntime (major, minor);
+
+			if (AtLeastDebuggerLibs(2, 56))
 			{
-				if (((MajorVersion > major) || ((MajorVersion == major && MinorVersion >= minor))) &&
-					((debuggerLibsMajorVersion > major) || ((debuggerLibsMajorVersion == major && debuggerLibsMinorVersion >= minor))))
+				if (AtLeastRuntime (major, minor) && AtLeastDebuggerLibs(major, minor))
 					return true;
+
 				return false;
 			}
-			if ((MajorVersion > major) || ((MajorVersion == major && MinorVersion >= minor)))
-				return true;
-			else
-				return false;
+
+			return AtLeastRuntime (major, minor);
 		}
+
+		bool AtLeastRuntime (int major, int minor) => MajorVersion > major || (MajorVersion == major && MinorVersion >= minor);
+
+		bool AtLeastDebuggerLibs (int major, int minor) => debuggerLibsMajorVersion > major || (debuggerLibsMajorVersion == major && debuggerLibsMinorVersion >= minor);
 	}
 
 	struct SourceInfo {
