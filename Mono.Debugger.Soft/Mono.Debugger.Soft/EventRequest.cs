@@ -83,8 +83,8 @@ namespace Mono.Debugger.Soft
 			set {
 				CheckDisabled ();
 				if (value != null) {
-					foreach (var ass in value)
-						if (ass == null)
+					foreach (var assembly in value)
+						if (assembly == null)
 							throw new ArgumentException ("one of the elements of the array is null.");
 				}
 				assembly_filter = value;
