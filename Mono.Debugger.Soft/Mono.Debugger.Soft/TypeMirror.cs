@@ -18,7 +18,7 @@ namespace Mono.Debugger.Soft
 	public class TypeMirror : Mirror, IInvokable
 	{
 		List<MethodMirror> methods;
-		AssemblyMirror ass;
+		AssemblyMirror assembly;
 		ModuleMirror module;
 		FieldInfoMirror[] fields;
 		PropertyInfoMirror[] properties;
@@ -56,10 +56,10 @@ namespace Mono.Debugger.Soft
 
 		public AssemblyMirror Assembly {
 			get {
-				if (ass == null) {
-					ass = vm.GetAssembly (GetInfo ().assembly);
+				if (assembly == null) {
+					assembly = vm.GetAssembly (GetInfo ().assembly);
 				}
-				return ass;
+				return assembly;
 			}
 		}
 
