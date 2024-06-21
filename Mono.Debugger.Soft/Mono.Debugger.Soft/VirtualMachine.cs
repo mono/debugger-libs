@@ -799,7 +799,12 @@ namespace Mono.Debugger.Soft
 		public string GetEnCCapabilities ()
 		{
 			if (conn.Version.AtLeast (2, 61, checkOnlyRuntime: true))
-				return conn.VM_EnCCapabilities ();
+			{
+				var capabilities = conn.VM_EnCCapabilities ();
+				if (!string.IsNullOrEmpty(capabilities))
+					return capabilities + " AddExplicitInterfaceImplementation";
+				return capabilities;
+			}
 			return "Baseline";
 		}
 	}
