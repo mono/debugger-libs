@@ -2311,7 +2311,7 @@ namespace Mono.Debugger.Soft
 				info.live_range_start [i] = res.ReadInt ();
 				info.live_range_end [i] = res.ReadInt ();
 			}
-			if (Version.AtLeast (2, 65) && res.HasMoreData()) {
+			if (Version.AtLeast (2, 65) && (nlocals == 0 || res.HasMoreData())) {
 				info.indexes = new int [nlocals];
 				for (int i = 0; i < nlocals; ++i) {
 					info.indexes [i] = res.ReadInt ();
