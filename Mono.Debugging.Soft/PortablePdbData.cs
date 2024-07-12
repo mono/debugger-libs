@@ -169,7 +169,7 @@ namespace Mono.Debugging.Soft
 			return null;
 		}
 
-		internal (int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files) GetDebugInfoFromPdb(MethodMirror method)
+		internal (int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files, int[] local_indexes, string[] local_names) GetDebugInfoFromPdb(MethodMirror method)
 		{
 			int max_il_offset = 0;
 			List<int> il_offsets = new List<int> ();
@@ -177,13 +177,15 @@ namespace Mono.Debugging.Soft
 			List<int> column_numbers = new List<int> ();
 			List<int> end_line_numbers = new List<int> ();
 			List<int> end_column_numbers = new List<int> ();
+			List<int> local_indexes = new List<int> ();
+			List<string> local_names = new List<string> ();
 			List<string> source_list = new List<string> ();
 			string documentName = "";
 			using (var metadataReader = MetadataReaderProvider.FromPortablePdbStream (GetStream ())) {
 				var reader = metadataReader.GetMetadataReader ();
 				var methodHandle = MetadataTokens.MethodDefinitionHandle (method.MetadataToken);
 				if (methodHandle.IsNil)
-					return (max_il_offset, il_offsets.ToArray (), line_numbers.ToArray (), column_numbers.ToArray (), end_line_numbers.ToArray (), end_column_numbers.ToArray (), source_list.ToArray ());
+					return (max_il_offset, il_offsets.ToArray (), line_numbers.ToArray (), column_numbers.ToArray (), end_line_numbers.ToArray (), end_column_numbers.ToArray (), source_list.ToArray (), local_indexes.ToArray (), local_names.ToArray());
 				MethodDebugInformation methodDebugInformation = reader.GetMethodDebugInformation (methodHandle);
 				if (!methodDebugInformation.Document.IsNil) {
 					var document = reader.GetDocument (methodDebugInformation.Document);
@@ -200,8 +202,19 @@ namespace Mono.Debugging.Soft
 					if (sp.Offset > max_il_offset && !sp.IsHidden)
 						max_il_offset = sp.Offset;
 				}
+				var localScopes = reader.GetLocalScopes (methodHandle);
+
+				foreach (var localScopeHandle in localScopes) {
+					var localScope = reader.GetLocalScope (localScopeHandle);
+					var localVariables = localScope.GetLocalVariables ();
+					foreach (var localVariableHandle in localVariables) {
+						var localVariable = reader.GetLocalVariable (localVariableHandle);
+						local_indexes.Add (localVariable.Index);
+						local_names.Add (reader.GetString(localVariable.Name));
+					}
+				}
 			}
-			return (max_il_offset, il_offsets.ToArray(), line_numbers.ToArray(), column_numbers.ToArray(), end_line_numbers.ToArray(), end_column_numbers.ToArray(), source_list.ToArray());
+			return (max_il_offset, il_offsets.ToArray(), line_numbers.ToArray(), column_numbers.ToArray(), end_line_numbers.ToArray(), end_column_numbers.ToArray(), source_list.ToArray(), local_indexes.ToArray(), local_names.ToArray ());
 		}
 
 		internal Location GetLocationByFileName (AssemblyMirror asm, string fileName, int line, int column)

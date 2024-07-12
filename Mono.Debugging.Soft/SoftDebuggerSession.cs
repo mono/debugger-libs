@@ -1251,7 +1251,7 @@ namespace Mono.Debugging.Soft
 			}
 
 			if (!found) {
-				var location = DebugSymbolsManager.FindLocationsByFileInPdbLoadedFromSymbolServer (breakpoint.FileName, breakpoint.Line, breakpoint.Column);
+				var location = DebugSymbolsManager.FindLocationsByFileInPdbLoadedOnDebuggerSide (breakpoint.FileName, breakpoint.Line, breakpoint.Column);
 				if (location != null) {
 					breakInfo.Location = location;
 					InsertBreakpoint (breakpoint, breakInfo);

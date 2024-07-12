@@ -65,6 +65,8 @@ namespace Mono.Debugger.Soft
 		public int[] column_numbers;
 		public int[] end_line_numbers;
 		public int[] end_column_numbers;
+		public int[] local_indexes_loaded_from_pdb;
+		public string[] local_names_loaded_from_pdb;
 		public SourceInfo[] source_files;
 	}
 
@@ -861,6 +863,13 @@ namespace Mono.Debugger.Soft
 
 			public int ReadShort () {
 				return decode_short (packet, ref offset);
+			}
+
+			public bool HasMoreData ()
+			{
+				if (packet.Length > offset)
+					return true;
+				return false;
 			}
 
 			public int ReadInt () {
@@ -2302,7 +2311,7 @@ namespace Mono.Debugger.Soft
 				info.live_range_start [i] = res.ReadInt ();
 				info.live_range_end [i] = res.ReadInt ();
 			}
-			if (Version.AtLeast (2, 65)) {
+			if (Version.AtLeast (2, 65) && (nlocals == 0 || res.HasMoreData())) {
 				info.indexes = new int [nlocals];
 				for (int i = 0; i < nlocals; ++i) {
 					info.indexes [i] = res.ReadInt ();

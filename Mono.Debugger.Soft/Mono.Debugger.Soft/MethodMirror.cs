@@ -288,8 +288,12 @@ namespace Mono.Debugger.Soft
 
 				for (int i = 0; i < li.names.Length; ++i)
 				{
-					if (vm.Version.AtLeast (2, 65))
-						locals [i + pi.Length] = new LocalVariable (vm, this, li.indexes [i], li.types [i], li.names [i], li.live_range_start [i], li.live_range_end [i], false);
+					if (vm.Version.AtLeast (2, 65)) {
+						if (li.indexes != null)
+							locals[i + pi.Length] = new LocalVariable (vm, this, li.indexes[i], li.types[i], li.names[i], li.live_range_start[i], li.live_range_end[i], false);
+						else
+							locals[i + pi.Length] = new LocalVariable (vm, this, debug_info.local_indexes_loaded_from_pdb[i], li.types[i], debug_info.local_names_loaded_from_pdb[i], li.live_range_start[i], li.live_range_end[i], false);
+					}
 					else
 						locals [i + pi.Length] = new LocalVariable (vm, this, i, li.types [i], li.names [i], li.live_range_start [i], li.live_range_end [i], false);
 				}
@@ -497,7 +501,7 @@ namespace Mono.Debugger.Soft
 			updatedByEnC = true;
 		}
 
-		public void SetDebugInfoFromPdb (int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files)
+		public void SetDebugInfoFromPdb (int max_il_offset, int[] il_offsets, int[] line_numbers, int[] column_numbers, int[] end_line_numbers, int[] end_column_numbers, string[] source_files, int[] local_indexes_loaded_from_pdb, string[] local_names_loaded_from_pdb)
 		{
 			this.debug_info = new DebugInfo();
 			this.debug_info.max_il_offset = max_il_offset;
@@ -506,6 +510,8 @@ namespace Mono.Debugger.Soft
 			this.debug_info.column_numbers = column_numbers;
 			this.debug_info.end_line_numbers = end_line_numbers;
 			this.debug_info.end_column_numbers = end_column_numbers;
+			this.debug_info.local_indexes_loaded_from_pdb = local_indexes_loaded_from_pdb;
+			this.debug_info.local_names_loaded_from_pdb = local_names_loaded_from_pdb;
 			List<SourceInfo> sourceList = new List<SourceInfo>();
 			foreach (var source in source_files) {
 				var sourceInfo = new SourceInfo ();

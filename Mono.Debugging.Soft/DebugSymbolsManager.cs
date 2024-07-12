@@ -15,7 +15,7 @@ namespace Mono.Debugging.Soft
 	internal enum SymbolStatus{
 		NotTriedToLoad,
 		NotFound,
-		LoadedFromSymbolServer,
+		LoadedOnDebuggerSide,
 		NotLoadedFromSymbolServer
 	}
 	internal class DebugSymbolsInfo
@@ -111,9 +111,10 @@ namespace Mono.Debugging.Soft
 			return portablePdb;
 		}
 
-		internal Location FindLocationsByFileInPdbLoadedFromSymbolServer (string fileName, int line, int column)
+		internal Location FindLocationsByFileInPdbLoadedOnDebuggerSide (string fileName, int line, int column)
 		{
-			foreach (var symbolServerPPDB in symbolsByAssembly.Where(item => item.Value.Status == SymbolStatus.LoadedFromSymbolServer)) {
+			var symbolsByAssemblyList = symbolsByAssembly.Where(item => item.Value.Status == SymbolStatus.LoadedOnDebuggerSide).ToList();
+			foreach (var symbolServerPPDB in symbolsByAssemblyList) {
 				var location = symbolServerPPDB.Value.PdbData.GetLocationByFileName (symbolServerPPDB.Key, fileName, line, column);
 				if (location != null)
 					return location;
@@ -146,8 +147,14 @@ namespace Mono.Debugging.Soft
 			var asmName = asm.GetName ().FullName;
 			if (asm.HasDebugInfoLoaded ())
 				return true;
-			if (session.SymbolPathMap.ContainsKey (asmName))
+			if (session.SymbolPathMap.ContainsKey (asmName)) {
+				var portablePdb = GetPdbData (asm, true);
+				if (portablePdb != null) {
+					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.LoadedOnDebuggerSide, portablePdb);
+					session.TryResolvePendingBreakpoints ();
+				}
 				return true;
+			}
 			if (symbolsByAssembly.TryGetValue (asm, out var symbolsInfo)) {
 				if (symbolsInfo.PdbData != null)
 					return true;
@@ -170,7 +177,7 @@ namespace Mono.Debugging.Soft
 				session.SymbolPathMap[asmName] = Path.Combine (symbolCachePath, key);
 				var portablePdb = GetPdbData (asm, true);
 				if (portablePdb != null) {
-					symbolsByAssembly[asm] = new DebugSymbolsInfo(SymbolStatus.LoadedFromSymbolServer, portablePdb);
+					symbolsByAssembly[asm] = new DebugSymbolsInfo(SymbolStatus.LoadedOnDebuggerSide, portablePdb);
 					session.TryResolvePendingBreakpoints ();
 				} else {
 					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotFound, null);
