@@ -41,6 +41,7 @@ namespace Mono.Debugging.Soft
 		private string[] symbolServerUrls;
 		private SymbolStore symbolStore;
 		private SoftDebuggerSession session;
+		private readonly object _lock = new object();
 
 		internal DebugSymbolsManager (SoftDebuggerSession session)
 		{
@@ -49,10 +50,13 @@ namespace Mono.Debugging.Soft
 		}
 		public string HasSymbolLoaded (AssemblyMirror assembly)
 		{
-			if (session.SymbolPathMap.TryGetValue (assembly.Location, out string symbolPath))
-				return symbolPath;
-			if (symbolsByAssembly.TryGetValue (assembly, out var symbolsInfo))
-				return symbolsInfo.Status == SymbolStatus.NotLoadedFromSymbolServer ? "Dynamically loaded" : null;
+			lock(_lock)
+			{
+				if (session.SymbolPathMap.TryGetValue (assembly.Location, out string symbolPath))
+					return symbolPath;
+				if (symbolsByAssembly.TryGetValue (assembly, out var symbolsInfo))
+					return symbolsInfo.Status == SymbolStatus.NotLoadedFromSymbolServer ? "Dynamically loaded" : null;
+			}
 			return null;
 		}
 		public bool ForceLoadSymbolFromAssembly (AssemblyMirror assembly)
@@ -77,7 +81,13 @@ namespace Mono.Debugging.Soft
 
 		public async Task TryLoadSymbolFromSymbolServerIfNeeded ()
 		{
-			var assembliesToTryToLoadPPDB = symbolsByAssembly.Where (asm => asm.Value.Status == SymbolStatus.NotFound || asm.Value.Status == SymbolStatus.NotTriedToLoad).ToList ();
+			List<KeyValuePair<AssemblyMirror, DebugSymbolsInfo>> assembliesToTryToLoadPPDB;
+
+			lock(_lock)
+			{
+				assembliesToTryToLoadPPDB = symbolsByAssembly.Where(asm => asm.Value.Status == SymbolStatus.NotFound || asm.Value.Status == SymbolStatus.NotTriedToLoad).ToList();
+			}
+			
 			foreach (var asm in assembliesToTryToLoadPPDB) {
 				await TryLoadSymbolFromSymbolServerIfNeeded (asm.Key);
 			}
@@ -87,8 +97,11 @@ namespace Mono.Debugging.Soft
 		{
 			string pdbFileName;
 			PortablePdbData portablePdb = null;
-			if (symbolsByAssembly.TryGetValue (asm, out var symbolsInfo) && (symbolsInfo.PdbData != null || (!force && symbolsInfo.Status == SymbolStatus.NotFound))) {
-				return symbolsInfo.PdbData;
+			lock(_lock)
+			{
+				if (symbolsByAssembly.TryGetValue (asm, out var symbolsInfo) && (symbolsInfo.PdbData != null || (!force && symbolsInfo.Status == SymbolStatus.NotFound))) {
+					return symbolsInfo.PdbData;
+				}
 			}
 
 			if (!session.SymbolPathMap.TryGetValue (asm.GetName ().FullName, out pdbFileName) || Path.GetExtension (pdbFileName) != ".pdb") {
@@ -104,20 +117,27 @@ namespace Mono.Debugging.Soft
 				var pdbBlob = asm.GetPdbBlob ();
 				portablePdb = pdbBlob != null ? new PortablePdbData (pdbBlob) : null;
 			}
-			if (portablePdb == null)
-				symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotFound, null);
-			else
-				symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotLoadedFromSymbolServer, portablePdb);
+
+			lock(_lock)
+			{
+				if (portablePdb == null)
+					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotFound, null);
+				else
+					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotLoadedFromSymbolServer, portablePdb);
+			}
 			return portablePdb;
 		}
 
 		internal Location FindLocationsByFileInPdbLoadedOnDebuggerSide (string fileName, int line, int column)
 		{
-			var symbolsByAssemblyList = symbolsByAssembly.Where(item => item.Value.Status == SymbolStatus.LoadedOnDebuggerSide).ToList();
-			foreach (var symbolServerPPDB in symbolsByAssemblyList) {
-				var location = symbolServerPPDB.Value.PdbData.GetLocationByFileName (symbolServerPPDB.Key, fileName, line, column);
-				if (location != null)
-					return location;
+			lock(_lock)
+			{
+				var symbolsByAssemblyList = symbolsByAssembly.Where(item => item.Value.Status == SymbolStatus.LoadedOnDebuggerSide).ToList();
+				foreach (var symbolServerPPDB in symbolsByAssemblyList) {
+					var location = symbolServerPPDB.Value.PdbData.GetLocationByFileName (symbolServerPPDB.Key, fileName, line, column);
+					if (location != null)
+						return location;
+				}
 			}
 			return null;
 		}
@@ -150,19 +170,27 @@ namespace Mono.Debugging.Soft
 			if (session.SymbolPathMap.ContainsKey (asmName)) {
 				var portablePdb = GetPdbData (asm, true);
 				if (portablePdb != null) {
-					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.LoadedOnDebuggerSide, portablePdb);
-					session.TryResolvePendingBreakpoints ();
+					lock(_lock)
+					{
+						symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.LoadedOnDebuggerSide, portablePdb);
+						session.TryResolvePendingBreakpoints ();
+					}
 				}
 				return true;
 			}
-			if (symbolsByAssembly.TryGetValue (asm, out var symbolsInfo)) {
-				if (symbolsInfo.PdbData != null)
-					return true;
+
+			lock(_lock)
+			{
+				if (symbolsByAssembly.TryGetValue (asm, out var symbolsInfo)) {
+					if (symbolsInfo.PdbData != null)
+						return true;
+				}
+				if (session.JustMyCode) {
+					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotTriedToLoad, null);
+					return false;
+				}
 			}
-			if (session.JustMyCode) {
-				symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotTriedToLoad, null);
-				return false;
-			}
+
 			if (symbolStore == null)
 				CreateSymbolStore ();
 			if (symbolStore == null)
@@ -173,20 +201,24 @@ namespace Mono.Debugging.Soft
 			var pdbGuid = guid.ToString ("N").ToUpperInvariant () + (isPortableCodeView ? "FFFFFFFF" : age.ToString ());
 			var key = $"{pdbName}/{pdbGuid}/{pdbName}";
 			SymbolStoreFile file = await symbolStore.GetFile (new SymbolStoreKey (key, pdbPath, false, pdbChecksums), new CancellationTokenSource ().Token);
-			if (file != null) {
-				session.SymbolPathMap[asmName] = Path.Combine (symbolCachePath, key);
-				var portablePdb = GetPdbData (asm, true);
-				if (portablePdb != null) {
-					symbolsByAssembly[asm] = new DebugSymbolsInfo(SymbolStatus.LoadedOnDebuggerSide, portablePdb);
-					session.TryResolvePendingBreakpoints ();
-				} else {
+
+			lock(_lock)
+			{
+				if (file != null) {
+					session.SymbolPathMap[asmName] = Path.Combine (symbolCachePath, key);
+					var portablePdb = GetPdbData (asm, true);
+					if (portablePdb != null) {
+						symbolsByAssembly[asm] = new DebugSymbolsInfo(SymbolStatus.LoadedOnDebuggerSide, portablePdb);
+						session.TryResolvePendingBreakpoints ();
+					} else {
+						symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotFound, null);
+						return false;
+					}
+				}
+				else {
 					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotFound, null);
 					return false;
 				}
-			}
-			else {
-				symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotFound, null);
-				return false;
 			}
 			return true;
 		}
