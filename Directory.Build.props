@@ -1,0 +1,7 @@
+<Project>
+  <!-- Enables git repos using debugger-libs as a submodule to override MSBuild properties -->
+  <Import
+      Project="$([System.IO.Path]::GetDirectoryName($(MSBuildThisFileDirectory))).override.props"
+      Condition=" Exists('$([System.IO.Path]::GetDirectoryName($(MSBuildThisFileDirectory))).override.props') "
+  />
+</Project>
