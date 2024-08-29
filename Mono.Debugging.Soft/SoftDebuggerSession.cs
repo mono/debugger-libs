@@ -2286,17 +2286,8 @@ namespace Mono.Debugging.Soft
 		private void HandleAssemblyLoaded (AssemblyMirror asm)
 		{
 			var name = asm.GetName ();
-			var assemblyObject = asm.GetAssemblyObject ();
-			bool isDynamic = asm.IsDynamic;
-			string assemblyName;
-			bool hasSymbol;
-			if (!isDynamic) {
-				assemblyName = name.Name;
-				hasSymbol = asm.HasDebugInfo;
-			} else {
-				assemblyName = string.Empty;
-				hasSymbol = false;
-			}
+			var assemblyName = name.Name;
+			var hasSymbol = false;
 			var assembly = new Assembly (
 					assemblyName,
 					asm?.Location ?? string.Empty,
@@ -2308,12 +2299,12 @@ namespace Mono.Debugging.Soft
 					name?.Version?.Major.ToString () ?? string.Empty,
 					// TODO: module time stamp
 					string.Empty,
-					assemblyObject?.Address.ToString () ?? string.Empty,
+					string.Empty,
 					string.Format ("[{0}]{1}", asm?.VirtualMachine?.TargetProcess?.Id ?? -1, asm?.VirtualMachine?.TargetProcess?.ProcessName ?? string.Empty),
 					asm?.Domain?.FriendlyName ?? string.Empty,
 					asm?.VirtualMachine?.TargetProcess?.Id ?? -1,
 					hasSymbol,
-					isDynamic
+					false
 			);
 
 			OnAssemblyLoaded (assembly);
