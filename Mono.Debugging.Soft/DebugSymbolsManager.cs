@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SymbolStore.SymbolStores;
-using Microsoft.SymbolStore;
 using Microsoft.FileFormats.PE;
+using Microsoft.SymbolStore;
+using Microsoft.SymbolStore.SymbolStores;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Client;
-using System.IO;
-using System.Threading;
 
 namespace Mono.Debugging.Soft
 {
@@ -50,13 +50,16 @@ namespace Mono.Debugging.Soft
 		}
 		public string HasSymbolLoaded (AssemblyMirror assembly)
 		{
-			lock(_lock)
-			{
-				if (session.SymbolPathMap.TryGetValue (assembly.Location, out string symbolPath))
-					return symbolPath;
-				if (symbolsByAssembly.TryGetValue (assembly, out var symbolsInfo))
-					return symbolsInfo.Status == SymbolStatus.NotLoadedFromSymbolServer ? "Dynamically loaded" : null;
+			var symbolPath = GetSymbolPath (assembly.Location);
+			if (!string.IsNullOrEmpty (symbolPath)) {
+				return symbolPath;
 			}
+
+			var symbolsInfo = GetDebugSymbols (assembly);
+			if (symbolsInfo != null) {
+				return symbolsInfo.Status == SymbolStatus.NotLoadedFromSymbolServer ? "Dynamically loaded" : null;
+			}
+
 			return null;
 		}
 		public bool ForceLoadSymbolFromAssembly (AssemblyMirror assembly)
@@ -81,13 +84,7 @@ namespace Mono.Debugging.Soft
 
 		public async Task TryLoadSymbolFromSymbolServerIfNeeded ()
 		{
-			List<KeyValuePair<AssemblyMirror, DebugSymbolsInfo>> assembliesToTryToLoadPPDB;
-
-			lock(_lock)
-			{
-				assembliesToTryToLoadPPDB = symbolsByAssembly.Where(asm => asm.Value.Status == SymbolStatus.NotFound || asm.Value.Status == SymbolStatus.NotTriedToLoad).ToList();
-			}
-			
+			var assembliesToTryToLoadPPDB = GetDebugSymbols(asm => asm.Value.Status == SymbolStatus.NotFound || asm.Value.Status == SymbolStatus.NotTriedToLoad);
 			foreach (var asm in assembliesToTryToLoadPPDB) {
 				await TryLoadSymbolFromSymbolServerIfNeeded (asm.Key);
 			}
@@ -95,19 +92,21 @@ namespace Mono.Debugging.Soft
 
 		internal PortablePdbData GetPdbData (AssemblyMirror asm, bool force = false)
 		{
-			string pdbFileName;
 			PortablePdbData portablePdb = null;
-			lock(_lock)
-			{
-				if (symbolsByAssembly.TryGetValue (asm, out var symbolsInfo) && (symbolsInfo.PdbData != null || (!force && symbolsInfo.Status == SymbolStatus.NotFound))) {
-					return symbolsInfo.PdbData;
-				}
+
+			var symbolsInfo = GetDebugSymbols (asm);
+			if (symbolsInfo != null && (symbolsInfo.PdbData != null || (!force && symbolsInfo.Status == SymbolStatus.NotFound))) {
+				return symbolsInfo.PdbData;
 			}
 
-			if (!session.SymbolPathMap.TryGetValue (asm.GetName ().FullName, out pdbFileName) || Path.GetExtension (pdbFileName) != ".pdb") {
-				string assemblyFileName;
-				if (!session.AssemblyPathMap.TryGetValue (asm.GetName ().FullName, out assemblyFileName))
+			var asmName = asm.GetName ().FullName;
+			var pdbFileName = GetSymbolPath (asmName);
+			if (string.IsNullOrEmpty(pdbFileName) || Path.GetExtension (pdbFileName) != ".pdb") {
+				string assemblyFileName = GetAssemblyFileName(asmName);
+				if (string.IsNullOrEmpty (assemblyFileName)) {
 					assemblyFileName = asm.Location;
+				}
+
 				pdbFileName = Path.ChangeExtension (assemblyFileName, ".pdb");
 			}
 			if (PortablePdbData.IsPortablePdb (pdbFileName)) {
@@ -118,27 +117,23 @@ namespace Mono.Debugging.Soft
 				portablePdb = pdbBlob != null ? new PortablePdbData (pdbBlob) : null;
 			}
 
-			lock(_lock)
-			{
-				if (portablePdb == null)
-					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotFound, null);
-				else
-					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotLoadedFromSymbolServer, portablePdb);
-			}
+			if (portablePdb == null)
+				AddDebugSymbols(asm, new DebugSymbolsInfo (SymbolStatus.NotFound, null));
+			else
+				AddDebugSymbols(asm, new DebugSymbolsInfo(SymbolStatus.NotLoadedFromSymbolServer, portablePdb));
 			return portablePdb;
 		}
 
 		internal Location FindLocationsByFileInPdbLoadedOnDebuggerSide (string fileName, int line, int column)
 		{
-			lock(_lock)
-			{
-				var symbolsByAssemblyList = symbolsByAssembly.Where(item => item.Value.Status == SymbolStatus.LoadedOnDebuggerSide).ToList();
-				foreach (var symbolServerPPDB in symbolsByAssemblyList) {
-					var location = symbolServerPPDB.Value.PdbData.GetLocationByFileName (symbolServerPPDB.Key, fileName, line, column);
-					if (location != null)
-						return location;
-				}
+			List<KeyValuePair<AssemblyMirror, DebugSymbolsInfo>> symbolsByAssemblyList = GetDebugSymbols(item => item.Value.Status == SymbolStatus.LoadedOnDebuggerSide);
+
+			foreach (var symbolServerPPDB in symbolsByAssemblyList) {
+				var location = symbolServerPPDB.Value.PdbData.GetLocationByFileName (symbolServerPPDB.Key, fileName, line, column);
+				if (location != null)
+					return location;
 			}
+
 			return null;
 		}
 
@@ -167,28 +162,23 @@ namespace Mono.Debugging.Soft
 			var asmName = asm.GetName ().FullName;
 			if (asm.HasDebugInfoLoaded ())
 				return true;
-			if (session.SymbolPathMap.ContainsKey (asmName)) {
+			if (HasSymbolPath(asmName)) {
 				var portablePdb = GetPdbData (asm, true);
 				if (portablePdb != null) {
-					lock(_lock)
-					{
-						symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.LoadedOnDebuggerSide, portablePdb);
-						session.TryResolvePendingBreakpoints ();
-					}
+					AddDebugSymbols(asm, new DebugSymbolsInfo(SymbolStatus.LoadedOnDebuggerSide, portablePdb));
+					session.TryResolvePendingBreakpoints ();
 				}
 				return true;
 			}
 
-			lock(_lock)
-			{
-				if (symbolsByAssembly.TryGetValue (asm, out var symbolsInfo)) {
-					if (symbolsInfo.PdbData != null)
-						return true;
-				}
-				if (session.JustMyCode) {
-					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotTriedToLoad, null);
-					return false;
-				}
+			var symbolsInfo = GetDebugSymbols (asm);
+			if (symbolsInfo != null && symbolsInfo.PdbData != null) {
+				return true;
+			}
+
+			if (session.JustMyCode) {
+				AddDebugSymbols(asm, new DebugSymbolsInfo(SymbolStatus.NotTriedToLoad, null));
+				return false;
 			}
 
 			if (symbolStore == null)
@@ -200,27 +190,82 @@ namespace Mono.Debugging.Soft
 			var pdbName = Path.GetFileName (pdbPath);
 			var pdbGuid = guid.ToString ("N").ToUpperInvariant () + (isPortableCodeView ? "FFFFFFFF" : age.ToString ());
 			var key = $"{pdbName}/{pdbGuid}/{pdbName}";
-			SymbolStoreFile file = await symbolStore.GetFile (new SymbolStoreKey (key, pdbPath, false, pdbChecksums), new CancellationTokenSource ().Token);
 
-			lock(_lock)
-			{
-				if (file != null) {
-					session.SymbolPathMap[asmName] = Path.Combine (symbolCachePath, key);
-					var portablePdb = GetPdbData (asm, true);
-					if (portablePdb != null) {
-						symbolsByAssembly[asm] = new DebugSymbolsInfo(SymbolStatus.LoadedOnDebuggerSide, portablePdb);
-						session.TryResolvePendingBreakpoints ();
-					} else {
-						symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotFound, null);
-						return false;
-					}
-				}
-				else {
-					symbolsByAssembly[asm] = new DebugSymbolsInfo (SymbolStatus.NotFound, null);
+			SymbolStoreFile file = await symbolStore.GetFile (new SymbolStoreKey (key, pdbPath, false, pdbChecksums), new CancellationTokenSource ().Token);
+			if (file != null) {
+				AddSymbolPath(asmName, Path.Combine (symbolCachePath, key));
+
+				var portablePdb = GetPdbData (asm, true);
+				if (portablePdb != null) {
+					AddDebugSymbols (asm, new DebugSymbolsInfo (SymbolStatus.LoadedOnDebuggerSide, portablePdb));
+					session.TryResolvePendingBreakpoints ();
+				} else {
+					AddDebugSymbols (asm, new DebugSymbolsInfo (SymbolStatus.NotFound, null));
 					return false;
 				}
 			}
+			else {
+				AddDebugSymbols(asm, new DebugSymbolsInfo (SymbolStatus.NotFound, null));
+				return false;
+			}
 			return true;
+		}
+
+		private void AddDebugSymbols (AssemblyMirror asm, DebugSymbolsInfo debugSymbolsInfo)
+		{
+			lock (_lock) {
+				symbolsByAssembly[asm] = debugSymbolsInfo;
+			}
+		}
+
+		private DebugSymbolsInfo GetDebugSymbols (AssemblyMirror asm)
+		{
+			lock (_lock) {
+				if (symbolsByAssembly.TryGetValue (asm, out var symbolsInfo)) {
+					return symbolsInfo;
+				}
+			}
+
+			return null;
+		}
+
+		private List<KeyValuePair<AssemblyMirror, DebugSymbolsInfo>> GetDebugSymbols (Func<KeyValuePair<AssemblyMirror, DebugSymbolsInfo>, bool> filterBy)
+		{
+			lock (_lock) {
+				return symbolsByAssembly.Where (item => filterBy (item)).ToList ();
+			}
+		}
+
+		private string GetSymbolPath (string asmName)
+		{
+			lock (_lock) {
+				if (session.SymbolPathMap.TryGetValue (asmName, out string symbolPath))
+					return symbolPath;
+			}
+			return null;
+		}
+
+		private void AddSymbolPath (string asmName, string asmPath)
+		{
+			lock (_lock) {
+				session.SymbolPathMap[asmName] = asmPath;
+			}
+		}
+
+		private string GetAssemblyFileName (string asmName)
+		{
+			lock (_lock) {
+				if (session.AssemblyPathMap.TryGetValue (asmName, out string assemblyFileName))
+					return assemblyFileName;
+			}
+			return null;
+		}
+
+		private bool HasSymbolPath (string asmName)
+		{
+			lock (_lock) {
+				return session.SymbolPathMap.ContainsKey (asmName);
+			}
 		}
 	}
 	public sealed class TracerSymbolServer : ITracer
