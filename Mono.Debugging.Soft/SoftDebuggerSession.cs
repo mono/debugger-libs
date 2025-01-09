@@ -2138,23 +2138,25 @@ namespace Mono.Debugging.Soft
 				foreach (Event e in es) {
 					if (e.EventType == EventType.Breakpoint) {
 						var be = (BreakpointEvent) e;
-						var hasBreakInfo = breakpoints.TryGetValue (be.Request, out binfo);
+						if (be != null && be.Request != null) {
+							var hasBreakInfo = breakpoints.TryGetValue (be.Request, out binfo);
 
-						if (!HandleBreakpoint (e.Thread, be.Request)) {
-							etype = TargetEventType.TargetHitBreakpoint;
-							autoStepInto = false;
-							resume = false;
-							if (hasBreakInfo)
-								breakEvent = binfo.BreakEvent;
-						}
-						
-						if (hasBreakInfo) {
-							if (currentRequest is StepEventRequest csr1 &&
-								csr1.Depth != StepDepth.Out &&
-								binfo.Location.ILOffset == currentAddress && 
-								e.Thread.Id == csr1.Thread.Id &&
-								currentStackDepth == e.Thread.GetFrames ().Length)
-								redoCurrentStep = true;
+							if (!HandleBreakpoint (e.Thread, be.Request)) {
+								etype = TargetEventType.TargetHitBreakpoint;
+								autoStepInto = false;
+								resume = false;
+								if (hasBreakInfo)
+									breakEvent = binfo.BreakEvent;
+							}
+
+							if (hasBreakInfo) {
+								if (currentRequest is StepEventRequest csr1 &&
+									csr1.Depth != StepDepth.Out &&
+									binfo.Location.ILOffset == currentAddress &&
+									e.Thread.Id == csr1.Thread.Id &&
+									currentStackDepth == e.Thread.GetFrames ().Length)
+									redoCurrentStep = true;
+							}
 						}
 					} else if (e.EventType == EventType.Step) {
 						var stepRequest = e.Request as StepEventRequest;
@@ -2491,7 +2493,12 @@ namespace Mono.Debugging.Soft
 
 		public void TryResolvePendingBreakpoints ()
 		{
-			foreach (var bp in pending_bes) {
+			BreakInfo[] tempPendingBes;
+			lock (pending_bes) {
+				tempPendingBes = pending_bes.ToArray ();
+			}
+
+			foreach (var bp in tempPendingBes) {
 				if (bp.Status != BreakEventStatus.Bound) {
 					TryResolveBreakpoint (bp, bp.Breakpoint, out bool insideLoadedRange);
 				}
