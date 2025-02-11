@@ -23,8 +23,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Buffers" Version="$(SystemBuffersVersion)" />
-    <PackageReference Include="System.Collections.Immutable" Version="$(NuGetVersionSystemCollectionsImmutable)" />
+    <PackageReference Include="System.Buffers" Version="$(SystemBuffersVersion)" Condition=" '$(TargetFramework)' == 'net472' " />
+    <PackageReference Include="System.Collections.Immutable" Version="$(NuGetVersionSystemCollectionsImmutable)" Condition=" '$(TargetFramework)' == 'net472' " />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="$(NuGetVersionRoslyn)" />
   </ItemGroup>
 
