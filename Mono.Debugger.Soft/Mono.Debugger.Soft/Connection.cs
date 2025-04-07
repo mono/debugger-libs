@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using Microsoft.FileFormats.PE;
+using System.Collections.Concurrent;
 
 namespace Mono.Debugger.Soft
 {
@@ -1376,18 +1377,18 @@ namespace Mono.Debugger.Soft
 
 		bool closed;
 		Thread receiver_thread;
-		Dictionary<int, byte[]> reply_packets;
-		Dictionary<int, ReplyCallback> reply_cbs;
-		Dictionary<int, int> reply_cb_counts;
+		ConcurrentDictionary<int, byte[]> reply_packets;
+		ConcurrentDictionary<int, ReplyCallback> reply_cbs;
+		ConcurrentDictionary<int, int> reply_cb_counts;
 		object reply_packets_monitor;
 
 		internal event EventHandler<ErrorHandlerEventArgs> ErrorHandler;
 
 		protected Connection () {
 			closed = false;
-			reply_packets = new Dictionary<int, byte[]> ();
-			reply_cbs = new Dictionary<int, ReplyCallback> ();
-			reply_cb_counts = new Dictionary<int, int> ();
+			reply_packets = new ConcurrentDictionary<int, byte[]> ();
+			reply_cbs = new ConcurrentDictionary<int, ReplyCallback> ();
+			reply_cb_counts = new ConcurrentDictionary<int, int> ();
 			reply_packets_monitor = new Object ();
 			if (EnableConnectionLogging) {
 				var path = Environment.GetEnvironmentVariable ("MONO_SDB_LOG");
@@ -1574,12 +1575,14 @@ namespace Mono.Debugger.Soft
 		}
 
 		void disconnected_check () {
-			if (!disconnected)
-				return;
-			else if (crashed != null)
-				throw crashed;
-			else
-				throw new VMDisconnectedException ();
+			lock (reply_packets_monitor) {
+				if (!disconnected)
+					return;
+				else if (crashed != null)
+					throw crashed;
+				else
+					throw new VMDisconnectedException ();
+			}
 		}
 
 		bool ReceivePacket () {
@@ -1591,24 +1594,25 @@ namespace Mono.Debugger.Soft
 
 				if (IsReplyPacket (packet)) {
 					int id = GetPacketId (packet);
-					ReplyCallback cb = null;
-					lock (reply_packets_monitor) {
-						reply_cbs.TryGetValue (id, out cb);
-						if (cb == null) {
-							reply_packets [id] = packet;
-							Monitor.PulseAll (reply_packets_monitor);
+
+					if (reply_cbs.TryGetValue (id, out var cb) && cb != null) {
+						reply_cb_counts.TryGetValue (id, out var c);
+						c--;
+
+						if (c == 0) {
+							reply_cbs.TryRemove (id, out _);
+							reply_cb_counts.TryRemove (id, out _);
+						}
+
+						cb.Invoke (id, packet);
+					} else {
+						//Better to do this way than AddOrUpdate, since the latter expects a value factory and value factories are not protected by the concurrent dictionary locks
+						if (reply_packets.TryGetValue (id, out var existingPacket)) {
+							reply_packets.TryUpdate (id, packet, comparisonValue: existingPacket);
 						} else {
-							int c = reply_cb_counts [id];
-							c --;
-							if (c == 0) {
-								reply_cbs.Remove (id);
-								reply_cb_counts.Remove (id);
-							}
+							reply_packets.TryAdd (id, packet);
 						}
 					}
-
-					if (cb != null)
-						cb.Invoke (id, packet);
 				} else {
 					PacketReader r = new PacketReader (this, packet);
 
@@ -1820,37 +1824,47 @@ namespace Mono.Debugger.Soft
 		/* Send a request and call cb when a result is received */
 		int Send (CommandSet command_set, int command, PacketWriter packet, Action<PacketReader> cb, int count) {
 			int id = IdGenerator;
-
 			Stopwatch watch = null;
+
 			if (EnableConnectionLogging)
 				watch = Stopwatch.StartNew ();
 
 			byte[] encoded_packet;
+
 			if (packet == null)
 				encoded_packet = EncodePacket (id, (int)command_set, command, null, 0);
 			else
 				encoded_packet = EncodePacket (id, (int)command_set, command, packet.Data, packet.Offset);
 
 			if (cb != null) {
-				lock (reply_packets_monitor) {
-					reply_cbs [id] = delegate (int packet_id, byte[] p) {
-						if (EnableConnectionLogging)
-							LogPacket (packet_id, encoded_packet, p, command_set, command, watch);
-						/* Run the callback on a tp thread to avoid blocking the receive thread */
-						PacketReader r = new PacketReader (this, p);
-						ThreadPool.QueueUserWorkItem (s => {
-							// Catch all exceptions to revert to
-							// BeginInvoke behavior
-							try
-							{
-								cb (r);
-							}
-							catch
-							{
-							}
-						});
-					};
-					reply_cb_counts [id] = count;
+				ReplyCallback replyCb = delegate (int packet_id, byte[] p) {
+					if (EnableConnectionLogging)
+						LogPacket (packet_id, encoded_packet, p, command_set, command, watch);
+					/* Run the callback on a tp thread to avoid blocking the receive thread */
+					PacketReader r = new PacketReader (this, p);
+
+					ThreadPool.QueueUserWorkItem (s => {
+						// Catch all exceptions to revert to
+						// BeginInvoke behavior
+						try {
+							cb (r);
+						} catch {
+						}
+					});
+				};
+
+				//Better to do this way than AddOrUpdate, since the latter expects a value factory and value factories are not protected by the concurrent dictionary locks
+
+				if (reply_cbs.TryGetValue (id, out var currentCb)) {
+					reply_cbs.TryUpdate (id, replyCb, currentCb);
+				} else {
+					reply_cbs.TryAdd (id, replyCb);
+				}
+
+				if (reply_cb_counts.TryGetValue (id, out var currentCount)) {
+					reply_cb_counts.TryUpdate (id, count, currentCount);
+				} else {
+					reply_cb_counts.TryAdd (id, count);
 				}
 			}
 
@@ -1889,25 +1903,23 @@ namespace Mono.Debugger.Soft
 
 			/* Wait for the reply packet */
 			while (true) {
-				lock (reply_packets_monitor) {
-					byte[] reply;
-					if (reply_packets.TryGetValue (packetId, out reply)) {
-						reply_packets.Remove (packetId);
-						PacketReader r = new PacketReader (this, reply);
+				if (reply_packets.TryGetValue (packetId, out var reply)) {
+					reply_packets.TryRemove (packetId, out _);
 
-						if (EnableConnectionLogging)
-							LogPacket (packetId, encoded_packet, reply, command_set, command, watch);
-						if (r.ErrorCode != 0) {
-							if (ErrorHandler != null)
-								ErrorHandler (this, new ErrorHandlerEventArgs () { ErrorCode = (ErrorCode)r.ErrorCode, ErrorMessage = r.ErrorMsg});
-							throw new NotImplementedException ("No error handler set.");
-						} else {
-							return r;
-						}
+					PacketReader r = new PacketReader (this, reply);
+
+					if (EnableConnectionLogging)
+						LogPacket (packetId, encoded_packet, reply, command_set, command, watch);
+					if (r.ErrorCode != 0) {
+						if (ErrorHandler != null)
+							ErrorHandler (this, new ErrorHandlerEventArgs () { ErrorCode = (ErrorCode)r.ErrorCode, ErrorMessage = r.ErrorMsg });
+
+						throw new NotImplementedException ("No error handler set.");
 					} else {
-						disconnected_check ();
-						Monitor.Wait (reply_packets_monitor);
+						return r;
 					}
+				} else {
+					disconnected_check ();
 				}
 			}
 		}
