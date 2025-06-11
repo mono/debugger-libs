@@ -1540,7 +1540,7 @@ namespace Mono.Debugger.Soft
 			}
 		}
 
-		bool disconnected;
+		volatile bool disconnected;
 		VMCrashException crashed;
 
 		internal ManualResetEvent DisconnectedEvent = new ManualResetEvent (false);
@@ -1575,14 +1575,12 @@ namespace Mono.Debugger.Soft
 		}
 
 		void disconnected_check () {
-			lock (reply_packets_monitor) {
-				if (!disconnected)
-					return;
-				else if (crashed != null)
-					throw crashed;
-				else
-					throw new VMDisconnectedException ();
-			}
+			if (!disconnected)
+				return;
+			else if (crashed != null)
+				throw crashed;
+			else
+				throw new VMDisconnectedException ();
 		}
 
 		bool ReceivePacket () {
