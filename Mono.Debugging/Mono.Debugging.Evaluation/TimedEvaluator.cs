@@ -43,7 +43,7 @@ namespace Mono.Debugging.Evaluation
 		List<Task> executingTasks = new List<Task> ();
 		int runningThreads;
 		int busyThreads;
-		bool useTimeout;
+		internal bool UseTimeout { get; set; }
 		bool disposed;
 		static int threadNameId;
 
@@ -54,7 +54,7 @@ namespace Mono.Debugging.Evaluation
 		public TimedEvaluator (bool useTimeout)
 		{
 			RunTimeout = 1000;
-			this.useTimeout = useTimeout;
+			UseTimeout = useTimeout;
 		}
 
 		public int RunTimeout { get; set; }
@@ -76,7 +76,7 @@ namespace Mono.Debugging.Evaluation
 		/// </summary>
 		public bool Run (EvaluatorDelegate evaluator, EvaluatorDelegate delayedDoneCallback)
 		{
-			if (!useTimeout) {
+			if (!UseTimeout) {
 				SafeRun (evaluator);
 				return true;
 			}
